@@ -1,13 +1,12 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.cardselection;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
 import com.gempukku.lotro.bots.rl.fotrstarters.CardFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.FotrStarterBot;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.AbstractTrainer;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.LabeledPoint;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.semanticaction.CardSelectionAssignedAction;
+import com.gempukku.lotro.bots.rl.fotrstarters.FotrAbstractTrainer;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.CardSelectionAssignedAction;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.Assignment;
@@ -21,7 +20,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class SkirmishOrderTrainer extends AbstractTrainer {
+public class SkirmishOrderTrainer extends FotrAbstractTrainer {
     private static final String SKIRMISH = "next skirmish to resolve";
 
     public List<LabeledPoint> extractTrainingData(List<LearningStep> steps) {

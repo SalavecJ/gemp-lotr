@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.cardaction;
 
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;

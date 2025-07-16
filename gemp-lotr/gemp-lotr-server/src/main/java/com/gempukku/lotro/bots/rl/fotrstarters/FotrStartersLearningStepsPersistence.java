@@ -1,8 +1,8 @@
 package com.gempukku.lotro.bots.rl.fotrstarters;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
-import com.gempukku.lotro.bots.rl.LearningStepsPersistence;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.Trainer;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStepsPersistence;
+import com.gempukku.lotro.bots.rl.learning.Trainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.CardFromDiscardTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.assignment.FpAssignmentTrainer;

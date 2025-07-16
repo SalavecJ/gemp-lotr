@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.cardselection;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 

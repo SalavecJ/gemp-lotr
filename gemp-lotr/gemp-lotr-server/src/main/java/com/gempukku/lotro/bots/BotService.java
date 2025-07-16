@@ -1,14 +1,15 @@
 package com.gempukku.lotro.bots;
 
+import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.random.RandomLearningBot;
-import com.gempukku.lotro.bots.rl.LearningStep;
-import com.gempukku.lotro.bots.rl.ReplayBuffer;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.ReplayBuffer;
 import com.gempukku.lotro.bots.rl.fotrstarters.FotrStarterBot;
 import com.gempukku.lotro.bots.rl.fotrstarters.FotrStartersLearningStepsPersistence;
 import com.gempukku.lotro.bots.rl.fotrstarters.FotrStartersRLGameStateFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelIO;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.Trainer;
+import com.gempukku.lotro.bots.rl.ModelIO;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.Trainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.CardFeatures;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.CardFromDiscardTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.StartingFellowshipTrainer;
@@ -20,6 +21,10 @@ import com.gempukku.lotro.bots.rl.fotrstarters.models.integerchoice.BurdenTraine
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.AnotherMoveTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.GoFirstTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.MulliganTrainer;
+import com.gempukku.lotro.bots.rl.v2.BotV2;
+import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
+import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
+import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.bots.simulation.FotrStartersSimulation;
 import com.gempukku.lotro.bots.simulation.SimpleBatchSimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationRunner;
@@ -44,6 +49,8 @@ public class BotService {
 
     public static final String GENERAL_BOT_NAME = "~bot";
 
+    public static LotroCardBlueprintLibrary staticLibrary = null;
+
     private final LotroCardBlueprintLibrary library;
     private final LotroFormatLibrary formatLibrary;
     private final PlayerDAO playerDAO;
@@ -56,6 +63,7 @@ public class BotService {
 
     public BotService(LotroCardBlueprintLibrary library, LotroFormatLibrary formatLibrary, PlayerDAO playerDAO) {
         this.library = library;
+        staticLibrary = library;
         CardFeatures.init(library);
         this.formatLibrary = formatLibrary;
         this.playerDAO = playerDAO;
@@ -122,6 +130,21 @@ public class BotService {
             }
 
             System.out.println("Bot decision models ready");
+
+
+            SavedVectorBuffer savedVectorBuffer = new SavedVectorBuffer(10_000);
+            startFotrStartersSimulation(
+                    new RandomDecisionBot("~random"),
+                    new BotV2("~v2", savedVectorBuffer, null),
+                    1000);
+            savedVectorBuffer.save();
+
+            ModelRegistryV2 modelRegistryV2 = new ModelRegistryV2();
+            TrainersV2.trainModels(modelRegistryV2);
+            startFotrStartersSimulation(
+                    new RandomDecisionBot("~random"),
+                    new BotV2("~v2", null, modelRegistryV2),
+                    1000);
         }
     }
 

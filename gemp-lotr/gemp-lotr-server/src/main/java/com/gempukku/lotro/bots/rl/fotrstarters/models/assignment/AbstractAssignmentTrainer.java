@@ -1,12 +1,12 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.assignment;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
 import com.gempukku.lotro.bots.rl.fotrstarters.CardFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.AbstractTrainer;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.LabeledPoint;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.semanticaction.AssignMinionsAction;
+import com.gempukku.lotro.bots.rl.fotrstarters.FotrAbstractTrainer;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.AssignMinionsAction;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
@@ -19,7 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class AbstractAssignmentTrainer extends AbstractTrainer {
+public abstract class AbstractAssignmentTrainer extends FotrAbstractTrainer {
     protected abstract boolean isForFp();
 
     protected abstract void generateAssignmentsRecursive(Map<String, String> minionsToAssign,

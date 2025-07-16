@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.simulation;
 
 import com.gempukku.lotro.bots.BotPlayer;
-import com.gempukku.lotro.bots.rl.LearningBotPlayer;
+import com.gempukku.lotro.bots.rl.learning.LearningBotPlayer;
 
 public class SimpleBatchSimulationRunner implements SimulationRunner{
     private final Simulation simulation;

@@ -2,7 +2,7 @@ package com.gempukku.lotro.bots.rl.fotrstarters;
 
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.rl.*;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.CardFromDiscardTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.arbitrarycards.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.assignment.FpAssignmentTrainer;
@@ -13,7 +13,10 @@ import com.gempukku.lotro.bots.rl.fotrstarters.models.integerchoice.BurdenTraine
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.AnotherMoveTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.GoFirstTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.MulliganTrainer;
-import com.gempukku.lotro.bots.rl.semanticaction.*;
+import com.gempukku.lotro.bots.rl.learning.LearningBotPlayer;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.ReplayBuffer;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;

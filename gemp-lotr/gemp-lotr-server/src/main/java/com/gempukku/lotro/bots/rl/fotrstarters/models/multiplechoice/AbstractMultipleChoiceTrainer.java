@@ -1,11 +1,11 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.AbstractTrainer;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.LabeledPoint;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.semanticaction.MultipleChoiceAction;
+import com.gempukku.lotro.bots.rl.fotrstarters.FotrAbstractTrainer;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.MultipleChoiceAction;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Maybe will need AbstractBinaryChoiceTrainer in the future
-public abstract class AbstractMultipleChoiceTrainer extends AbstractTrainer {
+public abstract class AbstractMultipleChoiceTrainer extends FotrAbstractTrainer {
     protected abstract String getTextTrigger();         // e.g. "mulligan", "another move"
     protected abstract String getPositiveOption();      // e.g. "Yes", "Go first"
     protected abstract String getNegativeOption();      // e.g. "No", "Go second"

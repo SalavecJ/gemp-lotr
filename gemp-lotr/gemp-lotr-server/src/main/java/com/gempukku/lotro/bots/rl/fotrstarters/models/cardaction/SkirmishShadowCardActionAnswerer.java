@@ -1,10 +1,10 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.cardaction;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
 import com.gempukku.lotro.bots.rl.fotrstarters.CardFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.semanticaction.CardActionChoiceAction;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.CardActionChoiceAction;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;

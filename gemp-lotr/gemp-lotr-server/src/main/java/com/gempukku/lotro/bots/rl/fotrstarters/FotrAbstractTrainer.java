@@ -1,0 +1,30 @@
+package com.gempukku.lotro.bots.rl.fotrstarters;
+
+import com.gempukku.lotro.bots.rl.DecisionAnswerer;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.Trainer;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
+import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
+import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import smile.classification.LogisticRegression;
+import smile.classification.SoftClassifier;
+
+import java.util.List;
+
+public abstract class FotrAbstractTrainer implements Trainer, DecisionAnswerer {
+
+    abstract protected List<LabeledPoint> extractTrainingData(List<LearningStep> steps);
+
+    public SoftClassifier<double[]> trainWithPoints(List<LabeledPoint> points) {
+        double[][] x = points.stream().map(LabeledPoint::x).toArray(double[][]::new);
+        int[] y = points.stream().mapToInt(LabeledPoint::y).toArray();
+        return LogisticRegression.fit(x, y);
+    }
+
+    @Override
+    public SoftClassifier<double[]> train(List<LearningStep> steps) {
+        return trainWithPoints(extractTrainingData(steps));
+    }
+}

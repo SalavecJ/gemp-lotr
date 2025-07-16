@@ -1,8 +1,8 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.cardselection;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.LabeledPoint;
-import com.gempukku.lotro.bots.rl.semanticaction.CardSelectionAction;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.CardSelectionAction;
 
 import java.util.*;
 

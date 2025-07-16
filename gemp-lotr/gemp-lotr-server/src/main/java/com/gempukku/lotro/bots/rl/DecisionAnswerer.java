@@ -1,6 +1,5 @@
 package com.gempukku.lotro.bots.rl;
 
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 

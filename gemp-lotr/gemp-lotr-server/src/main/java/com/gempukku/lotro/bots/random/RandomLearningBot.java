@@ -1,10 +1,10 @@
 package com.gempukku.lotro.bots.random;
 
-import com.gempukku.lotro.bots.rl.LearningBotPlayer;
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningBotPlayer;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
-import com.gempukku.lotro.bots.rl.ReplayBuffer;
-import com.gempukku.lotro.bots.rl.semanticaction.*;
+import com.gempukku.lotro.bots.rl.learning.ReplayBuffer;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;

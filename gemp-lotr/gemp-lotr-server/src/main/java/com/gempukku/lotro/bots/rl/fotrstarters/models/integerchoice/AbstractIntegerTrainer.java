@@ -1,11 +1,11 @@
 package com.gempukku.lotro.bots.rl.fotrstarters.models.integerchoice;
 
-import com.gempukku.lotro.bots.rl.LearningStep;
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.AbstractTrainer;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.LabeledPoint;
-import com.gempukku.lotro.bots.rl.fotrstarters.models.ModelRegistry;
-import com.gempukku.lotro.bots.rl.semanticaction.IntegerChoiceAction;
+import com.gempukku.lotro.bots.rl.fotrstarters.FotrAbstractTrainer;
+import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.ModelRegistry;
+import com.gempukku.lotro.bots.rl.learning.semanticaction.IntegerChoiceAction;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -14,7 +14,7 @@ import smile.classification.SoftClassifier;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractIntegerTrainer extends AbstractTrainer {
+public abstract class AbstractIntegerTrainer extends FotrAbstractTrainer {
 
     protected abstract String getTextTrigger(); // e.g., "burdens to bid"
     public abstract int getMaxChoice();
