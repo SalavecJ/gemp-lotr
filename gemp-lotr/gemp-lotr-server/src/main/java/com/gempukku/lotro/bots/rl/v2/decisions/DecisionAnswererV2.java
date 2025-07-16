@@ -8,6 +8,8 @@ public interface DecisionAnswererV2 {
     boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName);
     String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry);
 
+    String getName();
+
      class ScoredCard {
         public String cardId;
         public double score;

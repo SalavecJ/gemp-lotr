@@ -1,7 +1,5 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.choice;
 
-import com.gempukku.lotro.bots.rl.ModelRegistry;
-import com.gempukku.lotro.bots.rl.RLGameStateFeatures;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.MultipleChoiceAction;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.AbstractAnswererV2;
@@ -10,11 +8,12 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
 
+import java.util.List;
+
 public abstract class AbstractChoiceAnswerer extends AbstractAnswererV2 {
 
     protected abstract String getTextTrigger();         // e.g. "mulligan", "another move"
-    protected abstract String getPositiveOption();      // e.g. "Yes", "Go first"
-    protected abstract String getNegativeOption();      // e.g. "No", "Go second"
+    protected abstract List<String> getOptions();
 
     @Override
     public boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName) {
@@ -27,15 +26,27 @@ public abstract class AbstractChoiceAnswerer extends AbstractAnswererV2 {
     @Override
     public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         if (modelRegistry == null) {
-            throw new UnsupportedOperationException("Model not found for " + getClass().getSimpleName());
+            throw new UnsupportedOperationException("Model not found for " + getName());
         }
         SoftClassifier<double[]> model = modelRegistry.getModel(getClass());
         if (model == null) {
-            throw new UnsupportedOperationException("Model not found for " + getClass().getSimpleName());
+            model = modelRegistry.getModel(getName());
         }
-        double[] stateVector = extractFeatures(gameState, decision, playerName);
-        double[] probs = new double[2];
-        model.predict(stateVector, probs);
-        return probs[1] > probs[0] ? new MultipleChoiceAction(getPositiveOption()).toDecisionString(decision, gameState) : new MultipleChoiceAction(getNegativeOption()).toDecisionString(decision, gameState);
+        if (model == null) {
+            throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+        double[] features = extractFeatures(gameState, decision, playerName);
+        double[] probabilities = new double[getOptions().size()];
+        model.predict(features, probabilities);
+
+        // Find highest probability option
+        int bestIndex = 0;
+        for (int i = 1; i < probabilities.length; i++) {
+            if (probabilities[i] > probabilities[bestIndex]) {
+                bestIndex = i;
+            }
+        }
+
+        return new MultipleChoiceAction(getOptions().get(bestIndex)).toDecisionString(decision, gameState);
     }
 }

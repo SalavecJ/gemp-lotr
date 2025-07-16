@@ -1,6 +1,8 @@
 package com.gempukku.lotro.bots.rl.v2.decisions;
 
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.GoFirstAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.integer.BurdenBidAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.integer.SpotMaxAnswerer;
 import org.apache.commons.collections4.list.UnmodifiableList;
@@ -12,7 +14,9 @@ public class AnswerersV2 {
     private static final List<Class<? extends DecisionAnswererV2>> answererClasses = List.of(
             BurdenBidAnswerer.class,
             SpotMaxAnswerer.class,
-            AnotherMoveAnswerer.class
+            AnotherMoveAnswerer.class,
+            GoFirstAnswerer.class,
+            MulliganAnswerer.class
     );
 
     private static final List<DecisionAnswererV2> answerers;
@@ -36,7 +40,7 @@ public class AnswerersV2 {
         return new UnmodifiableList<>(answerers);
     }
 
-    public static List<Class<? extends DecisionAnswererV2>> getAllV2AnswererClasses() {
-        return new UnmodifiableList<>(answererClasses);
+    public static void addAnswerer(DecisionAnswererV2 decisionAnswerer) {
+        answerers.add(decisionAnswerer);
     }
 }

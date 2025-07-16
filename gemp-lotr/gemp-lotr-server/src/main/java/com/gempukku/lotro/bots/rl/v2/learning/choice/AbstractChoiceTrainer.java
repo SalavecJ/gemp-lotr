@@ -15,8 +15,7 @@ import java.util.List;
 
 public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
     protected abstract String getTextTrigger();         // e.g. "mulligan", "another move"
-    protected abstract String getPositiveOption();      // e.g. "Yes", "Go first"
-    protected abstract String getNegativeOption();      // e.g. "No", "Go second"
+    protected abstract List<String> getOptions();
 
     @Override
     public boolean isStepRelevant(LearningStep step) {
@@ -31,26 +30,63 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
     @Override
     protected List<LabeledPoint> extractTrainingData(List<SavedVector> vectors) {
         List<LabeledPoint> data = new ArrayList<>();
+        List<String> options = getOptions();
+
         for (SavedVector vector : vectors) {
-            if (vector.className.equals(getClass().getSimpleName()) && vector.notChosen.size() == 1) {
-                double[] state = vector.state;
-                double[] chosen = vector.chosen;
+            if (!vector.className.equals(getName()))
+                continue;
 
-                boolean chosePositive = chosen[0] == 1.0;
+            int chosenIndex = findMatchingIndex(vector.chosen, vector.notChosen, options.size());
+            if (chosenIndex == -1)
+                continue;
 
-                int label = vector.reward > 0 ? (chosePositive ? 1 : 0) : (chosePositive ? 0 : 1);
-                data.add(new LabeledPoint(label, state));
+            int label = vector.reward > 0 ? chosenIndex : -1;
+            if (label < 0 && options.size() == 2) {
+                label = 1 - chosenIndex;
             }
+            if (label >= 0)
+                data.add(new LabeledPoint(label, vector.state));
         }
+
         return data;
+    }
+
+    // Helper to find the index of the "1.0" one-hot vector among options
+    private int findMatchingIndex(double[] chosen, List<double[]> notChosen, int totalOptions) {
+        if (chosen.length != totalOptions)
+            return -1;
+
+        for (int i = 0; i < totalOptions; i++) {
+            if (chosen[i] == 1.0)
+                return i;
+        }
+        return -1;
     }
 
     @Override
     public SavedVector toStringVector(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
         String className = getClass().getSimpleName();
         double[] state = extractFeatures(gameState, decision, playerId);
-        double[] chosen = {((MultipleChoiceAction) action).getChosenOption().equals(getPositiveOption()) ? 1.0 : 0.0};
-        List<double[]> notChosen = List.of(new double[] {((MultipleChoiceAction) action).getChosenOption().equals(getPositiveOption()) ? 0.0 : 1.0});
+
+        List<String> options = getOptions();
+        String chosenOption = ((MultipleChoiceAction) action).getChosenOption();
+
+        int chosenIndex = options.indexOf(chosenOption);
+        if (chosenIndex == -1)
+            throw new IllegalArgumentException("Chosen option not found in options");
+
+        double[] chosen = new double[options.size()];
+        chosen[chosenIndex] = 1.0;
+
+        List<double[]> notChosen = new ArrayList<>();
+        for (int i = 0; i < options.size(); i++) {
+            if (i != chosenIndex) {
+                double[] notChosenVec = new double[options.size()];
+                notChosenVec[i] = 1.0;
+                notChosen.add(notChosenVec);
+            }
+        }
+
         return new SavedVector(className, state, chosen, notChosen);
     }
 }

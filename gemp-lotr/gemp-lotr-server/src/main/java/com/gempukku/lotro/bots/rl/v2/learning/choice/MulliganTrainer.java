@@ -1,15 +1,15 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.choice;
+package com.gempukku.lotro.bots.rl.v2.learning.choice;
 
-import com.gempukku.lotro.bots.rl.v2.state.GeneralStateExtractor;
+import com.gempukku.lotro.bots.rl.v2.state.MulliganStateExtractor;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.List;
 
-public class AnotherMoveAnswerer extends AbstractChoiceAnswerer {
+public class MulliganTrainer extends AbstractChoiceTrainer {
     @Override
     protected String getTextTrigger() {
-        return "another move";
+        return "mulligan";
     }
 
     @Override
@@ -19,6 +19,6 @@ public class AnotherMoveAnswerer extends AbstractChoiceAnswerer {
 
     @Override
     public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
-        return GeneralStateExtractor.extractFeatures(gameState, decision, playerName);
+        return MulliganStateExtractor.extractFeatures(gameState, decision, playerName);
     }
 }

@@ -14,7 +14,9 @@ public interface TrainerV2 {
 
     SavedVector toStringVector(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision);
 
+    String getName();
+
     static boolean equal(TrainerV2 t1, TrainerV2 t2) {
-        return t1.getClass().equals(t2.getClass());
+        return t1.getClass().equals(t2.getClass()) || t1.getName().equals(t2.getName());
     }
 }

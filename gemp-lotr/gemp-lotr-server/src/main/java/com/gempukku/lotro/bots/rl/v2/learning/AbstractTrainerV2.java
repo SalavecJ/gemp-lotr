@@ -21,4 +21,9 @@ public abstract class AbstractTrainerV2 implements TrainerV2, StateExtractor {
     public SoftClassifier<double[]> train(List<SavedVector> vectors) {
         return trainWithPoints(extractTrainingData(vectors));
     }
+
+    @Override
+    public String getName() {
+        return getClass().getSimpleName();
+    }
 }

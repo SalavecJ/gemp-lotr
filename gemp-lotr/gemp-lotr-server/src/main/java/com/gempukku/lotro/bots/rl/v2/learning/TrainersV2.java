@@ -3,7 +3,9 @@ package com.gempukku.lotro.bots.rl.v2.learning;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.AnotherMoveTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.choice.MulliganTrainer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import smile.classification.SoftClassifier;
 
@@ -14,18 +16,16 @@ import java.util.Map;
 
 public class TrainersV2 {
     private static final Map<Class<? extends TrainerV2>, Class<? extends DecisionAnswererV2>> map = new HashMap<>();
-
-    private static final List<Class<? extends TrainerV2>> trainerClasses = new ArrayList<>();
+    private static final Map<TrainerV2, String> dynamicMap = new HashMap<>();
 
     private static final List<TrainerV2> trainers;
 
     static {
         map.put(AnotherMoveTrainer.class, AnotherMoveAnswerer.class);
-
-        trainerClasses.addAll(map.keySet());
+        map.put(MulliganTrainer.class, MulliganAnswerer.class);
 
         trainers = new ArrayList<>();
-        for (Class<? extends TrainerV2> trainerClass : trainerClasses) {
+        for (Class<? extends TrainerV2> trainerClass : map.keySet()) {
             try {
                 trainers.add(trainerClass.getDeclaredConstructor().newInstance());
             } catch (Exception e) {
@@ -38,12 +38,13 @@ public class TrainersV2 {
 
     }
 
-    public static List<TrainerV2> getAllV2Trainers() {
-        return new UnmodifiableList<>(trainers);
+    public static void add(TrainerV2 trainer, DecisionAnswererV2 answerer) {
+        trainers.add(trainer);
+        dynamicMap.put(trainer, answerer.getName());
     }
 
-    public static List<Class<? extends TrainerV2>> getAllV2TrainerClasses() {
-        return new UnmodifiableList<>(trainerClasses);
+    public static List<TrainerV2> getAllV2Trainers() {
+        return new UnmodifiableList<>(trainers);
     }
 
     public static void trainModels(ModelRegistryV2 modelRegistry) {
@@ -56,6 +57,19 @@ public class TrainersV2 {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to make model for trainer: " + trainerAnswererEntry.getKey().getSimpleName(), e);
             }
+        }
+        for (Map.Entry<TrainerV2, String> entry : dynamicMap.entrySet()) {
+            try {
+                TrainerV2 trainer = entry.getKey();
+                List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
+                if (vectors.size() > 0) {
+                    SoftClassifier<double[]> model = trainer.train(vectors);
+                    modelRegistry.registerModel(entry.getValue(), model);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to make model for trainer: " + entry.getKey().getName(), e);
+            }
+
         }
     }
 }

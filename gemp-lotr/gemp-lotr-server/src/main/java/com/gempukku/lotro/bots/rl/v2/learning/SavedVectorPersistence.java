@@ -1,29 +1,23 @@
 package com.gempukku.lotro.bots.rl.v2.learning;
 
-import com.gempukku.lotro.bots.rl.learning.Trainer;
-
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SavedVectorPersistence {
     private SavedVectorPersistence() {
     }
 
-    private static final Map<Class<? extends TrainerV2>, String> trainerFileMap =
-            TrainersV2.getAllV2TrainerClasses().stream().collect(Collectors.toMap(
-                    Function.identity(),
+    private static final Map<String, String> trainerFileMap =
+            TrainersV2.getAllV2Trainers().stream().collect(Collectors.toMap(
+                    TrainerV2::getName,
                     SavedVectorPersistence::generateFileName
             ));
 
-    private static String generateFileName(Class<? extends TrainerV2> cls) {
-        String base = cls.getSimpleName()
+    private static String generateFileName(TrainerV2 trainer) {
+        String base = trainer.getName()
                 .replaceAll("Trainer$", "") // Remove "Trainer" suffix
                 .replaceAll("([a-z])([A-Z])", "$1-$2") // CamelCase to kebab-case
                 .toLowerCase();
@@ -32,8 +26,8 @@ public class SavedVectorPersistence {
 
     public static void save(List<SavedVector> vectors) {
         for (SavedVector vector : vectors) {
-            for (Map.Entry<Class<? extends TrainerV2>, String> entry : trainerFileMap.entrySet()) {
-                if (entry.getKey().getSimpleName().equals(vector.className)) {
+            for (Map.Entry<String, String> entry : trainerFileMap.entrySet()) {
+                if (entry.getKey().equals(vector.className)) {
                     String filename = entry.getValue();
                     try {
                         saveVectorsToFile(filename, vector);
@@ -54,7 +48,7 @@ public class SavedVectorPersistence {
     }
 
     public static List<SavedVector> load(TrainerV2 trainer) {
-        String fileName = trainerFileMap.get(trainer.getClass());
+        String fileName = trainerFileMap.get(trainer.getName());
         if (fileName == null)
             return List.of();
 
@@ -64,6 +58,9 @@ public class SavedVectorPersistence {
             while ((line = br.readLine()) != null) {
                 vectors.add(SavedVector.fromJson(line));
             }
+        } catch (FileNotFoundException e) {
+            // No decisions recorded by this trainer
+            return List.of();
         } catch (IOException e) {
             e.printStackTrace();
         }

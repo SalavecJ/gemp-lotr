@@ -65,7 +65,9 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             };
         } catch (UnsupportedOperationException e) {
             // Unknown decision, choose at random and log it
-            System.out.println(e.getMessage());
+            if (modelRegistry != null) {
+                System.out.println(e.getMessage());
+            }
             action = super.chooseAction(gameState, decision);
         }
 
