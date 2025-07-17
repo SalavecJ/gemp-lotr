@@ -1,6 +1,7 @@
 package com.gempukku.lotro.game;
 
 import com.gempukku.lotro.common.*;
+import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.actions.*;
 import com.gempukku.lotro.logic.modifiers.Modifier;
@@ -17,7 +18,9 @@ public interface LotroCardBlueprint {
         LEFT, RIGHT
     }
 
+    // Stuff for bots
     JSONObject getJsonDefinition();
+    double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName);
 
     default LotroCardBlueprint getParent() {
         return this;

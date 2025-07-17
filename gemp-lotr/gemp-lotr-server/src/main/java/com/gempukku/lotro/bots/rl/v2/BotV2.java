@@ -56,7 +56,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
                 // TODO support actions with answerers
                 case INTEGER -> chooseIntegerAction(gameState, decision);
                 case MULTIPLE_CHOICE -> chooseMultipleChoiceAction(gameState, decision);
-//            case ARBITRARY_CARDS -> chooseArbitraryCardsAction(gameState, decision);
+                case ARBITRARY_CARDS -> chooseArbitraryCardsAction(gameState, decision);
 //            case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
 //            case ACTION_CHOICE -> chooseActionChoice(gameState, decision);
 //            case CARD_SELECTION -> chooseCardSelectionAction(gameState, decision);
@@ -87,6 +87,16 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         };
     }
 
+    private String chooseArbitraryCardsAction(GameState gameState, AwaitingDecision decision) {
+        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
+            if (answerer.appliesTo(gameState, decision, getName())) {
+                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
+            }
+        }
+
+        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
+    }
+
     private String chooseMultipleChoiceAction(GameState gameState, AwaitingDecision decision) {
         for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
             if (answerer.appliesTo(gameState, decision, getName())) {
@@ -95,7 +105,6 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         }
 
         throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
-
     }
 
     private String chooseIntegerAction(GameState gameState, AwaitingDecision decision) {

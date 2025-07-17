@@ -1,5 +1,7 @@
 package com.gempukku.lotro.bots.rl.v2.decisions;
 
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.DegenerateArbitraryDecisionAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.GoFirstAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
@@ -16,7 +18,9 @@ public class AnswerersV2 {
             SpotMaxAnswerer.class,
             AnotherMoveAnswerer.class,
             GoFirstAnswerer.class,
-            MulliganAnswerer.class
+            MulliganAnswerer.class,
+            DegenerateArbitraryDecisionAnswerer.class,
+            StartingFellowshipAnswerer.class
     );
 
     private static final List<DecisionAnswererV2> answerers;

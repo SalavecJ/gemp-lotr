@@ -7,6 +7,7 @@ import com.gempukku.lotro.game.ExtraPlayCost;
 import com.gempukku.lotro.game.LotroCardBlueprint;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.PhysicalCardImpl;
+import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.PlayUtils;
 import com.gempukku.lotro.logic.actions.*;
@@ -20,9 +21,12 @@ import org.json.simple.JSONObject;
 
 import java.util.*;
 
+import static com.gempukku.lotro.common.Timeword.*;
+import static com.gempukku.lotro.common.Timeword.RESPONSE;
+
 public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
-    private JSONObject jsonDefinition;
+    private final JSONObject jsonDefinition;
 
     private String id;
 
@@ -1264,5 +1268,47 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         if (title.equals("Sam") && resistance != 5 && !samsWithNon5Resistance.contains(subtitle)) {
             throw new InvalidCardDefinitionException("Sam (except some permitted) needs to have resistance of 5");
         }
+    }
+
+    @Override
+    public double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName) {
+        int wounds = 0;
+        for (PhysicalCard physicalCard : gameState.getInPlay()) {
+            if (physicalCard.getCardId() == physicalId) {
+                wounds = gameState.getWounds(physicalCard);
+            }
+        }
+
+        int copiesInDeck = 0;
+        for (String drawDeckCard : gameState.getLotroDeck(playerName).getDrawDeckCards()) {
+            if (drawDeckCard.equals(id)) {
+                copiesInDeck++;
+            }
+        }
+
+        List<Double> features = new ArrayList<>();
+
+        features.add(getSide() == Side.SHADOW ? 1.0 : 0.0);
+        features.add(getSide() == Side.FREE_PEOPLE ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.COMPANION ? 1.0 : 0.0);
+        features.add(canStartWithRing() ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.ALLY ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.MINION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.POSSESSION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.ARTIFACT ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.CONDITION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.FOLLOWER ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.EVENT ? 1.0 : 0.0);
+
+        features.add((double) getTwilightCost());
+        features.add((double) getStrength());
+        features.add((double) getVitality());
+        features.add((double) getSiteNumber());
+
+        features.add((double) wounds);
+
+        features.add((double) copiesInDeck);
+
+        return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
 }
