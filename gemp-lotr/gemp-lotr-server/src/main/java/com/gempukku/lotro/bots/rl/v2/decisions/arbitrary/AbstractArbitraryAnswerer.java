@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.DecisionAnswerer;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.AbstractAnswererV2;
+import com.gempukku.lotro.bots.rl.v2.state.GeneralStateExtractor;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
@@ -58,7 +59,7 @@ public abstract class AbstractArbitraryAnswerer extends AbstractAnswererV2 {
         for (int i = 0; i < selectableBlueprints.size(); i++) {
             try {
                 String blueprintId = selectableBlueprints.get(i);
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, Integer.parseInt(selectableIds.get(i)), playerName);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, -1, playerName);
                 double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
                 System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
 
@@ -75,5 +76,10 @@ public abstract class AbstractArbitraryAnswerer extends AbstractAnswererV2 {
         scoredCards.forEach(scoredCard -> sortedIds.add(scoredCard.cardId));
         // Always chooses max cards, never passes
         return String.join(",", sortedIds.subList(0, max));
+    }
+
+    @Override
+    public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
+        return GeneralStateExtractor.extractFeatures(gameState, decision, playerName);
     }
 }

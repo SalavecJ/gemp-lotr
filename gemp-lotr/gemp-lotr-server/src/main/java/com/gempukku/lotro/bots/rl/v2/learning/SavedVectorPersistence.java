@@ -10,11 +10,12 @@ public class SavedVectorPersistence {
     private SavedVectorPersistence() {
     }
 
-    private static final Map<String, String> trainerFileMap =
-            TrainersV2.getAllV2Trainers().stream().collect(Collectors.toMap(
-                    TrainerV2::getName,
-                    SavedVectorPersistence::generateFileName
-            ));
+    private static Map<String, String> getTrainerFileMap() {
+        return TrainersV2.getAllV2Trainers().stream().collect(Collectors.toMap(
+                TrainerV2::getName,
+                SavedVectorPersistence::generateFileName
+        ));
+    }
 
     private static String generateFileName(TrainerV2 trainer) {
         String base = trainer.getName()
@@ -26,7 +27,7 @@ public class SavedVectorPersistence {
 
     public static void save(List<SavedVector> vectors) {
         for (SavedVector vector : vectors) {
-            for (Map.Entry<String, String> entry : trainerFileMap.entrySet()) {
+            for (Map.Entry<String, String> entry : getTrainerFileMap().entrySet()) {
                 if (entry.getKey().equals(vector.className)) {
                     String filename = entry.getValue();
                     try {
@@ -48,7 +49,7 @@ public class SavedVectorPersistence {
     }
 
     public static List<SavedVector> load(TrainerV2 trainer) {
-        String fileName = trainerFileMap.get(trainer.getName());
+        String fileName = getTrainerFileMap().get(trainer.getName());
         if (fileName == null)
             return List.of();
 

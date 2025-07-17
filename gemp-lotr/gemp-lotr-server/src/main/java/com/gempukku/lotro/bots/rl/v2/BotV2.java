@@ -11,6 +11,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.TrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.logic.decisions.ArbitraryCardsSelectionDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         int addedCount = 0;
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
             if (trainer.isStepRelevant(dummyStep)) {
-                vectors.add(trainer.toStringVector(gameState, action, getName(), awaitingDecision));
+                vectors.addAll(trainer.toStringVectors(gameState, action, getName(), awaitingDecision));
                 addedCount++;
             }
         }

@@ -82,7 +82,7 @@ public class CardChoiceAnswerers {
                     }
 
                     @Override
-                    public SavedVector toStringVector(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
+                    public List<SavedVector> toStringVectors(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
                         String className = getName();
                         double[] state = extractFeatures(gameState, decision, playerId);
 
@@ -105,7 +105,7 @@ public class CardChoiceAnswerers {
                             }
                         }
 
-                        return new SavedVector(className, state, chosen, notChosen);
+                        return List.of(new SavedVector(className, state, chosen, notChosen));
                     }
                 };
 

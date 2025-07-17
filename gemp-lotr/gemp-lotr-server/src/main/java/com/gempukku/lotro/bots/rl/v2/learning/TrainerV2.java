@@ -12,7 +12,7 @@ public interface TrainerV2 {
     boolean isStepRelevant(LearningStep step);
     SoftClassifier<double[]> train(List<SavedVector> vectors);
 
-    SavedVector toStringVector(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision);
+    List<SavedVector> toStringVectors(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision);
 
     String getName();
 

@@ -2,8 +2,12 @@ package com.gempukku.lotro.bots.rl.v2.learning;
 
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.PlaySiteTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.AnotherMoveTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.MulliganTrainer;
 import org.apache.commons.collections4.list.UnmodifiableList;
@@ -23,6 +27,8 @@ public class TrainersV2 {
     static {
         map.put(AnotherMoveTrainer.class, AnotherMoveAnswerer.class);
         map.put(MulliganTrainer.class, MulliganAnswerer.class);
+        map.put(StartingFellowshipTrainer.class, StartingFellowshipAnswerer.class);
+        map.put(PlaySiteTrainer.class, PlaySiteAnswerer.class);
 
         trainers = new ArrayList<>();
         for (Class<? extends TrainerV2> trainerClass : map.keySet()) {
@@ -52,8 +58,10 @@ public class TrainersV2 {
             try {
                 TrainerV2 trainer = trainerAnswererEntry.getKey().getDeclaredConstructor().newInstance();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
-                SoftClassifier<double[]> model = trainer.train(vectors);
-                modelRegistry.registerModel(trainerAnswererEntry.getValue(), model);
+                if (vectors.size() > 0) {
+                    SoftClassifier<double[]> model = trainer.train(vectors);
+                    modelRegistry.registerModel(trainerAnswererEntry.getValue(), model);
+                }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to make model for trainer: " + trainerAnswererEntry.getKey().getSimpleName(), e);
             }

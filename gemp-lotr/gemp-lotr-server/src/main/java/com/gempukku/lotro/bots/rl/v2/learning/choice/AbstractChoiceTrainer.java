@@ -64,7 +64,7 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public SavedVector toStringVector(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
+    public List<SavedVector> toStringVectors(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
         String className = getClass().getSimpleName();
         double[] state = extractFeatures(gameState, decision, playerId);
 
@@ -87,6 +87,6 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
             }
         }
 
-        return new SavedVector(className, state, chosen, notChosen);
+        return List.of(new SavedVector(className, state, chosen, notChosen));
     }
 }
