@@ -1,7 +1,10 @@
 package com.gempukku.lotro.bots.rl.v2.learning;
 
 import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.v2.state.GeneralStateExtractor;
 import com.gempukku.lotro.bots.rl.v2.state.StateExtractor;
+import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import smile.classification.LogisticRegression;
 import smile.classification.SoftClassifier;
 
@@ -25,5 +28,11 @@ public abstract class AbstractTrainerV2 implements TrainerV2, StateExtractor {
     @Override
     public String getName() {
         return getClass().getSimpleName();
+    }
+
+
+    @Override
+    public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
+        return GeneralStateExtractor.extractFeatures(gameState, decision, playerName);
     }
 }

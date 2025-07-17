@@ -7,6 +7,7 @@ import com.gempukku.lotro.game.ExtraPlayCost;
 import com.gempukku.lotro.game.LotroCardBlueprint;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.PhysicalCardImpl;
+import com.gempukku.lotro.game.state.Assignment;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.PlayUtils;
@@ -1308,6 +1309,51 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add((double) wounds);
 
         features.add((double) copiesInDeck);
+
+        return features.stream().mapToDouble(Double::doubleValue).toArray();
+    }
+
+    @Override
+    public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName) {
+        boolean isFpAssigned = false;
+        Assignment assignment = null;
+        for (PhysicalCard physicalCard : gameState.getInPlay()) {
+            if (physicalCard.getCardId() == physicalId) {
+                for (Assignment assignment1 : gameState.getAssignments()) {
+                    if (assignment1.getFellowshipCharacter().getCardId() == physicalId) {
+                        isFpAssigned = true;
+                        assignment = assignment1;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        if (!isFpAssigned) {
+            throw new IllegalStateException("Asking for fp assigned features when card is not fp assigned.");
+        }
+
+        int wounds = 0;
+        for (PhysicalCard physicalCard : gameState.getInPlay()) {
+            if (physicalCard.getCardId() == physicalId) {
+                wounds = gameState.getWounds(physicalCard);
+            }
+        }
+
+        List<Double> features = new ArrayList<>();
+
+        features.add(getCardType() == CardType.COMPANION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.ALLY ? 1.0 : 0.0);
+
+        features.add((double) getTwilightCost());
+        features.add((double) getStrength());
+        features.add((double) getVitality());
+
+        features.add((double) wounds);
+
+        // Number of assigned minions and their strength
+        features.add(((double) assignment.getShadowCharacters().size()));
+        features.add(((double) assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum()));
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }

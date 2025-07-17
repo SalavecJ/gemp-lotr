@@ -60,7 +60,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
                 case ARBITRARY_CARDS -> chooseArbitraryCardsAction(gameState, decision);
 //                case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
                 case ACTION_CHOICE -> chooseActionChoice(gameState, decision);
-//            case CARD_SELECTION -> chooseCardSelectionAction(gameState, decision);
+                case CARD_SELECTION -> chooseCardSelectionAction(gameState, decision);
 //            case ASSIGN_MINIONS -> chooseAssignmentAction(gameState, decision);
                 default -> super.chooseAction(gameState, decision);
             };
@@ -86,6 +86,16 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             }
             case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, gameState, gameState.getCurrentPlayerId().equals(getName()));
         };
+    }
+
+    private String chooseCardSelectionAction(GameState gameState, AwaitingDecision decision) {
+        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
+            if (answerer.appliesTo(gameState, decision, getName())) {
+                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
+            }
+        }
+
+        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
     }
 
     private String chooseActionChoice(GameState gameState, AwaitingDecision decision) {

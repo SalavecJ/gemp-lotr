@@ -7,7 +7,6 @@ import com.gempukku.lotro.bots.rl.learning.semanticaction.ChooseFromArbitraryCar
 import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
 import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
-import com.gempukku.lotro.bots.rl.v2.state.GeneralStateExtractor;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
@@ -74,11 +73,6 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
         }
 
         return tbr;
-    }
-
-    @Override
-    public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
-        return GeneralStateExtractor.extractFeatures(gameState, decision, playerName);
     }
 
     private double[] append(double[] first, double[] second) {
