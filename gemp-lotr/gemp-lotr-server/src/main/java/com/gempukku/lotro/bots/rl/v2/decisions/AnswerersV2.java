@@ -3,10 +3,7 @@ package com.gempukku.lotro.bots.rl.v2.decisions;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.DegenerateArbitraryDecisionAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.ReconcileDiscardDownAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.ReconcileDiscardOneAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.SanctuaryHealAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.SkirmishOrderAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.GoFirstAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
@@ -30,7 +27,10 @@ public class AnswerersV2 {
             ReconcileDiscardDownAnswerer.class,
             ReconcileDiscardOneAnswerer.class,
             SanctuaryHealAnswerer.class,
-            SkirmishOrderAnswerer.class
+            SkirmishOrderAnswerer.class,
+            AttachItemAnswerer.class,
+            FpSelfWoundAnswerer.class,
+            ShadowSelfWoundAnswerer.class
     );
 
     private static final List<DecisionAnswererV2> answerers;
