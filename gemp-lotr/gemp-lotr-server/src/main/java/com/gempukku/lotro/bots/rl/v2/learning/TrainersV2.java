@@ -4,10 +4,14 @@ import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.general.AttachItemAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.PlaySiteTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.StartingFellowshipTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.AnotherMoveTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.MulliganTrainer;
 import org.apache.commons.collections4.list.UnmodifiableList;
@@ -29,6 +33,14 @@ public class TrainersV2 {
         map.put(MulliganTrainer.class, MulliganAnswerer.class);
         map.put(StartingFellowshipTrainer.class, StartingFellowshipAnswerer.class);
         map.put(PlaySiteTrainer.class, PlaySiteAnswerer.class);
+        map.put(AttachItemTrainer.class, AttachItemAnswerer.class);
+        map.put(FpArcherySelfWoundTrainer.class, FpArcherySelfWoundAnswerer.class);
+        map.put(FpThreatSelfWoundTrainer.class, FpThreatSelfWoundAnswerer.class);
+        map.put(ReconcileDiscardDownTrainer.class, ReconcileDiscardDownAnswerer.class);
+        map.put(ReconcileDiscardOneTrainer.class, ReconcileDiscardOneAnswerer.class);
+        map.put(SanctuaryHealTrainer.class, SanctuaryHealAnswerer.class);
+        map.put(ShadowArcherySelfWoundTrainer.class, ShadowArcherySelfWoundAnswerer.class);
+        map.put(SkirmishOrderTrainer.class, SkirmishOrderAnswerer.class);
 
         trainers = new ArrayList<>();
         for (Class<? extends TrainerV2> trainerClass : map.keySet()) {
@@ -59,8 +71,15 @@ public class TrainersV2 {
                 TrainerV2 trainer = trainerAnswererEntry.getKey().getDeclaredConstructor().newInstance();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
                 if (vectors.size() > 0) {
-                    SoftClassifier<double[]> model = trainer.train(vectors);
-                    modelRegistry.registerModel(trainerAnswererEntry.getValue(), model);
+                    try {
+                        SoftClassifier<double[]> model = trainer.train(vectors);
+                        modelRegistry.registerModel(trainerAnswererEntry.getValue(), model);
+                    } catch (IllegalArgumentException e) {
+                        // If only not enough data for model, let it be
+                        if (!e.getMessage().toLowerCase().contains("Only one class".toLowerCase())) {
+                            throw e;
+                        }
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to make model for trainer: " + trainerAnswererEntry.getKey().getSimpleName(), e);
@@ -71,8 +90,15 @@ public class TrainersV2 {
                 TrainerV2 trainer = entry.getKey();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
                 if (vectors.size() > 0) {
-                    SoftClassifier<double[]> model = trainer.train(vectors);
-                    modelRegistry.registerModel(entry.getValue(), model);
+                    try {
+                        SoftClassifier<double[]> model = trainer.train(vectors);
+                        modelRegistry.registerModel(entry.getValue(), model);
+                    } catch (IllegalArgumentException e) {
+                        // If only not enough data for model, let it be
+                        if (!e.getMessage().toLowerCase().contains("Only one class".toLowerCase())) {
+                            throw e;
+                        }
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to make model for trainer: " + entry.getKey().getName(), e);

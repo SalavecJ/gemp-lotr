@@ -36,15 +36,15 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
 
         // Store temporarily — reward comes later
         LearningStep dummyStep = new LearningStep(null, action, getName().equals(gameState.getCurrentPlayerId()), awaitingDecision);
-        int addedCount = 0;
+        List<String> relevantTrainers = new ArrayList<>();
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
             if (trainer.isStepRelevant(dummyStep)) {
                 vectors.addAll(trainer.toStringVectors(gameState, action, getName(), awaitingDecision));
-                addedCount++;
+                relevantTrainers.add(trainer.getName());
             }
         }
-        if (addedCount > 1) {
-            throw new IllegalStateException("Multiple trainers found relevant the same step");
+        if (relevantTrainers.size() > 1) {
+            throw new IllegalStateException("Multiple trainers found relevant the same step - " + relevantTrainers + " - " + awaitingDecision.getText());
         }
 
         return action.toDecisionString(awaitingDecision, gameState);
@@ -97,7 +97,6 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         }
 
         // No answerer found, make one
-        System.out.println("Making pair for " + decision.getDecisionParameters().get("source")[0]);
         SpecificCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
 
         throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
@@ -110,7 +109,8 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             }
         }
 
-        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
+        // Multiple actions triggering at the same time, choose whatever
+        return super.chooseAction(gameState, decision);
     }
 
     private String chooseArbitraryCardsAction(GameState gameState, AwaitingDecision decision) {

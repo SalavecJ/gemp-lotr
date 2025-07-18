@@ -1,7 +1,9 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.cardselection.specific;
 
+import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.AbstractCardSelectionAnswerer;
+import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.AbstractCardSelectionTrainer;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
@@ -20,8 +22,25 @@ public class SpecificCardSelectionFactory {
             throw new IllegalArgumentException("Decision provided is not " + CardsSelectionDecision.class.getSimpleName());
         }
 
-        //TODO trainer
-        AbstractCardSelectionTrainer trainer = null;
+        AbstractCardSelectionTrainer trainer = new AbstractCardSelectionTrainer() {
+            private final String source = decision.getDecisionParameters().get("source")[0];
+            @Override
+            protected String getTextTrigger() {
+                return decision.getText();
+            }
+
+            @Override
+            public String getName() {
+                return "Trainer" + source + decision.getText();
+            }
+
+            @Override
+            public boolean isStepRelevant(LearningStep step) {
+                return super.isStepRelevant(step)
+                        && step.decision.getDecisionParameters().get("source")[0].equals(source);
+            }
+        };
+
         AbstractCardSelectionAnswerer answerer = new AbstractCardSelectionAnswerer() {
             private final String source = decision.getDecisionParameters().get("source")[0];
             @Override
@@ -53,8 +72,8 @@ public class SpecificCardSelectionFactory {
         }
 
         Map<AbstractCardSelectionTrainer, AbstractCardSelectionAnswerer> pair = makeTrainerAnswererPair(decision);
-        //TODO add to trainers
 
         pair.values().forEach(AnswerersV2::addAnswerer);
+        pair.forEach(TrainersV2::add);
     }
 }

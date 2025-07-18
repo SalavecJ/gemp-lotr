@@ -30,8 +30,9 @@ public class AnswerersV2 {
             SanctuaryHealAnswerer.class,
             SkirmishOrderAnswerer.class,
             AttachItemAnswerer.class,
-            FpSelfWoundAnswerer.class,
-            ShadowSelfWoundAnswerer.class
+            FpArcherySelfWoundAnswerer.class,
+            FpThreatSelfWoundAnswerer.class,
+            ShadowArcherySelfWoundAnswerer.class
     );
 
     private static final List<DecisionAnswererV2> answerers;

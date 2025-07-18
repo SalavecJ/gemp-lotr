@@ -1,12 +1,24 @@
 package com.gempukku.lotro.bots.rl.v2.learning;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SavedVectorPersistence {
+    private static final String VECTOR_DIR = "saved-vectors";
+
+    static {
+        try {
+            Files.createDirectories(Paths.get(VECTOR_DIR));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create model directory", e);
+        }
+    }
+
     private SavedVectorPersistence() {
     }
 
@@ -41,7 +53,7 @@ public class SavedVectorPersistence {
     }
 
     private static void saveVectorsToFile(String filename, SavedVector vector) {
-        try (FileWriter fw = new FileWriter(filename, true)) {
+        try (FileWriter fw = new FileWriter(new File(VECTOR_DIR, filename), true)) {
             fw.write(vector.toJson() + "\n");
         } catch (IOException e) {
             e.printStackTrace();
@@ -54,7 +66,7 @@ public class SavedVectorPersistence {
             return List.of();
 
         List<SavedVector> vectors = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(new File(VECTOR_DIR, fileName)))) {
             String line;
             while ((line = br.readLine()) != null) {
                 vectors.add(SavedVector.fromJson(line));

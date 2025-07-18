@@ -21,7 +21,9 @@ public interface LotroCardBlueprint {
     // Stuff for bots
     JSONObject getJsonDefinition();
     double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName);
+    double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds);
     double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName);
+    double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds, int numberOfMinions, int strengthOfMinions);
 
     default LotroCardBlueprint getParent() {
         return this;

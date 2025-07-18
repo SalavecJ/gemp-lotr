@@ -1273,7 +1273,12 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
     @Override
     public double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName) {
-        int wounds = 0;
+        return  getGeneralCardFeatures(gameState, physicalId, playerName, 0);
+    }
+
+    @Override
+    public double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds) {
+        int wounds = numberOfWounds;
         for (PhysicalCard physicalCard : gameState.getInPlay()) {
             if (physicalCard.getCardId() == physicalId) {
                 wounds = gameState.getWounds(physicalCard);
@@ -1315,13 +1320,16 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
     @Override
     public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName) {
-        boolean isFpAssigned = false;
+        return getFpAssignedCardFeatures(gameState, physicalId, playerName, 0, 0, 0);
+    }
+
+    @Override
+    public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds, int numberOfMinions, int strengthOfMinions) {
         Assignment assignment = null;
         for (PhysicalCard physicalCard : gameState.getInPlay()) {
             if (physicalCard.getCardId() == physicalId) {
                 for (Assignment assignment1 : gameState.getAssignments()) {
                     if (assignment1.getFellowshipCharacter().getCardId() == physicalId) {
-                        isFpAssigned = true;
                         assignment = assignment1;
                         break;
                     }
@@ -1329,11 +1337,8 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
                 break;
             }
         }
-        if (!isFpAssigned) {
-            throw new IllegalStateException("Asking for fp assigned features when card is not fp assigned.");
-        }
 
-        int wounds = 0;
+        int wounds = numberOfWounds;
         for (PhysicalCard physicalCard : gameState.getInPlay()) {
             if (physicalCard.getCardId() == physicalId) {
                 wounds = gameState.getWounds(physicalCard);
@@ -1352,8 +1357,8 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add((double) wounds);
 
         // Number of assigned minions and their strength
-        features.add(((double) assignment.getShadowCharacters().size()));
-        features.add(((double) assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum()));
+        features.add(assignment == null ? numberOfMinions : ((double) assignment.getShadowCharacters().size()));
+        features.add(assignment == null ? strengthOfMinions : ((double) assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum()));
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
