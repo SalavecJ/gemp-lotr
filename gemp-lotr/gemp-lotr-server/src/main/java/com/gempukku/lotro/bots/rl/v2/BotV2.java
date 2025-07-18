@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.rl.learning.*;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.specific.SpecificCardSelectionFactory;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainerV2;
@@ -94,6 +95,10 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
                 return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
             }
         }
+
+        // No answerer found, make one
+        System.out.println("Making pair for " + decision.getDecisionParameters().get("source")[0]);
+        SpecificCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
 
         throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
     }

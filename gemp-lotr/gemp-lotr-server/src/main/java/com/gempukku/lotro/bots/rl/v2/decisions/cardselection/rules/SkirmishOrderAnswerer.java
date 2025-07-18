@@ -1,7 +1,8 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.cardselection;
+package com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules;
 
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.AbstractCardSelectionAnswerer;
 import com.gempukku.lotro.bots.rl.v2.state.SkirmishOrderStateExtractor;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.Assignment;
