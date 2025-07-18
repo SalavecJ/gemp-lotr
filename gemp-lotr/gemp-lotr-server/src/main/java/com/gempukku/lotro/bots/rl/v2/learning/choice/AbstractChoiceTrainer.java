@@ -36,23 +36,26 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
             if (!vector.className.equals(getName()))
                 continue;
 
-            int chosenIndex = findMatchingIndex(vector.chosen, vector.notChosen, options.size());
+            int chosenIndex = findMatchingIndex(vector.chosen, options.size());
             if (chosenIndex == -1)
                 continue;
 
-            int label = vector.reward > 0 ? chosenIndex : -1;
-            if (label < 0 && options.size() == 2) {
-                label = 1 - chosenIndex;
+            if (vector.reward > 0) {
+                data.add(new LabeledPoint(chosenIndex, vector.state));
+            } else {
+                for (double[] alt : vector.notChosen) {
+                    int idx = findMatchingIndex(alt, options.size());
+                    if (idx >= 0)
+                        data.add(new LabeledPoint(idx, vector.state));
+                }
             }
-            if (label >= 0)
-                data.add(new LabeledPoint(label, vector.state));
         }
 
         return data;
     }
 
     // Helper to find the index of the "1.0" one-hot vector among options
-    private int findMatchingIndex(double[] chosen, List<double[]> notChosen, int totalOptions) {
+    private int findMatchingIndex(double[] chosen, int totalOptions) {
         if (chosen.length != totalOptions)
             return -1;
 

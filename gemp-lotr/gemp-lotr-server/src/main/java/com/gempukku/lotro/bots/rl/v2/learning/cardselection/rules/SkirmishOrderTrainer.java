@@ -3,7 +3,6 @@ package com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules;
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.CardSelectionAction;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.CardSelectionAssignedAction;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
@@ -31,6 +30,9 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
 
             int label = vector.reward > 0 ? 1 : 0;
             data.add(new LabeledPoint(label, append(vector.state, vector.chosen)));
+            for (double[] notChosen : vector.notChosen) {
+                data.add(new LabeledPoint(1 - label, append(vector.state, notChosen)));
+            }
         }
 
         return data;
@@ -60,9 +62,21 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
         List<Integer> woundsOnChosen = ((CardSelectionAssignedAction) action).getWoundsOnChosen();
         List<Integer> minionsOnChosen = ((CardSelectionAssignedAction) action).getMinionsOnChosen();
         List<Integer> strengthOfMinionsOnChosen = ((CardSelectionAssignedAction) action).getStrengthOfMinionsOnChosen();
+        List<String> notChosenOptions = ((CardSelectionAssignedAction) action).getNotChosenBlueprintIds();
+        List<Integer> woundsOnNotChosen = ((CardSelectionAssignedAction) action).getWoundsOnNotChosen();
+        List<Integer> minionsOnNotChosen = ((CardSelectionAssignedAction) action).getMinionsOnNotChosen();
+        List<Integer> strengthOfMinionsOnNotChosen = ((CardSelectionAssignedAction) action).getStrengthOfMinionsOnNotChosen();
 
-        // Empty, does not get use during data extraction
         List<double[]> notChosenVectors = new ArrayList<>();
+        for (int i = 0; i < notChosenOptions.size(); i++) {
+            String notChosenOption = notChosenOptions.get(i);
+            try {
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(notChosenOption).getFpAssignedCardFeatures(gameState, -1, playerId, woundsOnNotChosen.get(i), minionsOnNotChosen.get(i), strengthOfMinionsOnNotChosen.get(i));
+                notChosenVectors.add(cardVector);
+            } catch (CardNotFoundException ignored) {
+
+            }
+        }
 
         List<SavedVector> tbr = new ArrayList<>();
         for (int i = 0; i < chosenOptions.size(); i++) {

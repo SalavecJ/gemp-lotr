@@ -28,6 +28,9 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
 
             int label = vector.reward > 0 ? 1 : 0;
             data.add(new LabeledPoint(label, append(vector.state, vector.chosen)));
+            for (double[] notChosen : vector.notChosen) {
+                data.add(new LabeledPoint(1 - label, append(vector.state, notChosen)));
+            }
         }
 
         return data;
