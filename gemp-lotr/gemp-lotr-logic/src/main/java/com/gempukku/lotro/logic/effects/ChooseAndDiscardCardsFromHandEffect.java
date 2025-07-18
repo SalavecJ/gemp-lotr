@@ -76,8 +76,9 @@ public class ChooseAndDiscardCardsFromHandEffect extends AbstractSubActionEffect
             processSubAction(game, subAction);
             cardsBeingDiscardedCallback(hand);
         } else {
+            String source = _text.equals("Use Muster") ? "muster" : _action.getActionSource().getBlueprintId();
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new CardsSelectionDecision(1, _text, hand, minimum, maximum) {
+                    new CardsSelectionDecision(1, _text, hand, minimum, maximum, source) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Set<PhysicalCard> cards = getSelectedCardsByResponse(result);

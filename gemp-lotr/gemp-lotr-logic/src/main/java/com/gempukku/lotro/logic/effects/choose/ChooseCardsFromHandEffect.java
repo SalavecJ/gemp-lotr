@@ -18,11 +18,13 @@ public abstract class ChooseCardsFromHandEffect extends AbstractEffect {
     private final int _minimum;
     private final int _maximum;
     private final Filter _filter;
+    private final PhysicalCard _source;
 
-    public ChooseCardsFromHandEffect(String playerId, int minimum, int maximum, Filterable... filters) {
+    public ChooseCardsFromHandEffect(String playerId, int minimum, int maximum, PhysicalCard source, Filterable... filters) {
         _playerId = playerId;
         _minimum = minimum;
         _maximum = maximum;
+        _source = source;
         _filter = Filters.and(filters);
     }
 
@@ -54,7 +56,7 @@ public abstract class ChooseCardsFromHandEffect extends AbstractEffect {
             cardsSelected(game, selectableCards);
         else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new CardsSelectionDecision(1, getText(game), selectableCards, minimum, maximum) {
+                    new CardsSelectionDecision(1, getText(game), selectableCards, minimum, maximum, _source.getBlueprintId()) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Set<PhysicalCard> selectedCards = getSelectedCardsByResponse(result);

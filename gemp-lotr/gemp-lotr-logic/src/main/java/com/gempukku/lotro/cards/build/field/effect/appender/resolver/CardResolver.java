@@ -163,7 +163,7 @@ public class CardResolver {
                 String handId = handSource.getPlayer(actionContext);
                 String choicePlayerId = playerSource.getPlayer(actionContext);
                 if (handId.equals(choicePlayerId)) {
-                    return new ChooseCardsFromHandEffect(choicePlayerId, min, max, Filters.in(possibleCards)) {
+                    return new ChooseCardsFromHandEffect(choicePlayerId, min, max, actionContext.getSource(), Filters.in(possibleCards)) {
                         @Override
                         protected void cardsSelected(LotroGame game, Collection<PhysicalCard> cards) {
                             actionContext.setCardMemory(memory, cards);
