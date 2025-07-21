@@ -23,7 +23,7 @@
 				type: choice
 				texts: [
 					Play Gollum from your draw deck
-					Play Gollum from discard pile
+					Play Gollum from your discard pile
 				]
 				effects: [
 					{
