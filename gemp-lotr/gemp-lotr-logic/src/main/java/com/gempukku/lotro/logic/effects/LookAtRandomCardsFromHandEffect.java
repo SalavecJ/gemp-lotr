@@ -46,7 +46,8 @@ public abstract class LookAtRandomCardsFromHandEffect extends AbstractEffect {
 
             if (randomCards.size() > 0) {
                 game.getUserFeedback().sendAwaitingDecision(_actingPlayer,
-                        new ArbitraryCardsSelectionDecision(1, "Random cards from opponent's hand", randomCards, Collections.emptyList(), 0, 0) {
+                        new ArbitraryCardsSelectionDecision(1, "Random cards from opponent's hand", randomCards,
+                                Collections.emptyList(), 0, 0, _source.getBlueprintId()) {
                             @Override
                             public void decisionMade(String result) {
                             }

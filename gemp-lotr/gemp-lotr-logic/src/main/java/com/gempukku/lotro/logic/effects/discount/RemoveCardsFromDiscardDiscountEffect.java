@@ -84,7 +84,7 @@ public class RemoveCardsFromDiscardDiscountEffect implements DiscountEffect {
     private void proceedDiscount(final LotroGame game) {
         final Collection<PhysicalCard> removableCards = Filters.filter(game, game.getGameState().getDiscard(_playerId), _cardFilter);
         game.getUserFeedback().sendAwaitingDecision(_playerId,
-                new ArbitraryCardsSelectionDecision(1, "Choose cards to remove", removableCards, _count, _count) {
+                new ArbitraryCardsSelectionDecision(1, "Choose cards to remove", removableCards, _count, _count, _source.getBlueprintId()) {
                     @Override
                     public void decisionMade(String result) throws DecisionResultInvalidException {
                         removeCards(game, getSelectedCardsByResponse(result));

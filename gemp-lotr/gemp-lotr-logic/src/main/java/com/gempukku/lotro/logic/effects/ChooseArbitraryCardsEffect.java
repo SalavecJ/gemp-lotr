@@ -21,16 +21,22 @@ public abstract class ChooseArbitraryCardsEffect extends AbstractEffect {
     private final Filterable _filter;
     private final int _minimum;
     private final int _maximum;
+    private final PhysicalCard _source;
 
-    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards, int minimum, int maximum) {
-        this(playerId, choiceText, cards, Filters.any, minimum, maximum);
+
+    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards,
+                                      int minimum, int maximum, PhysicalCard source) {
+        this(playerId, choiceText, cards, Filters.any, minimum, maximum, source);
     }
 
-    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards, Filterable filter, int minimum, int maximum) {
-        this(playerId, choiceText, cards, filter, minimum, maximum, false);
+    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards,
+                                      Filterable filter, int minimum, int maximum, PhysicalCard source) {
+        this(playerId, choiceText, cards, filter, minimum, maximum, false, source);
     }
 
-    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards, Filterable filter, int minimum, int maximum, boolean showMatchingOnly) {
+    public ChooseArbitraryCardsEffect(String playerId, String choiceText, Collection<? extends PhysicalCard> cards,
+                                      Filterable filter, int minimum, int maximum, boolean showMatchingOnly,
+                                      PhysicalCard source) {
         _playerId = playerId;
         _choiceText = choiceText;
         _showMatchingOnly = showMatchingOnly;
@@ -38,6 +44,7 @@ public abstract class ChooseArbitraryCardsEffect extends AbstractEffect {
         _filter = filter;
         _minimum = minimum;
         _maximum = maximum;
+        _source = source;
     }
 
     @Override
@@ -76,7 +83,7 @@ public abstract class ChooseArbitraryCardsEffect extends AbstractEffect {
                 toShow = possibleCards;
 
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new ArbitraryCardsSelectionDecision(1, _choiceText, toShow, possibleCards, _minimum, _maximum) {
+                    new ArbitraryCardsSelectionDecision(1, _choiceText, toShow, possibleCards, _minimum, _maximum, _source != null ? _source.getBlueprintId() : "null") {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             cardsSelected(game, getSelectedCardsByResponse(result));

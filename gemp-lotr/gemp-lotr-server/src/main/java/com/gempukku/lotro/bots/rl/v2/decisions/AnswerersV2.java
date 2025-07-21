@@ -1,8 +1,8 @@
 package com.gempukku.lotro.bots.rl.v2.decisions;
 
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.DegenerateArbitraryDecisionAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.PlaySiteAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.general.AttachItemAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.AnotherMoveAnswerer;

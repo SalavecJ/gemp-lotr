@@ -13,10 +13,12 @@ import java.util.List;
 public class LookAtOpponentsHandEffect extends AbstractEffect {
     private final String _playerId;
     private final String _opponentId;
+    private final PhysicalCard _source;
 
-    public LookAtOpponentsHandEffect(String playerId, String opponentId) {
+    public LookAtOpponentsHandEffect(String playerId, String opponentId, PhysicalCard source) {
         _playerId = playerId;
         _opponentId = opponentId;
+        _source = source;
     }
 
     @Override
@@ -45,7 +47,8 @@ public class LookAtOpponentsHandEffect extends AbstractEffect {
                 game.getGameState().sendMessage(_playerId + " looked at " + _opponentId + "'s entire hand");
 
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new ArbitraryCardsSelectionDecision(1, "Opponent's hand", opponentHand, Collections.emptyList(), 0, 0) {
+                    new ArbitraryCardsSelectionDecision(1, "Opponent's hand", opponentHand, Collections.emptyList(),
+                            0, 0, _source.getBlueprintId()) {
                         @Override
                         public void decisionMade(String result) {
                         }

@@ -43,7 +43,7 @@ public class PutCardsFromHandOnBottomOfDeck implements EffectAppenderProducer {
                         for (int i = 0; i < cards.size(); i++) {
                             result.add(
                                     new ChooseArbitraryCardsEffect(player.getPlayer(actionContext),
-                                            "Choose card from hand to put beneath draw deck", cards, 1, 1) {
+                                            "Choose card from hand to put beneath draw deck", cards, 1, 1, action.getActionSource()) {
                                         @Override
                                         protected void cardsSelected(LotroGame game, Collection<PhysicalCard> selectedCards) {
                                             PhysicalCard card = selectedCards.iterator().next();

@@ -38,7 +38,7 @@ public class RevealCardEffect extends AbstractSuccessfulEffect {
             String nextPlayer;
             while ((nextPlayer = playerOrder.getNextPlayer()) != null) {
                 game.getUserFeedback().sendAwaitingDecision(nextPlayer,
-                        new ArbitraryCardsSelectionDecision(1, "Revealed card(s)", _cards, Collections.emptySet(), 0, 0) {
+                        new ArbitraryCardsSelectionDecision(1, "Revealed card(s)", _cards, Collections.emptySet(), 0, 0, _source.getBlueprintId()) {
                             @Override
                             public void decisionMade(String result) {
                             }

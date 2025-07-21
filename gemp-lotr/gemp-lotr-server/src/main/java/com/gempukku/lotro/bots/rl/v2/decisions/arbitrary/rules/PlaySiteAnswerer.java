@@ -1,5 +1,6 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary;
+package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules;
 
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
 import com.gempukku.lotro.bots.rl.v2.state.GeneralStateExtractor;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;

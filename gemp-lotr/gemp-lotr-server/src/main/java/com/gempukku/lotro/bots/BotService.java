@@ -25,7 +25,7 @@ import com.gempukku.lotro.bots.rl.v2.BotV2;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.GeneralArbitraryAnswerers;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general.GeneralArbitraryAnswerers;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;

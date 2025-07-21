@@ -55,7 +55,7 @@ public class ChooseArbitraryCards implements EffectAppenderProducer {
 
                 return new PlayoutDecisionEffect(choosingPlayer,
                         new ArbitraryCardsSelectionDecision(1, GameUtils.substituteText(text, actionContext),
-                                cards, selectableCards, minimum, maximum) {
+                                cards, selectableCards, minimum, maximum, action.getActionSource().getBlueprintId()) {
                             @Override
                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                 actionContext.setCardMemory(memorize, getSelectedCardsByResponse(result));

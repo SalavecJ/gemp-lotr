@@ -1,6 +1,7 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary;
+package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general;
 
 import com.gempukku.lotro.bots.BotService;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 import com.gempukku.lotro.game.LotroCardBlueprint;
 import org.json.simple.JSONArray;

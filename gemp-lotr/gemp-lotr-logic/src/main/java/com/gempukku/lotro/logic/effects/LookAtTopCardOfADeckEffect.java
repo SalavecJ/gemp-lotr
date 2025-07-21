@@ -13,11 +13,14 @@ public class LookAtTopCardOfADeckEffect extends AbstractEffect {
     private final String _playerId;
     private final int _count;
     private final String _playerDeckId;
+    private final PhysicalCard _source;
 
-    public LookAtTopCardOfADeckEffect(String playerId, int count, String playerDeckId) {
+
+    public LookAtTopCardOfADeckEffect(String playerId, int count, String playerDeckId, PhysicalCard source) {
         _playerId = playerId;
         _count = count;
         _playerDeckId = playerDeckId;
+        _source = source;
     }
 
     @Override
@@ -48,7 +51,8 @@ public class LookAtTopCardOfADeckEffect extends AbstractEffect {
             message = "Cards in deck";
 
         game.getUserFeedback().sendAwaitingDecision(_playerId,
-                new ArbitraryCardsSelectionDecision(1, message, cards, Collections.emptyList(), 0, 0) {
+                new ArbitraryCardsSelectionDecision(1, message, cards, Collections.emptyList(), 0, 0,
+                        _source.getBlueprintId()) {
                     @Override
                     public void decisionMade(String result) {
                     }

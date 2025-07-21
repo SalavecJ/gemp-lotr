@@ -18,11 +18,13 @@ public abstract class ChooseCardsFromDeadPileEffect extends AbstractEffect {
     private final int _minimum;
     private final int _maximum;
     private final Filter _filter;
+    private final PhysicalCard _source;
 
-    public ChooseCardsFromDeadPileEffect(String playerId, int minimum, int maximum, Filterable... filters) {
+    public ChooseCardsFromDeadPileEffect(String playerId, int minimum, int maximum, PhysicalCard source, Filterable... filters) {
         _playerId = playerId;
         _minimum = minimum;
         _maximum = maximum;
+        _source = source;
         _filter = Filters.and(filters);
     }
 
@@ -56,7 +58,7 @@ public abstract class ChooseCardsFromDeadPileEffect extends AbstractEffect {
             cardsSelected(game, cards);
         } else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new ArbitraryCardsSelectionDecision(1, "Choose card from dead pile", new LinkedList<>(cards), minimum, _maximum) {
+                    new ArbitraryCardsSelectionDecision(1, "Choose card from dead pile", new LinkedList<>(cards), minimum, _maximum, _source.getBlueprintId()) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             cardsSelected(game, getSelectedCardsByResponse(result));

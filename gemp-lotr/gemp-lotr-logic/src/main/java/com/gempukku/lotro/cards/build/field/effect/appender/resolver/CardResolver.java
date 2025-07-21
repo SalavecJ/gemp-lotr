@@ -176,7 +176,7 @@ public class CardResolver {
                     };
                 } else {
                     List<? extends PhysicalCard> cardsInHand = actionContext.getGame().getGameState().getHand(handId);
-                    return new ChooseArbitraryCardsEffect(choicePlayerId, GameUtils.substituteText(choiceText, actionContext), cardsInHand, Filters.in(possibleCards), min, max, showMatchingOnly) {
+                    return new ChooseArbitraryCardsEffect(choicePlayerId, GameUtils.substituteText(choiceText, actionContext), cardsInHand, Filters.in(possibleCards), min, max, showMatchingOnly, actionContext.getSource()) {
                         @Override
                         protected void cardsSelected(LotroGame game, Collection<PhysicalCard> selectedCards) {
                             actionContext.setCardMemory(memory, selectedCards);
@@ -268,7 +268,7 @@ public class CardResolver {
             ChoiceEffectSource effectSource = (possibleCards, action, actionContext, min, max) -> {
                 String choicePlayerId = playerSource.getPlayer(actionContext);
                 String targetPlayerDiscardId = targetPlayerDiscardSource.getPlayer(actionContext);
-                return new ChooseCardsFromDiscardEffect(choicePlayerId, targetPlayerDiscardId, min, max, Filters.in(possibleCards)) {
+                return new ChooseCardsFromDiscardEffect(choicePlayerId, targetPlayerDiscardId, min, max, actionContext.getSource(), Filters.in(possibleCards)) {
                     @Override
                     protected void cardsSelected(LotroGame game, Collection<PhysicalCard> cards) {
                         actionContext.setCardMemory(memory, cards);
@@ -303,7 +303,7 @@ public class CardResolver {
         } else if (type.startsWith("choose(") && type.endsWith(")")) {
             ChoiceEffectSource effectSource = (possibleCards, action, actionContext, min, max) -> {
                 String choicePlayerId = playerSource.getPlayer(actionContext);
-                return new ChooseCardsFromDeadPileEffect(choicePlayerId, min, max, Filters.in(possibleCards)) {
+                return new ChooseCardsFromDeadPileEffect(choicePlayerId, min, max, actionContext.getSource(), Filters.in(possibleCards)) {
                     @Override
                     protected void cardsSelected(LotroGame game, Collection<PhysicalCard> cards) {
                         actionContext.setCardMemory(memory, cards);
@@ -342,7 +342,7 @@ public class CardResolver {
             ChoiceEffectSource effectSource = (possibleCards, action, actionContext, min, max) -> {
                 String choicePlayerId = playerSource.getPlayer(actionContext);
                 String targetDeckId = deckSource.getPlayer(actionContext);
-                return new ChooseCardsFromDeckEffect(choicePlayerId, targetDeckId, showAll, min, max, Filters.in(possibleCards)) {
+                return new ChooseCardsFromDeckEffect(choicePlayerId, targetDeckId, showAll, min, max, actionContext.getSource(), Filters.in(possibleCards)) {
                     @Override
                     protected void cardsSelected(LotroGame game, Collection<PhysicalCard> cards) {
                         actionContext.setCardMemory(memory, cards);

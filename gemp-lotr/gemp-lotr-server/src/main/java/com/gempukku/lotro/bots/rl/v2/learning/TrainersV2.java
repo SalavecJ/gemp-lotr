@@ -2,14 +2,14 @@ package com.gempukku.lotro.bots.rl.v2.learning;
 
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.PlaySiteAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.general.AttachItemAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.MulliganAnswerer;
-import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.PlaySiteTrainer;
-import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.StartingFellowshipTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.PlaySiteTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.rules.AnotherMoveTrainer;

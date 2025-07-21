@@ -1,10 +1,11 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary;
+package com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules;
 
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 import com.gempukku.lotro.bots.rl.v2.state.StartingFellowshipStateExtractor;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
-public class StartingFellowshipAnswerer extends AbstractArbitraryAnswerer {
+public class StartingFellowshipTrainer extends AbstractArbitraryTrainer {
     @Override
     protected String getTextTrigger() {
         return "starting fellowship";

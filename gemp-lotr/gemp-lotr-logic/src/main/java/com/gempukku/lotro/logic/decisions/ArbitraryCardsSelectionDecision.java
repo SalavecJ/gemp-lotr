@@ -13,36 +13,44 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
     private final Collection<? extends PhysicalCard> _selectable;
     private final int _minimum;
     private final int _maximum;
+    private final String _source;
 
-    public ArbitraryCardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards, int minimum, int maximum) {
-        this(id, text, physicalCards, physicalCards, minimum, maximum);
+    public ArbitraryCardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards,
+                                           int minimum, int maximum, String source) {
+        this(id, text, physicalCards, physicalCards, minimum, maximum, source);
     }
 
-    public ArbitraryCardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards, Collection<? extends PhysicalCard> selectable, int minimum, int maximum) {
+    public ArbitraryCardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards,
+                                           Collection<? extends PhysicalCard> selectable,
+                                           int minimum, int maximum, String source) {
         super(id, text, AwaitingDecisionType.ARBITRARY_CARDS);
         _physicalCards = physicalCards;
         _selectable = selectable;
         _minimum = minimum;
         _maximum = maximum;
+        _source = source;
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
         setParam("cardId", getCardIds(physicalCards));
         setParam("blueprintId", getBlueprintIds(physicalCards));
         setParam("selectable", getSelectable(physicalCards, selectable));
+        setParam("source", source);
     }
 
     public ArbitraryCardsSelectionDecision(int id, String text, List<String> physicalCardIds, List<String> blueprintIds,
-                                           List<String> selectable, int minimum, int maximum) {
+                                           List<String> selectable, int minimum, int maximum, String source) {
         super(id, text, AwaitingDecisionType.ARBITRARY_CARDS);
         _physicalCards = null;
         _selectable = null;
         _minimum = minimum;
         _maximum = maximum;
+        _source = source;
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
         setParam("cardId", physicalCardIds.toArray(new String[0]));
         setParam("blueprintId", blueprintIds.toArray(new String[0]));
         setParam("selectable", selectable.toArray(new String[0]));
+        setParam("source", source);
     }
 
     private String[] getSelectable(Collection<? extends PhysicalCard> physicalCards, Collection<? extends PhysicalCard> selectable) {
@@ -118,13 +126,14 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
         obj.put("physicalCards", getDecisionParameters().get("cardId"));
         obj.put("blueprintIds", getDecisionParameters().get("blueprintId"));
         obj.put("selectable", getDecisionParameters().get("selectable"));
+        obj.put("source", _source);
         return obj;
     }
 
     public static ArbitraryCardsSelectionDecision fromJson(JSONObject obj) {
         return new ArbitraryCardsSelectionDecision(obj.getInteger("id"), obj.getString("text"), Arrays.asList(obj.getObject("physicalCards", String[].class)),
                 Arrays.asList(obj.getObject("blueprintIds", String[].class)), Arrays.asList(obj.getObject("selectable", String[].class)),
-                obj.getInteger("min"), obj.getInteger("max")) {
+                obj.getInteger("min"), obj.getInteger("max"), obj.getString("source")) {
             @Override
             public void decisionMade(String result) throws DecisionResultInvalidException {
                 throw new UnsupportedOperationException("Not implemented in training context");

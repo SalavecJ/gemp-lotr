@@ -98,7 +98,7 @@ public class PlaySiteEffect extends AbstractEffect {
                 && game.getModifiersQuerying().canPlaySite(game, _playerId)) {
             SubAction subAction = new SubAction(_action);
             subAction.appendEffect(
-                    new ChooseArbitraryCardsEffect(_playerId, "Choose site to play", newSite, 1, 1) {
+                    new ChooseArbitraryCardsEffect(_playerId, "Choose site to play", newSite, 1, 1, _action.getActionSource()) {
                         @Override
                         protected void cardsSelected(LotroGame game, Collection<PhysicalCard> selectedCards) {
                             PhysicalCard newSite = selectedCards.iterator().next();

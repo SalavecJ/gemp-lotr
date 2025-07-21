@@ -33,7 +33,7 @@ public class LookAtHand implements EffectAppenderProducer {
             @Override
             protected Effect createEffect(boolean cost, CostToEffectAction action, ActionContext actionContext) {
                 final String revealingPlayer = playerSource.getPlayer(actionContext);
-                return new LookAtOpponentsHandEffect(actionContext.getPerformingPlayer(), revealingPlayer);
+                return new LookAtOpponentsHandEffect(actionContext.getPerformingPlayer(), revealingPlayer, actionContext.getSource());
             }
         };
     }

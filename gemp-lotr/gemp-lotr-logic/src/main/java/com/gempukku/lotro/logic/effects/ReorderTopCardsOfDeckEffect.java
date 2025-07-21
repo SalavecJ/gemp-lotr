@@ -59,7 +59,7 @@ public class ReorderTopCardsOfDeckEffect extends AbstractSubActionEffect {
         private final CostToEffectAction _subAction;
 
         public ChooseAndPutNextCardFromDeckOnTopOfDeck(CostToEffectAction subAction, Collection<PhysicalCard> remainingCards) {
-            super(_playerId, "Choose a card to put on top of the deck", remainingCards, 1, 1);
+            super(_playerId, "Choose a card to put on top of the deck", remainingCards, 1, 1, _action.getActionSource());
             _subAction = subAction;
             _remainingCards = remainingCards;
         }

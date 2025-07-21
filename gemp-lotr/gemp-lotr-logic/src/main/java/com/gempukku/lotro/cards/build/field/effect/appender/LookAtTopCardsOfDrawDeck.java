@@ -39,7 +39,7 @@ public class LookAtTopCardsOfDrawDeck implements EffectAppenderProducer {
             protected Effect createEffect(boolean cost, CostToEffectAction action, ActionContext actionContext) {
                 final String deckId = playerSource.getPlayer(actionContext);
 
-                return new LookAtTopCardOfADeckEffect(actionContext.getPerformingPlayer(), count, deckId) {
+                return new LookAtTopCardOfADeckEffect(actionContext.getPerformingPlayer(), count, deckId, actionContext.getSource()) {
                     @Override
                     protected void cardsLookedAt(List<? extends PhysicalCard> cards) {
                         if (memorize != null)

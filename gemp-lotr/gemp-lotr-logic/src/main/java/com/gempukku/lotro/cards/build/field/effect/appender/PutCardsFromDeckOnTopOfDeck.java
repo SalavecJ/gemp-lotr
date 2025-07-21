@@ -44,7 +44,7 @@ public class PutCardsFromDeckOnTopOfDeck implements EffectAppenderProducer {
                         for (int i = 0; i < cards.size(); i++) {
                             result.add(
                                     new ChooseArbitraryCardsEffect(actionContext.getPerformingPlayer(),
-                                            "Choose card from deck to put on top of deck", cards, 1, 1) {
+                                            "Choose card from deck to put on top of deck", cards, 1, 1, actionContext.getSource()) {
                                         @Override
                                         protected void cardsSelected(LotroGame game, Collection<PhysicalCard> selectedCards) {
                                             PhysicalCard card = selectedCards.iterator().next();

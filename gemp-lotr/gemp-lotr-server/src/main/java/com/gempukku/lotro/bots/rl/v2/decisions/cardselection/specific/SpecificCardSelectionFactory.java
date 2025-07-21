@@ -31,7 +31,7 @@ public class SpecificCardSelectionFactory {
 
             @Override
             public String getName() {
-                return "Trainer" + source + decision.getText();
+                return "Trainer-" + source + decision.getText();
             }
 
             @Override
@@ -56,7 +56,7 @@ public class SpecificCardSelectionFactory {
 
             @Override
             public String getName() {
-                return "Answerer" + source + decision.getText();
+                return "Answerer-" + source + decision.getText();
             }
         };
 

@@ -32,6 +32,7 @@ public abstract class CardsSelectionDecision extends AbstractAwaitingDecision {
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
         setParam("cardId", physicalCardIds.toArray(new String[0]));
+        setParam("source", source);
     }
 
     private String[] getCardIds(List<? extends PhysicalCard> physicalCards) {
