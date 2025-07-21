@@ -21,8 +21,11 @@ public class CardSelectionAction implements SemanticAction {
     public CardSelectionAction(String answer, AwaitingDecision decision, GameState gameState) {
         String[] individualCards = answer.split(",");
 
+        List<String> chosenPhysicalIds = new ArrayList<>();
+
         for (String individualCard : individualCards) {
             if (!individualCard.isEmpty()) {
+                chosenPhysicalIds.add(individualCard);
                 chosenBlueprintIds.add(gameState.getBlueprintId(Integer.parseInt(individualCard)));
                 int wounds = 0;
                 for (PhysicalCard physicalCard : gameState.getInPlay()) {
@@ -37,9 +40,9 @@ public class CardSelectionAction implements SemanticAction {
         String zoneOfAllCards = null;
 
         if (decision instanceof CardsSelectionDecision csd) {
-            List<String> allChoices = Arrays.asList(csd.getDecisionParameters().get("cardId"));
+            String[] allChoices = csd.getDecisionParameters().get("cardId");
             for (String choice : allChoices) {
-                if (!chosenBlueprintIds.contains(gameState.getBlueprintId(Integer.parseInt(choice)))) {
+                if (!chosenPhysicalIds.contains(choice)) {
                     notChosenBlueprintIds.add(gameState.getBlueprintId(Integer.parseInt(choice)));
                     int wounds = 0;
                     for (PhysicalCard physicalCard : gameState.getInPlay()) {

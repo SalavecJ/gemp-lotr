@@ -31,13 +31,14 @@ public class SpecificCardSelectionFactory {
 
             @Override
             public String getName() {
-                return "Trainer-" + source + decision.getText();
+                return "CsTrainer-" + source + "-" + decision.getText();
             }
 
             @Override
             public boolean isStepRelevant(LearningStep step) {
                 return super.isStepRelevant(step)
-                        && step.decision.getDecisionParameters().get("source")[0].equals(source);
+                        && step.decision.getDecisionParameters().get("source")[0].equals(source)
+                        && getTextTrigger().equalsIgnoreCase(step.decision.getText());
             }
         };
 
@@ -51,12 +52,13 @@ public class SpecificCardSelectionFactory {
             @Override
             public boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName) {
                 return super.appliesTo(gameState, decision, playerName)
-                        && decision.getDecisionParameters().get("source")[0].equals(source);
+                        && decision.getDecisionParameters().get("source")[0].equals(source)
+                        && getTextTrigger().equalsIgnoreCase(decision.getText());
             }
 
             @Override
             public String getName() {
-                return "Answerer-" + source + decision.getText();
+                return "CsAnswerer-" + source + "-" + decision.getText();
             }
         };
 

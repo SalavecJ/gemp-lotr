@@ -58,7 +58,7 @@ public class SpecificChoiceFactory {
 
             @Override
             public String getName() {
-                return "Trainer" + cardOptions;
+                return "McTrainer" + cardOptions;
             }
 
             @Override
@@ -117,7 +117,7 @@ public class SpecificChoiceFactory {
 
             @Override
             public String getName() {
-                return "Answerer" + cardOptions;
+                return "McAnswerer" + cardOptions;
             }
         };
 

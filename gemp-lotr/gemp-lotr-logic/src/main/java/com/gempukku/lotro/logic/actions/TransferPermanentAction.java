@@ -29,7 +29,7 @@ public class TransferPermanentAction extends ActivateCardAction {
                     }
                 });
         appendEffect(
-                new ChooseActiveCardsEffect(null, card.getOwner(), "Choose target to attach to", 1, 1, filter) {
+                new ChooseActiveCardsEffect(_transferredCard, card.getOwner(), "Choose target to attach to", 1, 1, filter) {
                     @Override
                     protected void cardsSelected(LotroGame game, Collection<PhysicalCard> target) {
                         if (!target.isEmpty()) {

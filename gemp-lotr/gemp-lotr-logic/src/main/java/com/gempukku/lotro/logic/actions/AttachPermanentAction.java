@@ -40,7 +40,7 @@ public class AttachPermanentAction extends AbstractCostToEffectAction {
         _twilightModifier = twilightModifier;
 
         _chooseTargetEffect =
-                new ChooseActiveCardEffect(null, card.getOwner(), "Attach " + GameUtils.getFullName(card) + ". Choose target to attach to", filter) {
+                new ChooseActiveCardEffect(_cardToAttach, card.getOwner(), "Attach " + GameUtils.getFullName(card) + ". Choose target to attach to", filter) {
                     @Override
                     protected void cardSelected(LotroGame game, PhysicalCard target) {
                         _target = target;
