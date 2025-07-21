@@ -1,7 +1,8 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.choice;
+package com.gempukku.lotro.bots.rl.v2.decisions.choice.rules;
 
 import com.gempukku.lotro.bots.rl.learning.semanticaction.MultipleChoiceAction;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.AbstractChoiceAnswerer;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -9,7 +10,6 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class GoFirstAnswerer extends AbstractChoiceAnswerer {
     @Override
@@ -37,8 +37,8 @@ public class GoFirstAnswerer extends AbstractChoiceAnswerer {
         if (options.length != getOptions().size())
             return false;
 
-        List<String> inputOptions = Arrays.stream(options).map(String::trim).collect(Collectors.toList());
-        List<String> normalizedCardOptions = getOptions().stream().map(String::trim).collect(Collectors.toList());
+        List<String> inputOptions = Arrays.stream(options).map(String::trim).toList();
+        List<String> normalizedCardOptions = getOptions().stream().map(String::trim).toList();
 
         return new HashSet<>(inputOptions).equals(new HashSet<>(normalizedCardOptions));
     }

@@ -1,12 +1,13 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.choice;
+package com.gempukku.lotro.bots.rl.v2.learning.choice.rules;
 
+import com.gempukku.lotro.bots.rl.v2.learning.choice.AbstractChoiceTrainer;
 import com.gempukku.lotro.bots.rl.v2.state.MulliganStateExtractor;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.List;
 
-public class MulliganAnswerer extends AbstractChoiceAnswerer {
+public class MulliganTrainer extends AbstractChoiceTrainer {
     @Override
     protected String getTextTrigger() {
         return "mulligan";

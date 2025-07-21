@@ -6,14 +6,14 @@ import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.PlaySiteAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.general.AttachItemAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
-import com.gempukku.lotro.bots.rl.v2.decisions.choice.AnotherMoveAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.choice.MulliganAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.AnotherMoveAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.MulliganAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.PlaySiteTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules.*;
-import com.gempukku.lotro.bots.rl.v2.learning.choice.AnotherMoveTrainer;
-import com.gempukku.lotro.bots.rl.v2.learning.choice.MulliganTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.choice.rules.AnotherMoveTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.choice.rules.MulliganTrainer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import smile.classification.SoftClassifier;
 
@@ -70,7 +70,7 @@ public class TrainersV2 {
             try {
                 TrainerV2 trainer = trainerAnswererEntry.getKey().getDeclaredConstructor().newInstance();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
-                if (vectors.size() > 0) {
+                if (!vectors.isEmpty()) {
                     try {
                         SoftClassifier<double[]> model = trainer.train(vectors);
                         modelRegistry.registerModel(trainerAnswererEntry.getValue(), model);
@@ -89,7 +89,7 @@ public class TrainersV2 {
             try {
                 TrainerV2 trainer = entry.getKey();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
-                if (vectors.size() > 0) {
+                if (!vectors.isEmpty()) {
                     try {
                         SoftClassifier<double[]> model = trainer.train(vectors);
                         modelRegistry.registerModel(entry.getValue(), model);

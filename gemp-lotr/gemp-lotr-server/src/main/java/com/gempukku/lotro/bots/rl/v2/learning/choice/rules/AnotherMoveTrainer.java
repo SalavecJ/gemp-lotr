@@ -1,4 +1,6 @@
-package com.gempukku.lotro.bots.rl.v2.learning.choice;
+package com.gempukku.lotro.bots.rl.v2.learning.choice.rules;
+
+import com.gempukku.lotro.bots.rl.v2.learning.choice.AbstractChoiceTrainer;
 
 import java.util.List;
 
