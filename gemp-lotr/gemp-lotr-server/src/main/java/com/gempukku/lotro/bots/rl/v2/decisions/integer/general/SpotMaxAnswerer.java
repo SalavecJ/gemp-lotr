@@ -1,6 +1,7 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.integer;
+package com.gempukku.lotro.bots.rl.v2.decisions.integer.general;
 
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.integer.AbstractIntegerAnswerer;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 

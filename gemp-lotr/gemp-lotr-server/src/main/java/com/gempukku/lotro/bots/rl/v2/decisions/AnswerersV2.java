@@ -10,8 +10,8 @@ import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.GoFirstAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.MulliganAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.integer.BurdenBidAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.integer.SpotMaxAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.integer.rules.BurdenBidAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.integer.general.SpotMaxAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 import org.apache.commons.collections4.list.UnmodifiableList;
 
@@ -22,7 +22,6 @@ import java.util.Map;
 public class AnswerersV2 {
     private static final List<Class<? extends DecisionAnswererV2>> answererClasses = List.of(
             BurdenBidAnswerer.class,
-            SpotMaxAnswerer.class,
             AnotherMoveAnswerer.class,
             GoFirstAnswerer.class,
             MulliganAnswerer.class,
@@ -38,7 +37,8 @@ public class AnswerersV2 {
             ShadowArcherySelfWoundAnswerer.class
     );
     private static final List<Class<? extends DecisionAnswererV2>> generalAnswererClasses = List.of(
-            AttachItemAnswerer.class
+            AttachItemAnswerer.class,
+            SpotMaxAnswerer.class
     );
 
     private static final List<DecisionAnswererV2> answerers;
