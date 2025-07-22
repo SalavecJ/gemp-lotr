@@ -1,7 +1,6 @@
 package com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules;
 
 import com.gempukku.lotro.bots.BotService;
-import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.CardSelectionAssignedAction;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
@@ -16,27 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
-
-    @Override
-    protected List<LabeledPoint> extractTrainingData(List<SavedVector> vectors) {
-
-        // Does not use vector.notChosen
-
-        List<LabeledPoint> data = new ArrayList<>();
-
-        for (SavedVector vector : vectors) {
-            if (!vector.className.equals(getName()))
-                continue;
-
-            int label = vector.reward > 0 ? 1 : 0;
-            data.add(new LabeledPoint(label, append(vector.state, vector.chosen)));
-            for (double[] notChosen : vector.notChosen) {
-                data.add(new LabeledPoint(1 - label, append(vector.state, notChosen)));
-            }
-        }
-
-        return data;
-    }
 
     @Override
     protected String getTextTrigger() {
