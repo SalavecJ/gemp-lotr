@@ -2,12 +2,15 @@ package com.gempukku.lotro.bots.rl.v2.learning;
 
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
+import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general.GeneralArbitraryAnswerers;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.PlaySiteAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.rules.StartingFellowshipAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.general.AttachItemAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.rules.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.AnotherMoveAnswerer;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.rules.MulliganAnswerer;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.PlaySiteTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
@@ -25,15 +28,16 @@ import java.util.Map;
 public class TrainersV2 {
     private static final Map<Class<? extends TrainerV2>, Class<? extends DecisionAnswererV2>> map = new HashMap<>();
     private static final Map<TrainerV2, String> dynamicMap = new HashMap<>();
+    private static final Map<TrainerV2, String> generalMap = new HashMap<>();
 
     private static final List<TrainerV2> trainers;
+    private static final List<TrainerV2> generalTrainers = new ArrayList<>();
 
     static {
         map.put(AnotherMoveTrainer.class, AnotherMoveAnswerer.class);
         map.put(MulliganTrainer.class, MulliganAnswerer.class);
         map.put(StartingFellowshipTrainer.class, StartingFellowshipAnswerer.class);
         map.put(PlaySiteTrainer.class, PlaySiteAnswerer.class);
-        map.put(AttachItemTrainer.class, AttachItemAnswerer.class);
         map.put(FpArcherySelfWoundTrainer.class, FpArcherySelfWoundAnswerer.class);
         map.put(FpThreatSelfWoundTrainer.class, FpThreatSelfWoundAnswerer.class);
         map.put(ReconcileDiscardDownTrainer.class, ReconcileDiscardDownAnswerer.class);
@@ -41,6 +45,12 @@ public class TrainersV2 {
         map.put(SanctuaryHealTrainer.class, SanctuaryHealAnswerer.class);
         map.put(ShadowArcherySelfWoundTrainer.class, ShadowArcherySelfWoundAnswerer.class);
         map.put(SkirmishOrderTrainer.class, SkirmishOrderAnswerer.class);
+
+        generalMap.put(new AttachItemTrainer(), new AttachItemAnswerer().getName());
+
+        for (Map.Entry<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> entry : GeneralArbitraryAnswerers.generateGeneralArbitraryCardChoicePairs().entrySet()) {
+            generalMap.put(entry.getKey(), entry.getValue().getName());
+        }
 
         trainers = new ArrayList<>();
         for (Class<? extends TrainerV2> trainerClass : map.keySet()) {
@@ -50,6 +60,8 @@ public class TrainersV2 {
                 throw new RuntimeException("Failed to instantiate trainer: " + trainerClass.getName(), e);
             }
         }
+
+        generalTrainers.addAll(generalMap.keySet());
     }
 
     private TrainersV2() {
@@ -63,6 +75,10 @@ public class TrainersV2 {
 
     public static List<TrainerV2> getAllV2Trainers() {
         return new UnmodifiableList<>(trainers);
+    }
+
+    public static List<TrainerV2> getAllV2GeneralTrainers() {
+        return new UnmodifiableList<>(generalTrainers);
     }
 
     public static void trainModels(ModelRegistryV2 modelRegistry) {
@@ -86,6 +102,26 @@ public class TrainersV2 {
             }
         }
         for (Map.Entry<TrainerV2, String> entry : dynamicMap.entrySet()) {
+            try {
+                TrainerV2 trainer = entry.getKey();
+                List<SavedVector> vectors = SavedVectorPersistence.load(trainer);
+                if (!vectors.isEmpty()) {
+                    try {
+                        SoftClassifier<double[]> model = trainer.train(vectors);
+                        modelRegistry.registerModel(entry.getValue(), model);
+                    } catch (IllegalArgumentException e) {
+                        // If only not enough data for model, let it be
+                        if (!e.getMessage().toLowerCase().contains("Only one class".toLowerCase())) {
+                            throw e;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to make model for trainer: " + entry.getKey().getName(), e);
+            }
+
+        }
+        for (Map.Entry<TrainerV2, String> entry : generalMap.entrySet()) {
             try {
                 TrainerV2 trainer = entry.getKey();
                 List<SavedVector> vectors = SavedVectorPersistence.load(trainer);

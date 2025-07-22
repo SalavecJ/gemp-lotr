@@ -15,6 +15,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,11 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         if (relevantTrainers.size() > 1) {
             throw new IllegalStateException("Multiple trainers found relevant the same step - " + relevantTrainers + " - " + awaitingDecision.getText());
         }
+        for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
+            if (trainer.isStepRelevant(dummyStep)) {
+                vectors.addAll(trainer.toStringVectors(gameState, action, getName(), awaitingDecision));
+            }
+        }
 
         return action.toDecisionString(awaitingDecision, gameState);
     }
@@ -57,17 +63,17 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         try {
             action = switch (decision.getDecisionType()) {
                 // TODO support actions with answerers
-                case INTEGER -> chooseIntegerAction(gameState, decision);
-                case MULTIPLE_CHOICE -> chooseMultipleChoiceAction(gameState, decision);
-                case ARBITRARY_CARDS -> chooseArbitraryCardsAction(gameState, decision);
+                case INTEGER -> chooseActionBasedOnModel(gameState, decision);
+                case MULTIPLE_CHOICE -> chooseActionBasedOnModel(gameState, decision);
+                case ARBITRARY_CARDS -> chooseActionBasedOnModel(gameState, decision);
 //                case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
-                case ACTION_CHOICE -> chooseActionChoice(gameState, decision);
-                case CARD_SELECTION -> chooseCardSelectionAction(gameState, decision);
+                case ACTION_CHOICE -> chooseActionBasedOnModel(gameState, decision);
+                case CARD_SELECTION -> chooseActionBasedOnModel(gameState, decision);
 //            case ASSIGN_MINIONS -> chooseAssignmentAction(gameState, decision);
                 default -> super.chooseAction(gameState, decision);
             };
         } catch (UnsupportedOperationException e) {
-            // Unknown decision, choose at random and log it
+            // Cannot use models, choose at random and log it
             if (modelRegistry != null) {
                 System.out.println(e.getMessage());
             }
@@ -90,59 +96,40 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         };
     }
 
-    private String chooseCardSelectionAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseActionBasedOnModel(GameState gameState, AwaitingDecision decision) {
+        boolean modelError = false;
         for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
+            if (answerer.appliesTo(gameState, decision, getName())) {
+                try {
+                    return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
+                } catch (UnsupportedOperationException ignored) {
+                    // Model not found for answerer
+                    modelError = true;
+                }
+            }
+        }
+
+        if (!modelError) {
+            // No answerer found, make one
+            switch (decision.getDecisionType()) {
+                case MULTIPLE_CHOICE -> SpecificChoiceFactory.makeAndRegisterTrainerAndAnswerer(decision);
+                case ARBITRARY_CARDS ->
+                        SpecificArbitraryCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
+                case CARD_SELECTION -> SpecificCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
+            }
+        }
+
+        // Try general answerers
+        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2GeneralAnswerers()) {
             if (answerer.appliesTo(gameState, decision, getName())) {
                 return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
             }
         }
 
-        // No answerer found, make one
-        SpecificCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
+        if (decision.getDecisionType().equals(AwaitingDecisionType.ACTION_CHOICE)) {
+            // Multiple actions triggering at the same time, choose whatever
+            return super.chooseAction(gameState, decision);
 
-        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
-    }
-
-    private String chooseActionChoice(GameState gameState, AwaitingDecision decision) {
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
-                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
-            }
-        }
-
-        // Multiple actions triggering at the same time, choose whatever
-        return super.chooseAction(gameState, decision);
-    }
-
-    private String chooseArbitraryCardsAction(GameState gameState, AwaitingDecision decision) {
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
-                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
-            }
-        }
-
-        SpecificArbitraryCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
-
-        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
-    }
-
-    private String chooseMultipleChoiceAction(GameState gameState, AwaitingDecision decision) {
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
-                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
-            }
-        }
-
-        SpecificChoiceFactory.makeAndRegisterTrainerAndAnswerer(decision);
-
-        throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());
-    }
-
-    private String chooseIntegerAction(GameState gameState, AwaitingDecision decision) {
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
-                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
-            }
         }
 
         throw new UnsupportedOperationException("Unsupported decision: " + decision.toJson().toString());

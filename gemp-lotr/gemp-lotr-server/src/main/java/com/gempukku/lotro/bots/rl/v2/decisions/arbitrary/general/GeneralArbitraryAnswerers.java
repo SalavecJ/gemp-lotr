@@ -1,11 +1,7 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general;
 
-import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
-import com.gempukku.lotro.game.LotroCardBlueprint;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,7 +34,7 @@ public class GeneralArbitraryAnswerers {
             "Choose cards to remove"
     );
 
-    public static Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> generateUniqueArbitraryCardChoicePairs() {
+    public static Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> generateGeneralArbitraryCardChoicePairs() {
         Map<String, AbstractArbitraryTrainer> trainerMap = new LinkedHashMap<>();
         Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> result = new LinkedHashMap<>();
 
@@ -48,13 +44,13 @@ public class GeneralArbitraryAnswerers {
                 AbstractArbitraryTrainer trainer = new AbstractArbitraryTrainer() {
                     @Override protected String getTextTrigger() { return decision; }
                     @Override public String getName() {
-                        return "Trainer-" + decision;
+                        return "AcsGeneralTrainer-" + decision;
                     }
                 };
                 AbstractArbitraryAnswerer answerer = new AbstractArbitraryAnswerer() {
                     @Override protected String getTextTrigger() { return decision; }
                     @Override public String getName() {
-                        return "Answerer-" + decision;
+                        return "AcsGeneralAnswerer-" + decision;
                     }
                 };
                 trainerMap.put(decision, trainer);
@@ -62,49 +58,7 @@ public class GeneralArbitraryAnswerers {
             }
         }
 
-        // Add JSON-based decisions
-        Map<String, LotroCardBlueprint> allBlueprints = BotService.staticLibrary.getBaseCards();
-        for (LotroCardBlueprint blueprint : allBlueprints.values()) {
-            JSONObject json = blueprint.getJsonDefinition();
-            collectArbitraryTextRecursively(json, trainerMap, result);
-        }
-
         return result;
-    }
-
-    private static void collectArbitraryTextRecursively(Object node,
-                                                        Map<String, AbstractArbitraryTrainer> trainerMap,
-                                                        Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> result) {
-        if (node instanceof JSONObject jsonObject) {
-            Object type = jsonObject.get("type");
-            Object text = jsonObject.get("text");
-            if ("chooseArbitraryCards".equals(type) && text instanceof String textStr) {
-                if (!trainerMap.containsKey(textStr)) {
-                    AbstractArbitraryTrainer trainer = new AbstractArbitraryTrainer() {
-                        @Override protected String getTextTrigger() { return textStr; }
-                        @Override public String getName() {
-                            return "Trainer-" + textStr;
-                        }
-                    };
-                    AbstractArbitraryAnswerer answerer = new AbstractArbitraryAnswerer() {
-                        @Override protected String getTextTrigger() { return textStr; }
-                        @Override public String getName() {
-                            return "Answerer-" + textStr;
-                        }
-                    };
-                    trainerMap.put(textStr, trainer);
-                    result.put(trainer, answerer);
-                }
-            }
-
-            for (Object value : jsonObject.values()) {
-                collectArbitraryTextRecursively(value, trainerMap, result);
-            }
-        } else if (node instanceof JSONArray array) {
-            for (Object element : array) {
-                collectArbitraryTextRecursively(element, trainerMap, result);
-            }
-        }
     }
 }
 

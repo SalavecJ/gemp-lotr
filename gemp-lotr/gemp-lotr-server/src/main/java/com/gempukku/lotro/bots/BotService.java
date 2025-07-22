@@ -23,12 +23,8 @@ import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.GoFirstTrai
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.MulliganTrainer;
 import com.gempukku.lotro.bots.rl.v2.BotV2;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general.GeneralArbitraryAnswerers;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
-import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 import com.gempukku.lotro.bots.simulation.FotrStartersSimulation;
 import com.gempukku.lotro.bots.simulation.SimpleBatchSimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationRunner;
@@ -134,12 +130,6 @@ public class BotService {
             }
 
             System.out.println("Bot decision models ready");
-
-            Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> arbitraryPairs = GeneralArbitraryAnswerers.generateUniqueArbitraryCardChoicePairs();
-            for (Map.Entry<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> entry : arbitraryPairs.entrySet()) {
-                TrainersV2.add(entry.getKey(), entry.getValue());
-                AnswerersV2.addAnswerer(entry.getValue());
-            }
 
             SavedVectorBuffer savedVectorBuffer = new SavedVectorBuffer(10_000);
             startFotrStartersSimulation(

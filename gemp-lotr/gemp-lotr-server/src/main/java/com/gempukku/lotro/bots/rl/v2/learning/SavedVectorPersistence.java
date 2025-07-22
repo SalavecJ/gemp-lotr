@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,10 +24,16 @@ public class SavedVectorPersistence {
     }
 
     private static Map<String, String> getTrainerFileMap() {
-        return TrainersV2.getAllV2Trainers().stream().collect(Collectors.toMap(
+        Map<String, String> tbr = new HashMap<>();
+        tbr.putAll(TrainersV2.getAllV2Trainers().stream().collect(Collectors.toMap(
                 TrainerV2::getName,
                 SavedVectorPersistence::generateFileName
-        ));
+        )));
+        tbr.putAll(TrainersV2.getAllV2GeneralTrainers().stream().collect(Collectors.toMap(
+                TrainerV2::getName,
+                SavedVectorPersistence::generateFileName
+        )));
+        return tbr;
     }
 
     private static String generateFileName(TrainerV2 trainer) {
