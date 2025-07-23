@@ -1,7 +1,5 @@
 package com.gempukku.lotro.bots.rl.v2.learning;
 
-import com.gempukku.lotro.bots.rl.learning.LearningStep;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import smile.classification.SoftClassifier;
@@ -9,10 +7,11 @@ import smile.classification.SoftClassifier;
 import java.util.List;
 
 public interface TrainerV2 {
-    boolean isStepRelevant(LearningStep step);
+    boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName);
+
     SoftClassifier<double[]> train(List<SavedVector> vectors);
 
-    List<SavedVector> toStringVectors(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision);
+    List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer);
 
     String getName();
 

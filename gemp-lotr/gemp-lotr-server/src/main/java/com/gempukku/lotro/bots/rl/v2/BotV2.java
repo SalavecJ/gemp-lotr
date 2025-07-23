@@ -2,7 +2,6 @@ package com.gempukku.lotro.bots.rl.v2;
 
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.rl.learning.*;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.specific.SpecificArbitraryCardSelectionFactory;
@@ -12,7 +11,6 @@ import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
-import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -34,14 +32,13 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
 
     @Override
     public String chooseAction(GameState gameState, AwaitingDecision awaitingDecision) {
-        SemanticAction action = chooseSemanticAction(gameState, awaitingDecision);
+        String action = makeDecision(gameState, awaitingDecision);
 
         // Store temporarily — reward comes later
-        LearningStep dummyStep = new LearningStep(null, action, getName().equals(gameState.getCurrentPlayerId()), awaitingDecision);
         List<String> relevantTrainers = new ArrayList<>();
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
-            if (trainer.isStepRelevant(dummyStep)) {
-                vectors.addAll(trainer.toStringVectors(gameState, action, getName(), awaitingDecision));
+            if (trainer.isDecisionRelevant(gameState, awaitingDecision, getName())) {
+                vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
                 relevantTrainers.add(trainer.getName());
             }
         }
@@ -49,19 +46,17 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             throw new IllegalStateException("Multiple trainers found relevant the same step - " + relevantTrainers + " - " + awaitingDecision.getText());
         }
         for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
-            if (trainer.isStepRelevant(dummyStep)) {
-                vectors.addAll(trainer.toStringVectors(gameState, action, getName(), awaitingDecision));
+            if (trainer.isDecisionRelevant(gameState, awaitingDecision, getName())) {
+                vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
             }
         }
 
-        return action.toDecisionString(awaitingDecision, gameState);
+        return action;
     }
 
-    private SemanticAction chooseSemanticAction(GameState gameState, AwaitingDecision decision) {
-        String action;
-
+    private String makeDecision(GameState gameState, AwaitingDecision decision) {
         try {
-            action = switch (decision.getDecisionType()) {
+            return switch (decision.getDecisionType()) {
                 // TODO support actions with answerers
                 case INTEGER -> chooseActionBasedOnModel(gameState, decision);
                 case MULTIPLE_CHOICE -> chooseActionBasedOnModel(gameState, decision);
@@ -77,23 +72,8 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             if (modelRegistry != null) {
                 System.out.println(e.getMessage());
             }
-            action = super.chooseAction(gameState, decision);
+            return super.chooseAction(gameState, decision);
         }
-
-        return switch (decision.getDecisionType()) {
-            case INTEGER -> new IntegerChoiceAction(Integer.parseInt(action));
-            case MULTIPLE_CHOICE -> new MultipleChoiceAction(action, decision);
-            case ARBITRARY_CARDS -> new ChooseFromArbitraryCardsAction(action, decision);
-            case CARD_ACTION_CHOICE -> new CardActionChoiceAction(action, decision, gameState);
-            case ACTION_CHOICE -> new ActionChoiceAction(action, decision);
-            case CARD_SELECTION -> {
-                if (gameState.getCurrentPhase().equals(Phase.SKIRMISH)) {
-                    yield new CardSelectionAssignedAction(action, decision, gameState);
-                }
-                yield new CardSelectionAction(action, decision, gameState);
-            }
-            case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, gameState, gameState.getCurrentPlayerId().equals(getName()));
-        };
     }
 
     private String chooseActionBasedOnModel(GameState gameState, AwaitingDecision decision) {

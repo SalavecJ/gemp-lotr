@@ -5,8 +5,6 @@ import com.gempukku.lotro.bots.rl.v2.state.MulliganStateExtractor;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
-import java.util.List;
-
 public class MulliganTrainer extends AbstractChoiceTrainer {
     @Override
     protected String getTextTrigger() {
@@ -14,8 +12,8 @@ public class MulliganTrainer extends AbstractChoiceTrainer {
     }
 
     @Override
-    protected List<String> getOptions() {
-        return List.of("Yes", "No");
+    protected int getNumberOfOptions() {
+        return 2;
     }
 
     @Override

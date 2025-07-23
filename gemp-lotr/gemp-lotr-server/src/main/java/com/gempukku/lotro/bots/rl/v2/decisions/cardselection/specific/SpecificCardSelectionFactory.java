@@ -1,6 +1,5 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.cardselection.specific;
 
-import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.AbstractCardSelectionAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
@@ -35,10 +34,10 @@ public class SpecificCardSelectionFactory {
             }
 
             @Override
-            public boolean isStepRelevant(LearningStep step) {
-                return super.isStepRelevant(step)
-                        && step.decision.getDecisionParameters().get("source")[0].equals(source)
-                        && getTextTrigger().equalsIgnoreCase(step.decision.getText());
+            public boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName) {
+                return super.isDecisionRelevant(gameState, decision, playerName)
+                        && decision.getDecisionParameters().get("source")[0].equals(source)
+                        && getTextTrigger().equalsIgnoreCase(decision.getText());
             }
         };
 

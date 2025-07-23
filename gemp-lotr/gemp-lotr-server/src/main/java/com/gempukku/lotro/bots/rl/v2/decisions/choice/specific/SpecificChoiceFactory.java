@@ -1,11 +1,7 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.choice.specific;
 
-import com.gempukku.lotro.bots.rl.learning.LearningStep;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.MultipleChoiceAction;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.choice.AbstractChoiceAnswerer;
-import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.AbstractChoiceTrainer;
 import com.gempukku.lotro.game.state.GameState;
@@ -29,14 +25,11 @@ public class SpecificChoiceFactory {
 
         AbstractChoiceTrainer trainer = new AbstractChoiceTrainer() {
             @Override
-            public boolean isStepRelevant(LearningStep step) {
-                if (step.decision.getDecisionType() != AwaitingDecisionType.MULTIPLE_CHOICE)
+            public boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName) {
+                if (decision.getDecisionType() != AwaitingDecisionType.MULTIPLE_CHOICE)
                     return false;
 
-                if (!(step.action instanceof MultipleChoiceAction))
-                    return false;
-
-                String[] options = step.decision.getDecisionParameters().get("results");
+                String[] options = decision.getDecisionParameters().get("results");
                 if (options.length != cardOptions.size())
                     return false;
 
@@ -52,40 +45,13 @@ public class SpecificChoiceFactory {
             }
 
             @Override
-            protected List<String> getOptions() {
-                return cardOptions;
+            protected int getNumberOfOptions() {
+                return cardOptions.size();
             }
 
             @Override
             public String getName() {
                 return "McTrainer" + cardOptions;
-            }
-
-            @Override
-            public List<SavedVector> toStringVectors(GameState gameState, SemanticAction action, String playerId, AwaitingDecision decision) {
-                String className = getName();
-                double[] state = extractFeatures(gameState, decision, playerId);
-
-                List<String> options = getOptions();
-                String chosenOption = ((MultipleChoiceAction) action).getChosenOption();
-
-                int chosenIndex = options.indexOf(chosenOption);
-                if (chosenIndex == -1)
-                    throw new IllegalArgumentException("Chosen option not found in options");
-
-                double[] chosen = new double[options.size()];
-                chosen[chosenIndex] = 1.0;
-
-                List<double[]> notChosen = new ArrayList<>();
-                for (int i = 0; i < options.size(); i++) {
-                    if (i != chosenIndex) {
-                        double[] notChosenVec = new double[options.size()];
-                        notChosenVec[i] = 1.0;
-                        notChosen.add(notChosenVec);
-                    }
-                }
-
-                return List.of(new SavedVector(className, state, chosen, notChosen));
             }
         };
 

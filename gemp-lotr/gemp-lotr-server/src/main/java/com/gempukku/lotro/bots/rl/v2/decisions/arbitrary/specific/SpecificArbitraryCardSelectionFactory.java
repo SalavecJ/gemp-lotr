@@ -1,6 +1,5 @@
 package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.specific;
 
-import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
 import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
@@ -36,9 +35,9 @@ public class SpecificArbitraryCardSelectionFactory {
             }
 
             @Override
-            public boolean isStepRelevant(LearningStep step) {
-                return super.isStepRelevant(step)
-                        && step.decision.getDecisionParameters().get("source")[0].equals(source);
+            public boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName) {
+                return super.isDecisionRelevant(gameState, decision, playerName)
+                        && decision.getDecisionParameters().get("source")[0].equals(source);
             }
         };
 
