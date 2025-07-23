@@ -21,7 +21,7 @@ public class ChooseOpponent implements EffectAppenderProducer {
 		return new DelayedAppender() {
 			@Override
 			protected Effect createEffect(boolean cost, CostToEffectAction action, ActionContext actionContext) {
-				return new ChooseOpponentEffect(actionContext.getPerformingPlayer()) {
+				return new ChooseOpponentEffect(actionContext.getPerformingPlayer(), actionContext.getSource()) {
 					@Override
 					protected void opponentChosen(String opponentId) {
 						actionContext.setValueToMemory(memorize, opponentId);

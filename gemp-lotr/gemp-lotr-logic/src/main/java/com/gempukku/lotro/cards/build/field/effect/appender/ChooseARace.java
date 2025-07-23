@@ -34,7 +34,7 @@ public class ChooseARace implements EffectAppenderProducer {
                 return new PlayoutDecisionEffect(
                         actionContext.getPerformingPlayer(),
                         new MultipleChoiceAwaitingDecision(1, "Choose a race",
-                                possibleRaces.toArray(new String[0])) {
+                                possibleRaces.toArray(new String[0]), actionContext.getSource().getBlueprintId()) {
                             @Override
                             protected void validDecisionMade(int index, String result) {
                                 actionContext.setValueToMemory(memorize, Race.findRaceByHumanReadable(result).toString());

@@ -48,7 +48,7 @@ public class Optional implements EffectAppenderProducer {
 
                 subAction.appendCost(
                         new PlayoutDecisionEffect(choosingPlayer,
-                                new YesNoDecision(GameUtils.substituteText(text, actionContext)) {
+                                new YesNoDecision(GameUtils.substituteText(text, actionContext), actionContext.getSource().getBlueprintId()) {
                             @Override
                             protected void yes() {
                                 for (EffectAppender costAppender : costAppenders)

@@ -82,7 +82,8 @@ public class Choice implements EffectAppenderProducer {
                 SubAction subAction = new SubAction(action);
                 subAction.appendCost(
                         new PlayoutDecisionEffect(choosingPlayer,
-                                new MultipleChoiceAwaitingDecision(1, "Choose action to perform", effectTexts.toArray(new String[0])) {
+                                new MultipleChoiceAwaitingDecision(1, "Choose action to perform", effectTexts.toArray(new String[0]),
+                                        actionContext.getSource().getBlueprintId()) {
                                     @Override
                                     protected void validDecisionMade(int index, String result) {
                                         playableEffectAppenders.get(index).appendEffect(cost, subAction, delegateActionContext);

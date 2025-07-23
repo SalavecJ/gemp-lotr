@@ -41,7 +41,7 @@ public class ChooseAKeyword implements EffectAppenderProducer {
 
                 return new PlayoutDecisionEffect(
                         actionContext.getPerformingPlayer(),
-                        new MultipleChoiceAwaitingDecision(1, text, keywords) {
+                        new MultipleChoiceAwaitingDecision(1, text, keywords, actionContext.getSource().getBlueprintId()) {
                             @Override
                             protected void validDecisionMade(int index, String result) {
                                 actionContext.setValueToMemory(memorize, result.toUpperCase().replace(' ', '_').replace('-', '_'));

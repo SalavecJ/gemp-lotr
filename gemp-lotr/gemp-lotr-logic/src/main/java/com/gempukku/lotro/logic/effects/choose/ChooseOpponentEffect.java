@@ -1,5 +1,6 @@
 package com.gempukku.lotro.logic.effects.choose;
 
+import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.GameUtils;
 import com.gempukku.lotro.logic.decisions.MultipleChoiceAwaitingDecision;
@@ -7,9 +8,11 @@ import com.gempukku.lotro.logic.timing.UnrespondableEffect;
 
 public abstract class ChooseOpponentEffect extends UnrespondableEffect {
 	private final String _playerId;
+	private final PhysicalCard _source;
 
-	public ChooseOpponentEffect(String playerId) {
+	public ChooseOpponentEffect(String playerId, PhysicalCard source) {
 		_playerId = playerId;
+		_source = source;
 	}
 
 	@Override
@@ -19,7 +22,7 @@ public abstract class ChooseOpponentEffect extends UnrespondableEffect {
 			opponentChosen(opponents[0]);
 		else
 			game.getUserFeedback().sendAwaitingDecision(_playerId,
-					new MultipleChoiceAwaitingDecision(1, "Choose an opponent", opponents) {
+					new MultipleChoiceAwaitingDecision(1, "Choose an opponent", opponents, _source.getBlueprintId()) {
 						@Override
 						protected void validDecisionMade(int index, String result) {
 							opponentChosen(result);

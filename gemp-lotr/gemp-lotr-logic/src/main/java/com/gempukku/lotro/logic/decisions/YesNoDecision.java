@@ -1,8 +1,10 @@
 package com.gempukku.lotro.logic.decisions;
 
+import com.gempukku.lotro.game.PhysicalCard;
+
 public class YesNoDecision extends MultipleChoiceAwaitingDecision {
-    public YesNoDecision(String text) {
-        super(1, text, new String[]{"Yes", "No"});
+    public YesNoDecision(String text, String source) {
+        super(1, text, new String[]{"Yes", "No"}, source);
     }
 
     @Override

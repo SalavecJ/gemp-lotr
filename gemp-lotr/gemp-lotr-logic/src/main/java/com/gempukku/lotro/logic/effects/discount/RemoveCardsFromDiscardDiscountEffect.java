@@ -69,7 +69,7 @@ public class RemoveCardsFromDiscardDiscountEffect implements DiscountEffect {
         if (isPlayableInFull(game)) {
             if (!_required) {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
-                        new YesNoDecision("Do you want to remove cards from discard instead of paying twilight cost?") {
+                        new YesNoDecision("Do you want to remove cards from discard instead of paying twilight cost?", _source.getBlueprintId()) {
                             @Override
                             protected void yes() {
                                 proceedDiscount(game);

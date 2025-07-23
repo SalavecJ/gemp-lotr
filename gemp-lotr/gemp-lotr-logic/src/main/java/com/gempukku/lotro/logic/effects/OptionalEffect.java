@@ -40,7 +40,7 @@ public class OptionalEffect extends AbstractSubActionEffect {
             if(text != null)
                 text = text.toLowerCase();
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new MultipleChoiceAwaitingDecision(1, "Do you wish to " + text + "?", new String[]{"Yes", "No"}) {
+                    new MultipleChoiceAwaitingDecision(1, "Do you wish to " + text + "?", new String[]{"Yes", "No"}, _action.getActionSource().getBlueprintId()) {
                         @Override
                         protected void validDecisionMade(int index, String result) {
                             if (index == 0) {

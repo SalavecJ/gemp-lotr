@@ -34,7 +34,7 @@ public class ChooseACulture implements EffectAppenderProducer {
                 return new PlayoutDecisionEffect(
                         actionContext.getPerformingPlayer(),
                         new MultipleChoiceAwaitingDecision(1, "Choose a culture",
-                                possibleCultures.toArray(new String[0])) {
+                                possibleCultures.toArray(new String[0]), actionContext.getSource().getBlueprintId()) {
                             @Override
                             protected void validDecisionMade(int index, String result) {
                                 actionContext.setValueToMemory(memorize, Culture.findCultureByHumanReadable(result).toString());

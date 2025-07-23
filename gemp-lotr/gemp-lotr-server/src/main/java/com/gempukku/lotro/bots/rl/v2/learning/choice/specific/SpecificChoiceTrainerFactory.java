@@ -23,11 +23,16 @@ public class SpecificChoiceTrainerFactory {
         List<String> cardOptions = Arrays.stream(decision.getDecisionParameters().get("results")).toList();
 
         return new AbstractChoiceTrainer() {
-            //TODO add source
+            private final String source = decision.getDecisionParameters().get("source")[0];
+
             @Override
             public boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName) {
                 if (decision.getDecisionType() != AwaitingDecisionType.MULTIPLE_CHOICE)
                     return false;
+
+                if (!decision.getDecisionParameters().get("source")[0].equals(source)) {
+                    return false;
+                }
 
                 String[] options = decision.getDecisionParameters().get("results");
                 if (options.length != cardOptions.size())
@@ -51,7 +56,7 @@ public class SpecificChoiceTrainerFactory {
 
             @Override
             public String getName() {
-                return "McTrainer" + cardOptions;
+                return "McTrainer-" + source + "-" + cardOptions;
             }
         };
     }

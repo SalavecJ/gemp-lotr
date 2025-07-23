@@ -94,7 +94,7 @@ public class AssignmentCost implements EffectProcessor {
                         SubAction optionalDecisionAction = new SubAction(action);
                         optionalDecisionAction.appendCost(
                                 new PlayoutDecisionEffect(currentPlayerId,
-                                        new YesNoDecision(GameUtils.substituteText(text, actionContext)) {
+                                        new YesNoDecision(GameUtils.substituteText(text, actionContext), actionContext.getSource().getBlueprintId()) {
                                             @Override
                                             protected void yes() {
                                                 ActionContext delegate = new DelegateActionContext(actionContext,
