@@ -1,13 +1,13 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.general;
+package com.gempukku.lotro.bots.rl.v2.learning.arbitrary.general;
 
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.AbstractArbitraryAnswerer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.AbstractArbitraryTrainer;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GeneralArbitraryAnswerers {
+public class GeneralArbitraryCardSelectionTrainerFactory {
     private static final List<String> ARBITRARY_DECISIONS = List.of(
             "Choose card from deck to put on top of deck",
             "Choose card from deck to put beneath draw deck",
@@ -34,9 +34,9 @@ public class GeneralArbitraryAnswerers {
             "Choose cards to remove"
     );
 
-    public static Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> generateGeneralArbitraryCardChoicePairs() {
+    public static List<AbstractArbitraryTrainer> generateGeneralArbitraryCardSelectionTrainers() {
         Map<String, AbstractArbitraryTrainer> trainerMap = new LinkedHashMap<>();
-        Map<AbstractArbitraryTrainer, AbstractArbitraryAnswerer> result = new LinkedHashMap<>();
+        List<AbstractArbitraryTrainer> tbr = new ArrayList<>();
 
         // Add built-in decisions
         for (String decision : ARBITRARY_DECISIONS) {
@@ -47,18 +47,11 @@ public class GeneralArbitraryAnswerers {
                         return "AcsGeneralTrainer-" + decision;
                     }
                 };
-                AbstractArbitraryAnswerer answerer = new AbstractArbitraryAnswerer() {
-                    @Override protected String getTextTrigger() { return decision; }
-                    @Override public String getName() {
-                        return "AcsGeneralAnswerer-" + decision;
-                    }
-                };
                 trainerMap.put(decision, trainer);
-                result.put(trainer, answerer);
+                tbr.add(trainer);
             }
         }
 
-        return result;
+        return tbr;
     }
 }
-

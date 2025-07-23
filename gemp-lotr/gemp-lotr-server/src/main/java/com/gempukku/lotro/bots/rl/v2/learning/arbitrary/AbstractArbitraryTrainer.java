@@ -1,12 +1,14 @@
 package com.gempukku.lotro.bots.rl.v2.learning.arbitrary;
 
 import com.gempukku.lotro.bots.BotService;
+import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
+import smile.classification.SoftClassifier;
 
 import java.util.*;
 
@@ -14,11 +16,68 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
     protected abstract String getTextTrigger();
 
     @Override
-    public boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName) {
+    public boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName) {
         if (decision.getDecisionType() != AwaitingDecisionType.ARBITRARY_CARDS)
             return false;
 
+        Map<String, String[]> params = decision.getDecisionParameters();
+        String[] cardIds = params.get("cardId");
+        int min = params.containsKey("min") ? Integer.parseInt(params.get("min")[0]) : 0;
+        int max = params.containsKey("max") ? Integer.parseInt(params.get("max")[0]) : cardIds.length;
+        if ((min == max && min == cardIds.length) || max == 0) {
+            // Had to choose all, nothing to learn from
+            return false;
+        }
+
         return decision.getText().toLowerCase().contains(getTextTrigger().toLowerCase());
+    }
+
+    @Override
+    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+        int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
+        List<String> selectableIds = new ArrayList<>();
+        List<String> selectableBlueprints = new ArrayList<>();
+        List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
+        List<String> blueprints = Arrays.stream(decision.getDecisionParameters().get("blueprintId")).toList();
+        List<String> selectable = Arrays.stream(decision.getDecisionParameters().get("selectable")).toList();
+
+        for (int i = 0; i < cardIds.size() && i < selectable.size(); i++) {
+            if (Boolean.parseBoolean(selectable.get(i))) {
+                selectableIds.add(cardIds.get(i));
+                selectableBlueprints.add(blueprints.get(i));
+            }
+        }
+
+        if (modelRegistry == null) {
+            throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+        SoftClassifier<double[]> model = modelRegistry.getModel(getName());
+        if (model == null) {
+            throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+        double[] stateVector = extractFeatures(gameState, decision, playerName);
+        List<ScoredCard> scoredCards = new ArrayList<>();
+
+        for (int i = 0; i < selectableBlueprints.size(); i++) {
+            try {
+                String blueprintId = selectableBlueprints.get(i);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, -1, playerName);
+                double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
+                System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
+
+                double[] probs = new double[2];
+                model.predict(extended, probs);
+                scoredCards.add(new ScoredCard(selectableIds.get(i), probs[1]));
+            } catch (CardNotFoundException ignored) {
+
+            }
+        }
+
+        scoredCards.sort(Comparator.comparingDouble(c -> -c.score));
+        List<String> sortedIds = new ArrayList<>();
+        scoredCards.forEach(scoredCard -> sortedIds.add(scoredCard.cardId));
+        // Always chooses max cards, never passes
+        return String.join(",", sortedIds.subList(0, max));
     }
 
     @Override

@@ -2,15 +2,13 @@ package com.gempukku.lotro.bots.rl.v2;
 
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.rl.learning.*;
-import com.gempukku.lotro.bots.rl.v2.decisions.AnswerersV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.DecisionAnswererV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.arbitrary.specific.SpecificArbitraryCardSelectionFactory;
-import com.gempukku.lotro.bots.rl.v2.decisions.cardselection.specific.SpecificCardSelectionFactory;
-import com.gempukku.lotro.bots.rl.v2.decisions.choice.specific.SpecificChoiceFactory;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
+import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.specific.SpecificArbitraryCardSelectionTrainerFactory;
+import com.gempukku.lotro.bots.rl.v2.learning.cardselection.specific.SpecificCardSelectionTrainerFactory;
+import com.gempukku.lotro.bots.rl.v2.learning.choice.specific.SpecificChoiceTrainerFactory;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -37,7 +35,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         // Store temporarily — reward comes later
         List<String> relevantTrainers = new ArrayList<>();
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
-            if (trainer.isDecisionRelevant(gameState, awaitingDecision, getName())) {
+            if (trainer.appliesTo(gameState, awaitingDecision, getName())) {
                 vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
                 relevantTrainers.add(trainer.getName());
             }
@@ -46,7 +44,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             throw new IllegalStateException("Multiple trainers found relevant the same step - " + relevantTrainers + " - " + awaitingDecision.getText());
         }
         for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
-            if (trainer.isDecisionRelevant(gameState, awaitingDecision, getName())) {
+            if (trainer.appliesTo(gameState, awaitingDecision, getName())) {
                 vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
             }
         }
@@ -77,11 +75,18 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
     }
 
     private String chooseActionBasedOnModel(GameState gameState, AwaitingDecision decision) {
+        // Try degenerate trainers first
+        for (TrainerV2 trainer : TrainersV2.getAllV2DegenerateTrainers()) {
+            if (trainer.appliesTo(gameState, decision, getName())) {
+                return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
+            }
+        }
+
         boolean modelError = false;
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2Answerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
+        for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
+            if (trainer.appliesTo(gameState, decision, getName())) {
                 try {
-                    return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
+                    return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
                 } catch (UnsupportedOperationException ignored) {
                     // Model not found for answerer
                     modelError = true;
@@ -90,19 +95,19 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         }
 
         if (!modelError) {
-            // No answerer found, make one
+            // No trainer found, make one
             switch (decision.getDecisionType()) {
-                case MULTIPLE_CHOICE -> SpecificChoiceFactory.makeAndRegisterTrainerAndAnswerer(decision);
+                case MULTIPLE_CHOICE -> SpecificChoiceTrainerFactory.makeAndRegisterTrainer(decision);
                 case ARBITRARY_CARDS ->
-                        SpecificArbitraryCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
-                case CARD_SELECTION -> SpecificCardSelectionFactory.makeAndRegisterTrainerAndAnswerer(decision);
+                        SpecificArbitraryCardSelectionTrainerFactory.makeAndRegisterTrainer(decision);
+                case CARD_SELECTION -> SpecificCardSelectionTrainerFactory.makeAndRegisterTrainer(decision);
             }
         }
 
-        // Try general answerers
-        for (DecisionAnswererV2 answerer : AnswerersV2.getAllV2GeneralAnswerers()) {
-            if (answerer.appliesTo(gameState, decision, getName())) {
-                return answerer.getAnswer(gameState, decision, getName(), modelRegistry);
+        // Try general trainers
+        for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
+            if (trainer.appliesTo(gameState, decision, getName())) {
+                return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
             }
         }
 

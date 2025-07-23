@@ -1,8 +1,7 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.choice.rules;
+package com.gempukku.lotro.bots.rl.v2.learning.choice.rules;
 
-import com.gempukku.lotro.bots.rl.learning.semanticaction.MultipleChoiceAction;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.choice.AbstractChoiceAnswerer;
+import com.gempukku.lotro.bots.rl.v2.learning.choice.AbstractChoiceTrainer;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
@@ -10,21 +9,22 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Stream;
 
-public class GoFirstAnswerer extends AbstractChoiceAnswerer {
+public class GoFirstTrainer extends AbstractChoiceTrainer {
     @Override
     protected String getTextTrigger() {
         return null; // Not used
     }
 
     @Override
-    protected List<String> getOptions() {
-        return List.of("Go first", "Go second");
+    protected int getNumberOfOptions() {
+        return 2;
     }
 
     @Override
     public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
-        // Nothing know when choosing, will need different instances of model registry for different decks if training is to be used
+        // Nothing known when choosing, will need different instances of model registry for different decks if training is to be used
         return new double[0];
     }
 
@@ -34,11 +34,11 @@ public class GoFirstAnswerer extends AbstractChoiceAnswerer {
             return false;
 
         String[] options = decision.getDecisionParameters().get("results");
-        if (options.length != getOptions().size())
+        if (options.length != getNumberOfOptions())
             return false;
 
         List<String> inputOptions = Arrays.stream(options).map(String::trim).toList();
-        List<String> normalizedCardOptions = getOptions().stream().map(String::trim).toList();
+        List<String> normalizedCardOptions = Stream.of("Go first", "Go second").map(String::trim).toList();
 
         return new HashSet<>(inputOptions).equals(new HashSet<>(normalizedCardOptions));
     }
@@ -46,6 +46,6 @@ public class GoFirstAnswerer extends AbstractChoiceAnswerer {
     @Override
     public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Always go first
-        return new MultipleChoiceAction(getOptions().getFirst()).toDecisionString(decision, gameState);
+        return String.valueOf(0);
     }
 }

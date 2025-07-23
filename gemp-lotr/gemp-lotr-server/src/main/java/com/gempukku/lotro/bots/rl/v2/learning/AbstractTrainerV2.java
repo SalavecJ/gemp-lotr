@@ -13,7 +13,12 @@ import java.util.List;
 
 public abstract class AbstractTrainerV2 implements TrainerV2, StateExtractor {
 
-    public SoftClassifier<double[]> trainWithPoints(List<LabeledPoint> points) {
+    @Override
+    public SoftClassifier<double[]> train(List<SavedVector> vectors) {
+        return trainWithPoints(extractTrainingData(vectors));
+    }
+
+    private SoftClassifier<double[]> trainWithPoints(List<LabeledPoint> points) {
         double[][] x = points.stream().map(LabeledPoint::x).toArray(double[][]::new);
         int[] y = points.stream().mapToInt(LabeledPoint::y).toArray();
         return LogisticRegression.fit(x, y);
@@ -37,16 +42,11 @@ public abstract class AbstractTrainerV2 implements TrainerV2, StateExtractor {
         return data;
     }
 
-    protected double[] append(double[] first, double[] second) {
+    private double[] append(double[] first, double[] second) {
         double[] result = new double[first.length + second.length];
         System.arraycopy(first, 0, result, 0, first.length);
         System.arraycopy(second, 0, result, first.length, second.length);
         return result;
-    }
-
-    @Override
-    public SoftClassifier<double[]> train(List<SavedVector> vectors) {
-        return trainWithPoints(extractTrainingData(vectors));
     }
 
     @Override

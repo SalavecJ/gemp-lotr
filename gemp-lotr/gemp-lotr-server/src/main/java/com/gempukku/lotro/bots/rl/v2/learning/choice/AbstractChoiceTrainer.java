@@ -1,25 +1,52 @@
 package com.gempukku.lotro.bots.rl.v2.learning.choice;
 
 import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
+import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
+import smile.classification.SoftClassifier;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
-    protected abstract String getTextTrigger();         // e.g. "mulligan", "another move"
+    protected abstract String getTextTrigger(); // e.g. "mulligan", "another move"
     protected abstract int getNumberOfOptions();
 
     @Override
-    public boolean isDecisionRelevant(GameState gameState, AwaitingDecision decision, String playerName) {
+    public boolean appliesTo(GameState gameState, AwaitingDecision decision, String playerName) {
         if (decision.getDecisionType() != AwaitingDecisionType.MULTIPLE_CHOICE)
             return false;
 
         return decision.getText().toLowerCase().contains(getTextTrigger().toLowerCase());
+    }
+
+    @Override
+    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+        if (modelRegistry == null) {
+            throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+        SoftClassifier<double[]> model = modelRegistry.getModel(getName());
+        if (model == null) {
+            throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+
+        double[] features = extractFeatures(gameState, decision, playerName);
+        double[] probabilities = new double[getNumberOfOptions()];
+        model.predict(features, probabilities);
+
+        // Find highest probability option
+        int bestIndex = 0;
+        for (int i = 1; i < probabilities.length; i++) {
+            if (probabilities[i] > probabilities[bestIndex]) {
+                bestIndex = i;
+            }
+        }
+
+        return String.valueOf(bestIndex);
     }
 
     @Override

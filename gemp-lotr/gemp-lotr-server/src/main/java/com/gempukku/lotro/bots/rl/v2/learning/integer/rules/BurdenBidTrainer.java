@@ -1,15 +1,15 @@
-package com.gempukku.lotro.bots.rl.v2.decisions.integer.rules;
+package com.gempukku.lotro.bots.rl.v2.learning.integer.rules;
 
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
-import com.gempukku.lotro.bots.rl.v2.decisions.integer.AbstractIntegerAnswerer;
+import com.gempukku.lotro.bots.rl.v2.learning.integer.AbstractIntegerTrainer;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.Random;
 
-public class BurdenBidAnswerer extends AbstractIntegerAnswerer {
+public class BurdenBidTrainer extends AbstractIntegerTrainer {
 
     @Override
     protected String getTextTrigger() {
@@ -30,10 +30,5 @@ public class BurdenBidAnswerer extends AbstractIntegerAnswerer {
         Random random = new Random();
         int randomNumber = random.nextInt(resistance / 2);
         return String.valueOf(randomNumber);
-    }
-
-    @Override
-    public double[] extractFeatures(GameState gameState, AwaitingDecision decision, String playerName) {
-        return null;
     }
 }
