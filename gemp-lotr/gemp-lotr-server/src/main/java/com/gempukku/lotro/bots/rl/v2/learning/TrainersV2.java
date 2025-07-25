@@ -5,6 +5,8 @@ import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.DegenerateArbitraryTrain
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.general.GeneralArbitraryCardSelectionTrainerFactory;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.PlaySiteTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.StartingFellowshipTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.assignment.FpAssignmentTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.assignment.ShadowAssignmentTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.DegenerateCardSelectionTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules.*;
@@ -39,6 +41,8 @@ public class TrainersV2 {
         trainers.add(new SkirmishOrderTrainer());
         trainers.add(new SpotMaxTrainer());
         trainers.add(new BurdenBidTrainer());
+        trainers.add(new FpAssignmentTrainer());
+        trainers.add(new ShadowAssignmentTrainer());
 
         generalTrainers.add(new AttachItemTrainer());
         generalTrainers.addAll(GeneralArbitraryCardSelectionTrainerFactory.generateGeneralArbitraryCardSelectionTrainers());

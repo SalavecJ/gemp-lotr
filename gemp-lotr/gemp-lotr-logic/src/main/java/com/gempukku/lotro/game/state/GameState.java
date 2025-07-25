@@ -870,6 +870,15 @@ public class GameState {
         return getTokenCount(physicalCard, Token.WOUND);
     }
 
+    public int getWounds(int physicalCardId) {
+        for (PhysicalCard physicalCard : getInPlay()) {
+            if (physicalCard.getCardId() == physicalCardId) {
+                return getWounds(physicalCard);
+            }
+        }
+        return 0;
+    }
+
     public void addBurdens(int burdens) {
         addTokens(_ringBearers.get(getCurrentPlayerId()), Token.BURDEN, Math.max(0, burdens));
     }

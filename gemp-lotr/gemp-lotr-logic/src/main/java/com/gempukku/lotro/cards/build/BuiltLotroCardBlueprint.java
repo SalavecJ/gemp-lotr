@@ -1320,11 +1320,6 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
     @Override
     public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName) {
-        return getFpAssignedCardFeatures(gameState, physicalId, playerName, 0, 0, 0);
-    }
-
-    @Override
-    public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds, int numberOfMinions, int strengthOfMinions) {
         Assignment assignment = null;
         for (PhysicalCard physicalCard : gameState.getInPlay()) {
             if (physicalCard.getCardId() == physicalId) {
@@ -1338,27 +1333,47 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
             }
         }
 
-        int wounds = numberOfWounds;
+        if (assignment == null) {
+            throw new IllegalStateException("No assignment found for card " + physicalId);
+        }
+
+        return getFpAssignedCardFeatures(gameState, physicalId, playerName, assignment.getShadowCharacters().stream().mapToInt(PhysicalCard::getCardId).boxed().toList());
+    }
+
+    @Override
+    public double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, Collection<Integer> minionIds) {
+        int wounds = gameState.getWounds(physicalId);
+
+        Collection<PhysicalCard> minions = new ArrayList<>();
         for (PhysicalCard physicalCard : gameState.getInPlay()) {
-            if (physicalCard.getCardId() == physicalId) {
-                wounds = gameState.getWounds(physicalCard);
+            if (minionIds.contains(physicalCard.getCardId())) {
+                minions.add(physicalCard);
             }
+        }
+        if (minionIds.size() != minions.size()) {
+            throw new IllegalStateException("Missing minions");
         }
 
         List<Double> features = new ArrayList<>();
 
         features.add(getCardType() == CardType.COMPANION ? 1.0 : 0.0);
         features.add(getCardType() == CardType.ALLY ? 1.0 : 0.0);
+        features.add(gameState.getRingBearer(playerName).getCardId() == physicalId ? 1.0 : 0.0);
 
-        features.add((double) getTwilightCost());
         features.add((double) getStrength());
         features.add((double) getVitality());
 
         features.add((double) wounds);
 
         // Number of assigned minions and their strength
-        features.add(assignment == null ? numberOfMinions : ((double) assignment.getShadowCharacters().size()));
-        features.add(assignment == null ? strengthOfMinions : ((double) assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum()));
+        features.add((double) minions.size());
+        features.add((double) minions.stream().mapToInt(value -> value.getBlueprint().getStrength()).sum());
+
+        int damage = 1;
+        for (PhysicalCard shadowCharacter : minions) {
+            damage += shadowCharacter.getBlueprint().getKeywordCount(Keyword.DAMAGE);
+        }
+        features.add((double) damage);
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }

@@ -10,6 +10,7 @@ import com.gempukku.lotro.logic.timing.Effect;
 import com.gempukku.lotro.logic.timing.EffectResult;
 import org.json.simple.JSONObject;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -23,7 +24,7 @@ public interface LotroCardBlueprint {
     double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName);
     double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds);
     double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName);
-    double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds, int numberOfMinions, int strengthOfMinions);
+    double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, Collection<Integer> minions);
 
     default LotroCardBlueprint getParent() {
         return this;

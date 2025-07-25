@@ -86,54 +86,17 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
             throw new IllegalArgumentException("Could not find chosen card in game state.");
         }
 
-        int woundsOnChosen = gameState.getWounds(fpCard);
-        int minionsOnChosen = 0;
-        int strengthOfMinionsOnChosen = 0;
-        for (Assignment assignment : gameState.getAssignments()) {
-            if (assignment.getFellowshipCharacter().getCardId() == fpCard.getCardId()) {
-                minionsOnChosen = assignment.getShadowCharacters().size();
-                strengthOfMinionsOnChosen = assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum();
-                break;
-            }
-        }
-
         List<String> notChosenOptions = new ArrayList<>();
         for (String cardId : decision.getDecisionParameters().get("cardId")) {
             if (!answer.equals(cardId)) {
                 notChosenOptions.add(cardId);
             }
         }
-        List<Integer> woundsOnNotChosen = new ArrayList<>();
-        List<Integer> minionsOnNotChosen = new ArrayList<>();
-        List<Integer> strengthOfMinionsOnNotChosen = new ArrayList<>();
-        for (String notChosenOption : notChosenOptions) {
-            int wounds = 0;
-            int minions = 0;
-            int strengthOfMinions = 0;
-            for (PhysicalCard physicalCard : gameState.getInPlay()) {
-                if (physicalCard.getCardId() == Integer.parseInt(notChosenOption)) {
-                    wounds = gameState.getWounds(physicalCard);
-
-                    for (Assignment assignment : gameState.getAssignments()) {
-                        if (assignment.getFellowshipCharacter().getCardId() == physicalCard.getCardId()) {
-                            minions = assignment.getShadowCharacters().size();
-                            strengthOfMinions = assignment.getShadowCharacters().stream().mapToInt(value -> value.getBlueprint().getStrength()).sum();
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-            woundsOnNotChosen.add(wounds);
-            minionsOnNotChosen.add(minions);
-            strengthOfMinionsOnNotChosen.add(strengthOfMinions);
-        }
 
         List<double[]> notChosenVectors = new ArrayList<>();
-        for (int i = 0; i < notChosenOptions.size(); i++) {
-            String notChosenOption = notChosenOptions.get(i);
+        for (String notChosenOption : notChosenOptions) {
             try {
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(notChosenOption, gameState)).getFpAssignedCardFeatures(gameState, -1, playerId, woundsOnNotChosen.get(i), minionsOnNotChosen.get(i), strengthOfMinionsOnNotChosen.get(i));
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(notChosenOption, gameState)).getFpAssignedCardFeatures(gameState, Integer.parseInt(notChosenOption), playerId);
                 notChosenVectors.add(cardVector);
             } catch (CardNotFoundException ignored) {
 
@@ -142,7 +105,7 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
 
         List<SavedVector> tbr = new ArrayList<>();
         try {
-            double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(answer, gameState)).getFpAssignedCardFeatures(gameState, -1, playerId, woundsOnChosen, minionsOnChosen, strengthOfMinionsOnChosen);
+            double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(answer, gameState)).getFpAssignedCardFeatures(gameState, fpCard.getCardId(), playerId);
             tbr.add(new SavedVector(className, state, cardVector, notChosenVectors));
         } catch (CardNotFoundException ignored) {
 

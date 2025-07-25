@@ -62,7 +62,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
 //                case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
                 case ACTION_CHOICE -> chooseActionBasedOnModel(gameState, decision);
                 case CARD_SELECTION -> chooseActionBasedOnModel(gameState, decision);
-//            case ASSIGN_MINIONS -> chooseAssignmentAction(gameState, decision);
+                case ASSIGN_MINIONS -> chooseActionBasedOnModel(gameState, decision);
                 default -> super.chooseAction(gameState, decision);
             };
         } catch (UnsupportedOperationException e) {
