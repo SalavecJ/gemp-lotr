@@ -33,6 +33,10 @@ public class SavedVectorPersistence {
                 TrainerV2::getName,
                 SavedVectorPersistence::generateFileName
         )));
+        tbr.putAll(TrainersV2.getAllV2SubTrainers().stream().collect(Collectors.toMap(
+                TrainerV2::getName,
+                SavedVectorPersistence::generateFileName
+        )));
         return tbr;
     }
 

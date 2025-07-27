@@ -12,6 +12,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.choice.specific.SpecificChoiceTrai
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
+import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,10 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
     private final List<SavedVector> vectors = new ArrayList<>();
     private final SavedVectorBuffer replayBuffer;
     private final ModelRegistryV2 modelRegistry;
+
+    private String lastDecision = null;
+    private String lastAnswer = null;
+    private int loopCount = 0;
 
     public BotV2(String botName, SavedVectorBuffer replayBuffer, ModelRegistryV2 modelRegistry) {
         super(botName);
@@ -49,22 +54,27 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             }
         }
 
+        if (awaitingDecision instanceof CardActionSelectionDecision) {
+            if (awaitingDecision.toJson().toString().equals(lastDecision) && action.equals(lastAnswer)) {
+                loopCount++;
+                if (loopCount >= 4) {
+                    lastAnswer = "";
+                    loopCount = 1;
+                    return "";
+                }
+            } else {
+                loopCount = 1;
+                lastAnswer = action;
+                lastDecision = awaitingDecision.toJson().toString();
+            }
+        }
+
         return action;
     }
 
     private String makeDecision(GameState gameState, AwaitingDecision decision) {
         try {
-            return switch (decision.getDecisionType()) {
-                // TODO support actions with answerers
-                case INTEGER -> chooseActionBasedOnModel(gameState, decision);
-                case MULTIPLE_CHOICE -> chooseActionBasedOnModel(gameState, decision);
-                case ARBITRARY_CARDS -> chooseActionBasedOnModel(gameState, decision);
-//                case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
-                case ACTION_CHOICE -> chooseActionBasedOnModel(gameState, decision);
-                case CARD_SELECTION -> chooseActionBasedOnModel(gameState, decision);
-                case ASSIGN_MINIONS -> chooseActionBasedOnModel(gameState, decision);
-                default -> super.chooseAction(gameState, decision);
-            };
+            return chooseActionBasedOnModel(gameState, decision);
         } catch (UnsupportedOperationException e) {
             // Cannot use models, choose at random and log it
             if (modelRegistry != null) {

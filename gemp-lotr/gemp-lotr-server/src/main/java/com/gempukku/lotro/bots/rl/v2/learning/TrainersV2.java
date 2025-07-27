@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.PlaySiteTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.rules.StartingFellowshipTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.assignment.FpAssignmentTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.assignment.ShadowAssignmentTrainer;
+import com.gempukku.lotro.bots.rl.v2.learning.cardaction.phase.*;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.DegenerateCardSelectionTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.general.AttachItemTrainer;
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.rules.*;
@@ -25,6 +26,7 @@ public class TrainersV2 {
     private static final List<TrainerV2> degenerateTrainers = new ArrayList<>();
     private static final List<TrainerV2> generalTrainers = new ArrayList<>();
     private static final List<TrainerV2> trainers = new ArrayList<>();
+    private static final List<TrainerV2> subTrainers = new ArrayList<>();
 
     static {
         trainers.add(new GoFirstTrainer());
@@ -43,6 +45,30 @@ public class TrainersV2 {
         trainers.add(new BurdenBidTrainer());
         trainers.add(new FpAssignmentTrainer());
         trainers.add(new ShadowAssignmentTrainer());
+        AbstractPhaseCardActionTrainer fellowship = new FellowshipCardActionTrainer();
+        trainers.add(fellowship);
+        subTrainers.addAll(fellowship.getSubTrainers());
+        AbstractPhaseCardActionTrainer shadow = new ShadowCardActionTrainer();
+        trainers.add(shadow);
+        subTrainers.addAll(shadow.getSubTrainers());
+        AbstractPhaseCardActionTrainer maneuver = new ManeuverCardActionTrainer();
+        trainers.add(maneuver);
+        subTrainers.addAll(maneuver.getSubTrainers());
+        AbstractPhaseCardActionTrainer archery = new ArcheryCardActionTrainer();
+        trainers.add(archery);
+        subTrainers.addAll(archery.getSubTrainers());
+        AbstractPhaseCardActionTrainer assignment = new AssignmentCardActionTrainer();
+        trainers.add(assignment);
+        subTrainers.addAll(assignment.getSubTrainers());
+        AbstractPhaseCardActionTrainer skirmish = new SkirmishCardActionTrainer();
+        trainers.add(skirmish);
+        subTrainers.addAll(skirmish.getSubTrainers());
+        AbstractPhaseCardActionTrainer regroup = new RegroupCardActionTrainer();
+        trainers.add(regroup);
+        subTrainers.addAll(regroup.getSubTrainers());
+        AbstractPhaseCardActionTrainer response = new ResponseCardActionTrainer();
+        trainers.add(response);
+        subTrainers.addAll(response.getSubTrainers());
 
         generalTrainers.add(new AttachItemTrainer());
         generalTrainers.addAll(GeneralArbitraryCardSelectionTrainerFactory.generateGeneralArbitraryCardSelectionTrainers());
@@ -67,6 +93,10 @@ public class TrainersV2 {
         return new UnmodifiableList<>(generalTrainers);
     }
 
+    public static List<TrainerV2> getAllV2SubTrainers() {
+        return new UnmodifiableList<>(subTrainers);
+    }
+
     public static List<TrainerV2> getAllV2DegenerateTrainers() {
         return new UnmodifiableList<>(degenerateTrainers);
     }
@@ -75,6 +105,7 @@ public class TrainersV2 {
         List<TrainerV2> trainable = new ArrayList<>();
         trainable.addAll(trainers);
         trainable.addAll(generalTrainers);
+        trainable.addAll(subTrainers);
 
         for (TrainerV2 trainer : trainable) {
             try {
