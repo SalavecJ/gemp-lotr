@@ -6,6 +6,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -33,7 +34,7 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
         List<String> selectableIds = new ArrayList<>();
         List<String> selectableBlueprints = new ArrayList<>();
@@ -55,13 +56,13 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
         if (model == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
-        double[] stateVector = extractFeatures(gameState, decision, playerName);
+        double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
         List<ScoredCard> scoredCards = new ArrayList<>();
 
         for (int i = 0; i < selectableBlueprints.size(); i++) {
             try {
                 String blueprintId = selectableBlueprints.get(i);
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, -1, playerName);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(game.getGameState(), -1, playerName);
                 double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
                 System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
 
@@ -81,9 +82,9 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         String className = getName();
-        double[] state = extractFeatures(gameState, decision, playerId);
+        double[] state = extractFeatures(game.getGameState(), decision, playerId);
 
         List<String> chosenIds = Arrays.stream(answer.split(",")).toList();
         Map<String, String> chosenOptions = new HashMap<>();
@@ -116,7 +117,7 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
         List<double[]> notChosenVectors = new ArrayList<>();
         for (Map.Entry<String, String> entry : notChosenOptions.entrySet()) {
             try {
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(entry.getValue()).getGeneralCardFeatures(gameState, -1, playerId);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(entry.getValue()).getGeneralCardFeatures(game.getGameState(), -1, playerId);
                 notChosenVectors.add(cardVector);
             } catch (CardNotFoundException ignored) {
 
@@ -128,7 +129,7 @@ public abstract class AbstractArbitraryTrainer extends AbstractTrainerV2 {
 
         for (Map.Entry<String, String> entry : chosenOptions.entrySet()) {
             try {
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(entry.getValue()).getGeneralCardFeatures(gameState, -1, playerId);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(entry.getValue()).getGeneralCardFeatures(game.getGameState(), -1, playerId);
                 tbr.add(new SavedVector(className, state, cardVector, notChosenVectors));
             } catch (CardNotFoundException ignored) {
 

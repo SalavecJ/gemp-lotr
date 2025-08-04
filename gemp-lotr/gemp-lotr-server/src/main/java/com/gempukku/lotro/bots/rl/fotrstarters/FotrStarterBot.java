@@ -20,6 +20,7 @@ import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.Skirmish;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
@@ -96,60 +97,60 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
     }
 
     @Override
-    public String chooseAction(GameState gameState, AwaitingDecision decision) {
-        double[] stateVector = features.extractFeatures(gameState, decision, getName());
+    public String chooseAction(LotroGame game, AwaitingDecision decision) {
+        double[] stateVector = features.extractFeatures(game.getGameState(), decision, getName());
 
-        SemanticAction action = chooseSemanticAction(gameState, decision);
+        SemanticAction action = chooseSemanticAction(game, decision);
 
         // Store temporarily — reward comes later
-        episodeSteps.add(new LearningStep(stateVector, action, getName().equals(gameState.getCurrentPlayerId()), decision));
+        episodeSteps.add(new LearningStep(stateVector, action, getName().equals(game.getGameState().getCurrentPlayerId()), decision));
 
-        return action.toDecisionString(decision, gameState);
+        return action.toDecisionString(decision, game.getGameState());
     }
 
-    private SemanticAction chooseSemanticAction(GameState gameState, AwaitingDecision decision) {
+    private SemanticAction chooseSemanticAction(LotroGame game, AwaitingDecision decision) {
         String action =  switch (decision.getDecisionType()) {
-            case INTEGER -> chooseIntegerAction(gameState, decision);
-            case MULTIPLE_CHOICE -> chooseMultipleChoiceAction(gameState, decision);
-            case ARBITRARY_CARDS -> chooseArbitraryCardsAction(gameState, decision);
-            case CARD_ACTION_CHOICE -> chooseCardActionChoice(gameState, decision);
-            case ACTION_CHOICE -> chooseActionChoice(gameState, decision);
-            case CARD_SELECTION -> chooseCardSelectionAction(gameState, decision);
-            case ASSIGN_MINIONS -> chooseAssignmentAction(gameState, decision);
+            case INTEGER -> chooseIntegerAction(game, decision);
+            case MULTIPLE_CHOICE -> chooseMultipleChoiceAction(game, decision);
+            case ARBITRARY_CARDS -> chooseArbitraryCardsAction(game, decision);
+            case CARD_ACTION_CHOICE -> chooseCardActionChoice(game, decision);
+            case ACTION_CHOICE -> chooseActionChoice(game, decision);
+            case CARD_SELECTION -> chooseCardSelectionAction(game, decision);
+            case ASSIGN_MINIONS -> chooseAssignmentAction(game, decision);
         };
 
         return switch (decision.getDecisionType()) {
             case INTEGER -> new IntegerChoiceAction(Integer.parseInt(action));
             case MULTIPLE_CHOICE -> new MultipleChoiceAction(action, decision);
             case ARBITRARY_CARDS -> new ChooseFromArbitraryCardsAction(action, decision);
-            case CARD_ACTION_CHOICE -> new CardActionChoiceAction(action, decision, gameState);
+            case CARD_ACTION_CHOICE -> new CardActionChoiceAction(action, decision, game.getGameState());
             case ACTION_CHOICE -> new ActionChoiceAction(action, decision);
             case CARD_SELECTION -> {
-                if (gameState.getCurrentPhase().equals(Phase.SKIRMISH)) {
-                    yield new CardSelectionAssignedAction(action, decision, gameState);
+                if (game.getGameState().getCurrentPhase().equals(Phase.SKIRMISH)) {
+                    yield new CardSelectionAssignedAction(action, decision, game.getGameState());
                 }
-                yield new CardSelectionAction(action, decision, gameState);
+                yield new CardSelectionAction(action, decision, game.getGameState());
             }
-            case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, gameState, gameState.getCurrentPlayerId().equals(getName()));
+            case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, game.getGameState(), game.getGameState().getCurrentPlayerId().equals(getName()));
         };
     }
 
-    private String chooseAssignmentAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseAssignmentAction(LotroGame game, AwaitingDecision decision) {
         for (DecisionAnswerer trainer : assignmentTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
 
         System.out.println("Unknown assign minions decision: "
-                + gameState.getCurrentPhase() + " - "
+                + game.getGameState().getCurrentPhase() + " - "
                 + decision.getText()
                 + "; freeCharacters=" + Arrays.toString(decision.getDecisionParameters().get("freeCharacters"))
                 + "; minions=" + Arrays.toString(decision.getDecisionParameters().get("minions")));
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseActionChoice(GameState gameState, AwaitingDecision decision) {
+    private String chooseActionChoice(LotroGame game, AwaitingDecision decision) {
         // Order does not matter with FotR starters
 //        System.out.println("Unknown action decision: "
 //                + gameState.getCurrentPhase() + " - "
@@ -157,10 +158,10 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
 //                + "; actionId=" + Arrays.toString(decision.getDecisionParameters().get("actionId"))
 //                + "; blueprintId=" + Arrays.toString(decision.getDecisionParameters().get("blueprintId"))
 //                + "; actionText=" + Arrays.toString(decision.getDecisionParameters().get("actionText")));
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseCardActionChoice(GameState gameState, AwaitingDecision decision) {
+    private String chooseCardActionChoice(LotroGame game, AwaitingDecision decision) {
         String[] actionIds = decision.getDecisionParameters().get("actionId");
         if (actionIds == null || actionIds.length == 0) {
             // No actions available: must pass
@@ -169,8 +170,8 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
 
         String chosenAnswer = null;
         for (DecisionAnswerer trainer : cardActionTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                chosenAnswer = trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                chosenAnswer = trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
         // Loop prevention
@@ -200,16 +201,16 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         }
 
         System.out.println("Unknown card action decision: "
-                + gameState.getCurrentPhase() + " - "
+                + game.getGameState().getCurrentPhase() + " - "
                 + decision.getText()
                 + "; actionId=" + Arrays.toString(decision.getDecisionParameters().get("actionId"))
                 + "; cardId=" + Arrays.toString(decision.getDecisionParameters().get("cardId"))
                 + "; blueprintId=" + Arrays.toString(decision.getDecisionParameters().get("blueprintId"))
                 + "; actionText=" + Arrays.toString(decision.getDecisionParameters().get("actionText")));
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseArbitraryCardsAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseArbitraryCardsAction(LotroGame game, AwaitingDecision decision) {
         Map<String, String[]> params = decision.getDecisionParameters();
         String[] cardIds = params.get("cardId");
         String[] selectable = params.get("selectable");
@@ -231,23 +232,23 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
             return "";
 
         for (DecisionAnswerer trainer : arbitraryCardsTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
 
         // Fallback to random decision
         System.out.println("Unknown arbitrary card selection action: "
-                + gameState.getCurrentPhase() + " - "
+                + game.getGameState().getCurrentPhase() + " - "
                 + decision.getText()
                 + " (" + decision.getDecisionParameters().get("min")[0]
                 + ";" + decision.getDecisionParameters().get("max")[0] + ") "
                 + "cards=" + Arrays.toString(decision.getDecisionParameters().get("blueprintId"))
                 + ", selectable=" + Arrays.toString(decision.getDecisionParameters().get("selectable")));
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseCardSelectionAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseCardSelectionAction(LotroGame game, AwaitingDecision decision) {
         int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
         int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
         List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
@@ -258,12 +259,12 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         }
 
         // Choose the one skirmishing
-        if (gameState.getSkirmish() != null &&
-                gameState.getSkirmish().getFellowshipCharacter() != null &&
-                gameState.getSkirmish().getShadowCharacters() != null &&
-                !gameState.getSkirmish().getShadowCharacters().isEmpty()
+        if (game.getGameState().getSkirmish() != null &&
+                game.getGameState().getSkirmish().getFellowshipCharacter() != null &&
+                game.getGameState().getSkirmish().getShadowCharacters() != null &&
+                !game.getGameState().getSkirmish().getShadowCharacters().isEmpty()
                 && min == 1 && max == 1) {
-            Skirmish skirmish = gameState.getSkirmish();
+            Skirmish skirmish = game.getGameState().getSkirmish();
             for (String cardId : cardIds) {
                 if (skirmish.getFellowshipCharacter().getCardId() == Integer.parseInt(cardId)) {
                     return cardId;
@@ -275,31 +276,31 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
                 }
             }
             // Skirmishing character cannot be chosen, choose whatever
-            return super.chooseAction(gameState, decision);
+            return super.chooseAction(game, decision);
         }
 
         for (DecisionAnswerer trainer : cardSelectionTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
 
         // Last fallback to trainer
         for (DecisionAnswerer trainer : fallBackTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
 
         // Fallback to random decision
-        System.out.println("Unknown card selection action: " + gameState.getCurrentPhase() + " - " + decision.getText() + " (" + decision.getDecisionParameters().get("min")[0] + ";" + decision.getDecisionParameters().get("max")[0] + ") " + Arrays.toString(decision.getDecisionParameters().get("cardId")));
-        return super.chooseAction(gameState, decision);
+        System.out.println("Unknown card selection action: " + game.getGameState().getCurrentPhase() + " - " + decision.getText() + " (" + decision.getDecisionParameters().get("min")[0] + ";" + decision.getDecisionParameters().get("max")[0] + ") " + Arrays.toString(decision.getDecisionParameters().get("cardId")));
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseIntegerAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseIntegerAction(LotroGame game, AwaitingDecision decision) {
         for (DecisionAnswerer trainer : integerTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
         if (decision.getText().contains("how many to spot")) {
@@ -307,25 +308,25 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         }
 
         System.out.println("Unknown integer action: " + decision.getText());
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
-    private String chooseMultipleChoiceAction(GameState gameState, AwaitingDecision decision) {
+    private String chooseMultipleChoiceAction(LotroGame game, AwaitingDecision decision) {
         String[] options = decision.getDecisionParameters().get("results");
         for (DecisionAnswerer trainer : multipleChoiceTrainers) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), features, modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
             }
         }
         if (List.of(options).contains("Heal a companion") && List.of(options).contains("Remove a Shadow condition from a companion")) {
-            return new MultipleChoiceAction("Heal a companion").toDecisionString(decision, gameState);
+            return new MultipleChoiceAction("Heal a companion").toDecisionString(decision, game.getGameState());
         }
         if (List.of(options).contains("Exert Frodo") && List.of(options).contains("Exert 2 other companions")) {
-            return new MultipleChoiceAction("Exert Frodo").toDecisionString(decision, gameState);
+            return new MultipleChoiceAction("Exert Frodo").toDecisionString(decision, game.getGameState());
         }
 
         System.out.println("Unknown multiple choice action: " + decision.getText() + " - " + Arrays.toString(options));
-        return super.chooseAction(gameState, decision);
+        return super.chooseAction(game, decision);
     }
 
     @Override

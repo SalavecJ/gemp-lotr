@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -26,7 +27,7 @@ public class DegenerateCardSelectionTrainer extends AbstractCardSelectionTrainer
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Choose all
         return String.join(",", Arrays.stream(decision.getDecisionParameters().get("cardId")).toList());
     }
@@ -42,7 +43,7 @@ public class DegenerateCardSelectionTrainer extends AbstractCardSelectionTrainer
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         return List.of();
     }
 

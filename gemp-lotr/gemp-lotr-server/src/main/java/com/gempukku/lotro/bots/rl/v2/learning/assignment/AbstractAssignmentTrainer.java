@@ -8,6 +8,7 @@ import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -37,7 +38,7 @@ public abstract class AbstractAssignmentTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         Map<String, String[]> params = decision.getDecisionParameters();
         String[] freeCharIds = params.get("freeCharacters");
         String[] minionIds = params.get("minions");
@@ -55,30 +56,30 @@ public abstract class AbstractAssignmentTrainer extends AbstractTrainerV2 {
 
 
         HashMap<String, List<String>> alreadyAssignedMap = new HashMap<>();
-        gameState.getAssignments().forEach(assignment -> {
+        game.getGameState().getAssignments().forEach(assignment -> {
             String id = String.valueOf(assignment.getFellowshipCharacter().getCardId());
             alreadyAssignedMap.put(id, new ArrayList<>());
             assignment.getShadowCharacters().forEach(shadow -> alreadyAssignedMap.get(id).add(String.valueOf(shadow.getCardId())));
         });
-        gameState.getInPlay().forEach(fpCharacter -> {
+        game.getGameState().getInPlay().forEach(fpCharacter -> {
             if ((fpCharacter.getBlueprint().getCardType().equals(CardType.COMPANION) ||
                     fpCharacter.getBlueprint().getCardType().equals(CardType.ALLY)) &&
-                    fpCharacter.getOwner().equals(gameState.getCurrentPlayerId())) {
+                    fpCharacter.getOwner().equals(game.getGameState().getCurrentPlayerId())) {
                 if (!alreadyAssignedMap.containsKey(String.valueOf(fpCharacter.getCardId()))) {
                     alreadyAssignedMap.put(String.valueOf(fpCharacter.getCardId()), new ArrayList<>());
                 }
             }
         });
 
-        List<AssignmentInfo> allAssignments = generateAllAssignments(alreadyAssignedMap, Arrays.stream(freeCharIds).toList(), Arrays.stream(minionIds).toList(), gameState);
-        double[] stateVector = extractFeatures(gameState, decision, playerName);
+        List<AssignmentInfo> allAssignments = generateAllAssignments(alreadyAssignedMap, Arrays.stream(freeCharIds).toList(), Arrays.stream(minionIds).toList(), game.getGameState());
+        double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
 
         double bestScore = Double.NEGATIVE_INFINITY;
         Map<String, List<String>> bestAssignment = null;
 
         for (AssignmentInfo assignment : allAssignments) {
             try {
-                double[] assignmentVector = getAssignmentFeatures(gameState, assignment.wholeAssignment(),
+                double[] assignmentVector = getAssignmentFeatures(game.getGameState(), assignment.wholeAssignment(),
                         assignment.numberOfUnassignedMinions(), assignment.strengthOfUnassignedMinions(), playerName);
                 double[] extended = Arrays.copyOf(stateVector, stateVector.length + assignmentVector.length);
                 System.arraycopy(assignmentVector, 0, extended, stateVector.length, assignmentVector.length);
@@ -209,21 +210,21 @@ public abstract class AbstractAssignmentTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         Map<String, String[]> params = decision.getDecisionParameters();
         String[] minionIds = params.get("minions");
 
 
         HashMap<String, List<String>> alreadyAssignedMap = new HashMap<>();
-        gameState.getAssignments().forEach(assignment -> {
+        game.getGameState().getAssignments().forEach(assignment -> {
             String id = String.valueOf(assignment.getFellowshipCharacter().getCardId());
             alreadyAssignedMap.put(id, new ArrayList<>());
             assignment.getShadowCharacters().forEach(shadow -> alreadyAssignedMap.get(id).add(String.valueOf(shadow.getCardId())));
         });
-        gameState.getInPlay().forEach(fpCharacter -> {
+        game.getGameState().getInPlay().forEach(fpCharacter -> {
             if ((fpCharacter.getBlueprint().getCardType().equals(CardType.COMPANION) ||
                     fpCharacter.getBlueprint().getCardType().equals(CardType.ALLY)) &&
-                    fpCharacter.getOwner().equals(gameState.getCurrentPlayerId())) {
+                    fpCharacter.getOwner().equals(game.getGameState().getCurrentPlayerId())) {
                 if (!alreadyAssignedMap.containsKey(String.valueOf(fpCharacter.getCardId()))) {
                     alreadyAssignedMap.put(String.valueOf(fpCharacter.getCardId()), new ArrayList<>());
                 }
@@ -258,7 +259,7 @@ public abstract class AbstractAssignmentTrainer extends AbstractTrainerV2 {
         }
         numberOfUnassignedMinions = unassigned.size();
         strengthOfUnassignedMinions = unassigned.stream().mapToInt(minionId -> {
-            for (PhysicalCard physicalCard : gameState.getInPlay()) {
+            for (PhysicalCard physicalCard : game.getGameState().getInPlay()) {
                 if (physicalCard.getCardId() == Integer.parseInt(minionId)) {
                     return physicalCard.getBlueprint().getStrength();
                 }
@@ -266,10 +267,10 @@ public abstract class AbstractAssignmentTrainer extends AbstractTrainerV2 {
             return 0;
         }).sum();
 
-        double[] stateVector = extractFeatures(gameState, decision, playerId);
+        double[] stateVector = extractFeatures(game.getGameState(), decision, playerId);
 
         try {
-            double[] assignmentVector = getAssignmentFeatures(gameState, assignmentMap,
+            double[] assignmentVector = getAssignmentFeatures(game.getGameState(), assignmentMap,
                     numberOfUnassignedMinions, strengthOfUnassignedMinions, playerId);
             return List.of(new SavedVector(getName(), stateVector, assignmentVector, List.of()));
         } catch (CardNotFoundException ignored) {

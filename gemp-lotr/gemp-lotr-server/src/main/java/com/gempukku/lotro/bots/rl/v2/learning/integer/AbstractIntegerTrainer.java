@@ -3,6 +3,7 @@ package com.gempukku.lotro.bots.rl.v2.learning.integer;
 import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -20,7 +21,7 @@ public abstract class AbstractIntegerTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         return List.of(); // No model for integer trainers yet
     }
 

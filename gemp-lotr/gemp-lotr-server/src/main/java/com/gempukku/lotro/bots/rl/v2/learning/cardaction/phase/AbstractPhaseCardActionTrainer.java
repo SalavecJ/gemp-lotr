@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.cardaction.AbstractCardActionTrainer;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
@@ -58,7 +59,7 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         Map<String, String[]> params = decision.getDecisionParameters();
         List<String> actionIds = Arrays.stream(params.get("actionId")).toList();
         List<String> cardIds = Arrays.stream(params.get("cardId")).toList();
@@ -82,8 +83,8 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
 
                     }
                 };
-                if (trainer.appliesTo(gameState, tmpDecision, playerName)) {
-                    trainer.scoreAction(gameState, decision, playerName, modelRegistry, idActionPair);
+                if (trainer.appliesTo(game.getGameState(), tmpDecision, playerName)) {
+                    trainer.scoreAction(game, decision, playerName, modelRegistry, idActionPair);
                 }
             }
         }
@@ -99,10 +100,10 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         List<SavedVector> tbr = new ArrayList<>();
         for (AbstractCardActionTrainer trainer : getSubTrainers()) {
-            tbr.addAll(trainer.toStringVectors(gameState, decision, playerId, answer));
+            tbr.addAll(trainer.toStringVectors(game, decision, playerId, answer));
         }
         return tbr;
     }

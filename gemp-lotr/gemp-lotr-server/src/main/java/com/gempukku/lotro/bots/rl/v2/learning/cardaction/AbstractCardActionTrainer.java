@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.bots.rl.v2.learning.cardaction.phase.AbstractPhaseCardActionTrainer;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
@@ -39,11 +40,11 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         throw new UnsupportedOperationException("Call 'scoreAction' instead on " + getName());
     }
 
-    public void scoreAction(GameState gameState, AwaitingDecision decision, String playerName,
+    public void scoreAction(LotroGame game, AwaitingDecision decision, String playerName,
                             ModelRegistryV2 modelRegistry, AbstractPhaseCardActionTrainer.IdActionPair idActionPair) {
         if (!(decision instanceof CardActionSelectionDecision)) {
             return;
@@ -58,9 +59,9 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
         }
 
         try {
-            String blueprintId = gameState.getBlueprintId(Integer.parseInt(idActionPair.cardId));
-            double[] cardVector = getCardVector(gameState, Integer.parseInt(idActionPair.cardId), blueprintId, playerName);
-            double[] stateVector = extractFeatures(gameState, decision, playerName);
+            String blueprintId = game.getGameState().getBlueprintId(Integer.parseInt(idActionPair.cardId));
+            double[] cardVector = getCardVector(game, Integer.parseInt(idActionPair.cardId), blueprintId, playerName);
+            double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
             double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
             System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
 
@@ -83,8 +84,8 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
-        if (!appliesTo(gameState, decision, playerId)) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
+        if (!appliesTo(game.getGameState(), decision, playerId)) {
             return List.of();
         }
 
@@ -110,9 +111,9 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
 
                     }
                 };
-                if (appliesTo(gameState, tmpDecision, playerId)) {
-                    String blueprintId = gameState.getBlueprintId(Integer.parseInt(cardIds.get(i)));
-                    double[] cardVector = getCardVector(gameState, Integer.parseInt(cardIds.get(i)), blueprintId, playerId);
+                if (appliesTo(game.getGameState(), tmpDecision, playerId)) {
+                    String blueprintId = game.getGameState().getBlueprintId(Integer.parseInt(cardIds.get(i)));
+                    double[] cardVector = getCardVector(game, Integer.parseInt(cardIds.get(i)), blueprintId, playerId);
 
                     if (String.valueOf(i).equals(answer)) {
                         chosenVector = cardVector;
@@ -137,14 +138,14 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
             return List.of();
         }
 
-        if (answer.isEmpty() || relevantCardChosen(gameState, cardActionSelectionDecision, answer)) {
-            return List.of(new SavedVector(getName(), extractFeatures(gameState, decision, playerId), chosenVector, notChosenVectors));
+        if (answer.isEmpty() || relevantCardChosen(game.getGameState(), cardActionSelectionDecision, answer)) {
+            return List.of(new SavedVector(getName(), extractFeatures(game.getGameState(), decision, playerId), chosenVector, notChosenVectors));
         }
 
         return List.of();
     }
 
-    protected double[] getCardVector(GameState gameState, int cardId, String blueprintId, String playerName) throws CardNotFoundException{
-        return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, cardId, playerName);
+    protected double[] getCardVector(LotroGame game, int cardId, String blueprintId, String playerName) throws CardNotFoundException{
+        return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(game.getGameState(), cardId, playerName);
     }
 }

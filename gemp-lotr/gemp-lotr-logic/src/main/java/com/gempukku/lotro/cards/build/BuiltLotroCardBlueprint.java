@@ -1380,9 +1380,9 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
     }
 
     @Override
-    public double[] getPlayFromHandCardFeatures(GameState gameState, int physicalId, String playerName) {
+    public double[] getPlayFromHandCardFeatures(LotroGame game, int physicalId, String playerName) {
         int copiesInDeck = 0;
-        for (String drawDeckCard : gameState.getLotroDeck(playerName).getDrawDeckCards()) {
+        for (String drawDeckCard : game.getGameState().getLotroDeck(playerName).getDrawDeckCards()) {
             if (drawDeckCard.equals(id)) {
                 copiesInDeck++;
             }
@@ -1409,7 +1409,7 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add((double) copiesInDeck);
 
         try {
-            features.add(CardEvaluators.doesAnythingIfPlayed(gameState, physicalId, playerName, this) ? 1.0 : 0.0);
+            features.add(CardEvaluators.doesAnythingIfPlayed(game, physicalId, playerName, this) ? 1.0 : 0.0);
         } catch (IllegalArgumentException e) {
             System.out.println("Unsupported card tried evaluation: " + id);
             features.add(0.5);

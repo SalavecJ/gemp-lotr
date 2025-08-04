@@ -150,7 +150,7 @@ public class BotGameStateListener implements GameStateListener {
     public void decisionRequired(String playerId, AwaitingDecision awaitingDecision) {
         if (playerId.equals(botPlayer.getName())) {
             new Thread(() -> {
-                String action = botPlayer.chooseAction(lotroGameMediator.getGameState(), awaitingDecision);
+                String action = botPlayer.chooseAction(lotroGameMediator.getGame(), awaitingDecision);
                 lotroGameMediator.botAnswered(botPlayer.getName(), awaitingDecision.getAwaitingDecisionId(), action);
             }).start();
         }

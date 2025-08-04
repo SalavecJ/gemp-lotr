@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -38,7 +39,7 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Always choose max
         int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
         List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
@@ -50,13 +51,13 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
         if (model == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
-        double[] stateVector = extractFeatures(gameState, decision, playerName);
+        double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
         List<ScoredCard> scoredCards = new ArrayList<>();
 
         for (String physicalId : cardIds) {
             try {
-                String blueprintId = gameState.getBlueprintId(Integer.parseInt(physicalId));
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, Integer.parseInt(physicalId), playerName);
+                String blueprintId = game.getGameState().getBlueprintId(Integer.parseInt(physicalId));
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(game.getGameState(), Integer.parseInt(physicalId), playerName);
                 double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
                 System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
 
@@ -75,9 +76,9 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         String className = getName();
-        double[] state = extractFeatures(gameState, decision, playerId);
+        double[] state = extractFeatures(game.getGameState(), decision, playerId);
 
         List<String> chosenOptions = Arrays.stream(answer.split(",")).toList();
         List<String> notChosenOptions = new ArrayList<>();
@@ -91,9 +92,9 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
         if (!chosenOptions.contains("")) { // Pass
             for (String chosenOption : chosenOptions) {
                 int wounds = 0;
-                for (PhysicalCard physicalCard : gameState.getInPlay()) {
+                for (PhysicalCard physicalCard : game.getGameState().getInPlay()) {
                     if (physicalCard.getCardId() == Integer.parseInt(chosenOption)) {
-                        wounds = gameState.getWounds(physicalCard);
+                        wounds = game.getGameState().getWounds(physicalCard);
                         break;
                     }
                 }
@@ -104,9 +105,9 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
         List<Integer> woundsOnNotChosen = new ArrayList<>();
         for (String notChosenOption : notChosenOptions) {
             int wounds = 0;
-            for (PhysicalCard physicalCard : gameState.getInPlay()) {
+            for (PhysicalCard physicalCard : game.getGameState().getInPlay()) {
                 if (physicalCard.getCardId() == Integer.parseInt(notChosenOption)) {
-                    wounds = gameState.getWounds(physicalCard);
+                    wounds = game.getGameState().getWounds(physicalCard);
                     break;
                 }
             }
@@ -117,7 +118,7 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
         for (int i = 0; i < notChosenOptions.size(); i++) {
             String notChosenOption = notChosenOptions.get(i);
             try {
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(gameState.getBlueprintId(Integer.parseInt(notChosenOption))).getGeneralCardFeatures(gameState, -1, playerId, woundsOnNotChosen.get(i));
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(game.getGameState().getBlueprintId(Integer.parseInt(notChosenOption))).getGeneralCardFeatures(game.getGameState(), -1, playerId, woundsOnNotChosen.get(i));
                 notChosenVectors.add(cardVector);
             } catch (CardNotFoundException ignored) {
 
@@ -129,7 +130,7 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
             for (int i = 0; i < chosenOptions.size(); i++) {
                 String chosenOption = chosenOptions.get(i);
                 try {
-                    double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(gameState.getBlueprintId(Integer.parseInt(chosenOption))).getGeneralCardFeatures(gameState, -1, playerId, woundsOnChosen.get(i));
+                    double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(game.getGameState().getBlueprintId(Integer.parseInt(chosenOption))).getGeneralCardFeatures(game.getGameState(), -1, playerId, woundsOnChosen.get(i));
                     tbr.add(new SavedVector(className, state, cardVector, notChosenVectors));
                 } catch (CardNotFoundException ignored) {
 

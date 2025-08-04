@@ -1,7 +1,7 @@
 package com.gempukku.lotro.cards.evaluation;
 
-import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 
 public interface CardEvaluator {
-    boolean doesAnythingIfPlayed(GameState gameState, int physicalId, String playerName);
+    boolean doesAnythingIfPlayed(LotroGame game, int physicalId, String playerName);
 }

@@ -3,6 +3,7 @@ package com.gempukku.lotro.bots.rl.v2.learning.choice.rules;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.AbstractChoiceTrainer;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
@@ -44,7 +45,7 @@ public class GoFirstTrainer extends AbstractChoiceTrainer {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Always go first
         return String.valueOf(0);
     }

@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -39,7 +40,7 @@ public class DegenerateArbitraryTrainer extends AbstractArbitraryTrainer {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {Map<String, String[]> params = decision.getDecisionParameters();
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {Map<String, String[]> params = decision.getDecisionParameters();
         String[] cardIds = params.get("cardId");
         String[] selectable = params.get("selectable");
         int min = params.containsKey("min") ? Integer.parseInt(params.get("min")[0]) : 0;
@@ -82,7 +83,7 @@ public class DegenerateArbitraryTrainer extends AbstractArbitraryTrainer {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         return List.of();
     }
 

@@ -4,7 +4,7 @@ import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.integer.AbstractIntegerTrainer;
 import com.gempukku.lotro.game.CardNotFoundException;
-import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.Random;
@@ -17,12 +17,12 @@ public class BurdenBidTrainer extends AbstractIntegerTrainer {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Bid randomly less than half of resistance
         int resistance = 10;
         if (BotService.staticLibrary != null) {
             try {
-                resistance = BotService.staticLibrary.getLotroCardBlueprint(gameState.getLotroDeck(playerName).getRingBearer()).getResistance();
+                resistance = BotService.staticLibrary.getLotroCardBlueprint(game.getGameState().getLotroDeck(playerName).getRingBearer()).getResistance();
             } catch (CardNotFoundException ignored) {
 
             }

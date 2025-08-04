@@ -10,6 +10,7 @@ import com.gempukku.lotro.bots.rl.v2.learning.arbitrary.specific.SpecificArbitra
 import com.gempukku.lotro.bots.rl.v2.learning.cardselection.specific.SpecificCardSelectionTrainerFactory;
 import com.gempukku.lotro.bots.rl.v2.learning.choice.specific.SpecificChoiceTrainerFactory;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
@@ -34,14 +35,14 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
     }
 
     @Override
-    public String chooseAction(GameState gameState, AwaitingDecision awaitingDecision) {
-        String action = makeDecision(gameState, awaitingDecision);
+    public String chooseAction(LotroGame game, AwaitingDecision awaitingDecision) {
+        String action = makeDecision(game, awaitingDecision);
 
         // Store temporarily — reward comes later
         List<String> relevantTrainers = new ArrayList<>();
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
-            if (trainer.appliesTo(gameState, awaitingDecision, getName())) {
-                vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
+            if (trainer.appliesTo(game.getGameState(), awaitingDecision, getName())) {
+                vectors.addAll(trainer.toStringVectors(game, awaitingDecision, getName(), action));
                 relevantTrainers.add(trainer.getName());
             }
         }
@@ -49,8 +50,8 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             throw new IllegalStateException("Multiple trainers found relevant the same step - " + relevantTrainers + " - " + awaitingDecision.getText());
         }
         for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
-            if (trainer.appliesTo(gameState, awaitingDecision, getName())) {
-                vectors.addAll(trainer.toStringVectors(gameState, awaitingDecision, getName(), action));
+            if (trainer.appliesTo(game.getGameState(), awaitingDecision, getName())) {
+                vectors.addAll(trainer.toStringVectors(game, awaitingDecision, getName(), action));
             }
         }
 
@@ -72,31 +73,31 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
         return action;
     }
 
-    private String makeDecision(GameState gameState, AwaitingDecision decision) {
+    private String makeDecision(LotroGame game, AwaitingDecision decision) {
         try {
-            return chooseActionBasedOnModel(gameState, decision);
+            return chooseActionBasedOnModel(game, decision);
         } catch (UnsupportedOperationException e) {
             // Cannot use models, choose at random and log it
             if (modelRegistry != null) {
                 System.out.println(e.getMessage());
             }
-            return super.chooseAction(gameState, decision);
+            return super.chooseAction(game, decision);
         }
     }
 
-    private String chooseActionBasedOnModel(GameState gameState, AwaitingDecision decision) {
+    private String chooseActionBasedOnModel(LotroGame game, AwaitingDecision decision) {
         // Try degenerate trainers first
         for (TrainerV2 trainer : TrainersV2.getAllV2DegenerateTrainers()) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game, decision, getName(), modelRegistry);
             }
         }
 
         boolean modelError = false;
         for (TrainerV2 trainer : TrainersV2.getAllV2Trainers()) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
                 try {
-                    return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
+                    return trainer.getAnswer(game, decision, getName(), modelRegistry);
                 } catch (UnsupportedOperationException ignored) {
                     // Model not found for answerer
                     modelError = true;
@@ -116,14 +117,14 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
 
         // Try general trainers
         for (TrainerV2 trainer : TrainersV2.getAllV2GeneralTrainers()) {
-            if (trainer.appliesTo(gameState, decision, getName())) {
-                return trainer.getAnswer(gameState, decision, getName(), modelRegistry);
+            if (trainer.appliesTo(game.getGameState(), decision, getName())) {
+                return trainer.getAnswer(game, decision, getName(), modelRegistry);
             }
         }
 
         if (decision.getDecisionType().equals(AwaitingDecisionType.ACTION_CHOICE)) {
             // Multiple actions triggering at the same time, choose whatever
-            return super.chooseAction(gameState, decision);
+            return super.chooseAction(game, decision);
 
         }
 

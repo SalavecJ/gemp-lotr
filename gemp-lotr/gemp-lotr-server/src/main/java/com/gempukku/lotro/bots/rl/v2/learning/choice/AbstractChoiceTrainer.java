@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
 import com.gempukku.lotro.bots.rl.v2.learning.AbstractTrainerV2;
 import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -25,7 +26,7 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         if (modelRegistry == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
@@ -34,7 +35,7 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
 
-        double[] features = extractFeatures(gameState, decision, playerName);
+        double[] features = extractFeatures(game.getGameState(), decision, playerName);
         double[] probabilities = new double[getNumberOfOptions()];
         model.predict(features, probabilities);
 
@@ -88,9 +89,9 @@ public abstract class AbstractChoiceTrainer extends AbstractTrainerV2 {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         String className = getName();
-        double[] state = extractFeatures(gameState, decision, playerId);
+        double[] state = extractFeatures(game.getGameState(), decision, playerId);
 
         int chosenIndex = Integer.parseInt(answer);
 

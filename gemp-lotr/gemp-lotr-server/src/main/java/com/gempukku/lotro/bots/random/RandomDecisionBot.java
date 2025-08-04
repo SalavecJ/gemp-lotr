@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.random;
 
 import com.gempukku.lotro.bots.BotPlayer;
-import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
@@ -17,7 +17,7 @@ public class RandomDecisionBot implements BotPlayer {
     }
 
     @Override
-    public String chooseAction(GameState gameState, AwaitingDecision awaitingDecision) {
+    public String chooseAction(LotroGame game, AwaitingDecision awaitingDecision) {
         AwaitingDecisionType type = awaitingDecision.getDecisionType();
         Map<String, String[]> params = awaitingDecision.getDecisionParameters();
 
@@ -28,7 +28,7 @@ public class RandomDecisionBot implements BotPlayer {
             case CARD_ACTION_CHOICE -> chooseFromCardActionChoice(params);
             case ACTION_CHOICE -> chooseFromActionChoice(params);
             case CARD_SELECTION -> chooseFromCardSelection(params);
-            case ASSIGN_MINIONS -> chooseAssignment(params, gameState.getCurrentPlayerId().equals(botName));
+            case ASSIGN_MINIONS -> chooseAssignment(params, game.getGameState().getCurrentPlayerId().equals(botName));
         };
     }
 

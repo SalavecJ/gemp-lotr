@@ -9,6 +9,7 @@ import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.Assignment;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import smile.classification.SoftClassifier;
 
@@ -25,7 +26,7 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
     }
 
     @Override
-    public String getAnswer(GameState gameState, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
+    public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
 
         if (modelRegistry == null) {
@@ -35,15 +36,15 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
         if (model == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
-        double[] stateVector = extractFeatures(gameState, decision, playerName);
+        double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
         List<ScoredCard> scoredCards = new ArrayList<>();
 
         for (String physicalId : cardIds) {
             try {
-                for (Assignment assignment : gameState.getAssignments()) {
+                for (Assignment assignment : game.getGameState().getAssignments()) {
                     if (assignment.getFellowshipCharacter().getCardId() == Integer.parseInt(physicalId)) {
-                        String blueprintId = gameState.getBlueprintId(Integer.parseInt(physicalId));
-                        double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getFpAssignedCardFeatures(gameState, Integer.parseInt(physicalId), playerName);
+                        String blueprintId = game.getGameState().getBlueprintId(Integer.parseInt(physicalId));
+                        double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getFpAssignedCardFeatures(game.getGameState(), Integer.parseInt(physicalId), playerName);
                         double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
                         System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
 
@@ -70,12 +71,12 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
     }
 
     @Override
-    public List<SavedVector> toStringVectors(GameState gameState, AwaitingDecision decision, String playerId, String answer) {
+    public List<SavedVector> toStringVectors(LotroGame game, AwaitingDecision decision, String playerId, String answer) {
         String className = getName();
-        double[] state = extractFeatures(gameState, decision, playerId);
+        double[] state = extractFeatures(game.getGameState(), decision, playerId);
 
         PhysicalCard fpCard = null;
-        for (PhysicalCard physicalCard : gameState.getInPlay()) {
+        for (PhysicalCard physicalCard : game.getGameState().getInPlay()) {
             if (physicalCard.getCardId() == Integer.parseInt(answer)) {
                 fpCard = physicalCard;
                 break;
@@ -96,7 +97,7 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
         List<double[]> notChosenVectors = new ArrayList<>();
         for (String notChosenOption : notChosenOptions) {
             try {
-                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(notChosenOption, gameState)).getFpAssignedCardFeatures(gameState, Integer.parseInt(notChosenOption), playerId);
+                double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(notChosenOption, game.getGameState())).getFpAssignedCardFeatures(game.getGameState(), Integer.parseInt(notChosenOption), playerId);
                 notChosenVectors.add(cardVector);
             } catch (CardNotFoundException ignored) {
 
@@ -105,7 +106,7 @@ public class SkirmishOrderTrainer extends AbstractCardSelectionTrainer {
 
         List<SavedVector> tbr = new ArrayList<>();
         try {
-            double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(answer, gameState)).getFpAssignedCardFeatures(gameState, fpCard.getCardId(), playerId);
+            double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(getBlueprintId(answer, game.getGameState())).getFpAssignedCardFeatures(game.getGameState(), fpCard.getCardId(), playerId);
             tbr.add(new SavedVector(className, state, cardVector, notChosenVectors));
         } catch (CardNotFoundException ignored) {
 

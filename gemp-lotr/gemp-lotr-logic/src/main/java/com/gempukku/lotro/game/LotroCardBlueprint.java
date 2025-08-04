@@ -25,7 +25,7 @@ public interface LotroCardBlueprint {
     double[] getGeneralCardFeatures(GameState gameState, int physicalId, String playerName, int numberOfWounds);
     double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName);
     double[] getFpAssignedCardFeatures(GameState gameState, int physicalId, String playerName, Collection<Integer> minions);
-    double[] getPlayFromHandCardFeatures(GameState gameState, int physicalId, String playerName);
+    double[] getPlayFromHandCardFeatures(LotroGame game, int physicalId, String playerName);
 
     default LotroCardBlueprint getParent() {
         return this;

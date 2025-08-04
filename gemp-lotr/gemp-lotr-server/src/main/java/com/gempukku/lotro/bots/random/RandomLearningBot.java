@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.rl.learning.ReplayBuffer;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.ArrayList;
@@ -25,33 +26,33 @@ public class RandomLearningBot extends RandomDecisionBot implements LearningBotP
     }
 
     @Override
-    public String chooseAction(GameState gameState, AwaitingDecision decision) {
-        double[] stateVector = features.extractFeatures(gameState, decision, getName());
+    public String chooseAction(LotroGame game, AwaitingDecision decision) {
+        double[] stateVector = features.extractFeatures(game.getGameState(), decision, getName());
 
-        SemanticAction action = pickSemanticAction(decision, gameState);
+        SemanticAction action = pickSemanticAction(decision, game);
 
         // Store temporarily — reward comes later
-        episodeSteps.add(new LearningStep(stateVector, action, getName().equals(gameState.getCurrentPlayerId()), decision));
+        episodeSteps.add(new LearningStep(stateVector, action, getName().equals(game.getGameState().getCurrentPlayerId()), decision));
 
-        return action.toDecisionString(decision, gameState);
+        return action.toDecisionString(decision, game.getGameState());
     }
 
-    private SemanticAction pickSemanticAction(AwaitingDecision decision, GameState gameState) {
-        String action = super.chooseAction(gameState, decision);
+    private SemanticAction pickSemanticAction(AwaitingDecision decision, LotroGame game) {
+        String action = super.chooseAction(game, decision);
 
         return switch (decision.getDecisionType()) {
             case INTEGER -> new IntegerChoiceAction(Integer.parseInt(action));
             case MULTIPLE_CHOICE -> new MultipleChoiceAction(action, decision);
             case ARBITRARY_CARDS -> new ChooseFromArbitraryCardsAction(action, decision);
-            case CARD_ACTION_CHOICE -> new CardActionChoiceAction(action, decision, gameState);
+            case CARD_ACTION_CHOICE -> new CardActionChoiceAction(action, decision, game.getGameState());
             case ACTION_CHOICE -> new ActionChoiceAction(action, decision);
             case CARD_SELECTION -> {
-                if (gameState.getCurrentPhase().equals(Phase.SKIRMISH)) {
-                    yield new CardSelectionAssignedAction(action, decision, gameState);
+                if (game.getGameState().getCurrentPhase().equals(Phase.SKIRMISH)) {
+                    yield new CardSelectionAssignedAction(action, decision, game.getGameState());
                 }
-                yield new CardSelectionAction(action, decision, gameState);
+                yield new CardSelectionAction(action, decision, game.getGameState());
             }
-            case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, gameState, gameState.getCurrentPlayerId().equals(getName()));
+            case ASSIGN_MINIONS -> new AssignMinionsAction(action, decision, game.getGameState(), game.getGameState().getCurrentPlayerId().equals(getName()));
         };
     }
 
