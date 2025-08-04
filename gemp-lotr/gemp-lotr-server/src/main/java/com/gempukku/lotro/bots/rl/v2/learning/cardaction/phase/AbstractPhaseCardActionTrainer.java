@@ -8,7 +8,6 @@ import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
-import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 
 import java.util.*;
 
@@ -40,7 +39,7 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
                     List.of(blueprintIds.get(i)),
                     List.of(actionTexts.get(i))) {
                 @Override
-                public void decisionMade(String result) throws DecisionResultInvalidException {
+                public void decisionMade(String result) {
 
                 }
             };
@@ -63,16 +62,27 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
         Map<String, String[]> params = decision.getDecisionParameters();
         List<String> actionIds = Arrays.stream(params.get("actionId")).toList();
         List<String> cardIds = Arrays.stream(params.get("cardId")).toList();
+        List<String> blueprintIds = Arrays.stream(params.get("blueprintId")).toList();
         List<String> actionTexts = Arrays.stream(params.get("actionText")).toList();
 
         Map<String, IdActionPair> actions = new HashMap<>();
         for (int i = 0; i < actionIds.size(); i++) {
-            actions.put(actionIds.get(i), new IdActionPair(cardIds.get(i), actionTexts.get(i)));
+            actions.put(actionIds.get(i), new IdActionPair(cardIds.get(i), blueprintIds.get(i), actionTexts.get(i)));
         }
 
         for (IdActionPair idActionPair : actions.values()) {
             for (AbstractCardActionTrainer trainer : getSubTrainers()) {
-                if (trainer.appliesTo(gameState, decision, playerName)) {
+                CardActionSelectionDecision tmpDecision = new CardActionSelectionDecision(decision.getAwaitingDecisionId(),
+                        decision.getText(),
+                        List.of(idActionPair.cardId),
+                        List.of(idActionPair.blueprintId),
+                        List.of(idActionPair.actionText)) {
+                    @Override
+                    public void decisionMade(String result) {
+
+                    }
+                };
+                if (trainer.appliesTo(gameState, tmpDecision, playerName)) {
                     trainer.scoreAction(gameState, decision, playerName, modelRegistry, idActionPair);
                 }
             }
@@ -99,11 +109,13 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
 
     public static class IdActionPair {
         public String cardId;
+        public String blueprintId;
         public String actionText;
         public double confidence = 0.0;
 
-        public IdActionPair(String cardId, String actionText) {
+        public IdActionPair(String cardId, String blueprintId, String actionText) {
             this.cardId = cardId;
+            this.blueprintId = blueprintId;
             this.actionText = actionText;
         }
     }

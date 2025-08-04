@@ -10,7 +10,6 @@ import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
-import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 import smile.classification.SoftClassifier;
 
 import java.util.ArrayList;
@@ -60,7 +59,7 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
 
         try {
             String blueprintId = gameState.getBlueprintId(Integer.parseInt(idActionPair.cardId));
-            double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, Integer.parseInt(idActionPair.cardId), playerName);
+            double[] cardVector = getCardVector(gameState, Integer.parseInt(idActionPair.cardId), blueprintId, playerName);
             double[] stateVector = extractFeatures(gameState, decision, playerName);
             double[] extended = Arrays.copyOf(stateVector, stateVector.length + cardVector.length);
             System.arraycopy(cardVector, 0, extended, stateVector.length, cardVector.length);
@@ -95,7 +94,7 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
         List<String> blueprintIds = Arrays.stream(params.get("blueprintId")).toList();
         List<String> actionTexts = Arrays.stream(params.get("actionText")).toList();
 
-        double[] chosenVector = new double[17];
+        double[] chosenVector = null;
         List<double[]> notChosenVectors = new ArrayList<>();
 
 
@@ -107,13 +106,13 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
                         List.of(blueprintIds.get(i)),
                         List.of(actionTexts.get(i))) {
                     @Override
-                    public void decisionMade(String result) throws DecisionResultInvalidException {
+                    public void decisionMade(String result) {
 
                     }
                 };
                 if (appliesTo(gameState, tmpDecision, playerId)) {
                     String blueprintId = gameState.getBlueprintId(Integer.parseInt(cardIds.get(i)));
-                    double[] cardVector = BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, Integer.parseInt(cardIds.get(i)), playerId);
+                    double[] cardVector = getCardVector(gameState, Integer.parseInt(cardIds.get(i)), blueprintId, playerId);
 
                     if (String.valueOf(i).equals(answer)) {
                         chosenVector = cardVector;
@@ -126,8 +125,12 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
             }
         }
 
+        if (chosenVector == null) {
+            chosenVector = new double[notChosenVectors.getFirst().length];
+        }
+
         if (!answer.isEmpty()) {
-            notChosenVectors.add(new double[17]);
+            notChosenVectors.add(new double[chosenVector.length]);
         }
 
         if (!(decision instanceof CardActionSelectionDecision cardActionSelectionDecision)) {
@@ -139,5 +142,9 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
         }
 
         return List.of();
+    }
+
+    protected double[] getCardVector(GameState gameState, int cardId, String blueprintId, String playerName) throws CardNotFoundException{
+        return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getGeneralCardFeatures(gameState, cardId, playerName);
     }
 }
