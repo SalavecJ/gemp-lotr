@@ -1,6 +1,8 @@
 package com.gempukku.lotro.bots.rl.v2.learning.cardaction.general;
 
+import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.learning.cardaction.AbstractCardActionTrainer;
+import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
 
@@ -29,6 +31,11 @@ public class GeneralCardActionTrainerFactory {
                     @Override
                     public String getName() {
                         return "CasGeneralTrainerPlay-" + getTextTrigger();
+                    }
+
+                    @Override
+                    protected double[] getCardVector(GameState gameState, int cardId, String blueprintId, String playerName) throws CardNotFoundException {
+                        return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getPlayFromHandCardFeatures(gameState, cardId, playerName);
                     }
                 },
                 new AbstractCardActionTrainer() {

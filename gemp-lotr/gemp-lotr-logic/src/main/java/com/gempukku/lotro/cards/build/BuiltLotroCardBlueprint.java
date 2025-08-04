@@ -1,6 +1,7 @@
 package com.gempukku.lotro.cards.build;
 
 import com.gempukku.lotro.cards.build.field.effect.EffectAppender;
+import com.gempukku.lotro.cards.evaluation.CardEvaluators;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.filters.Filters;
 import com.gempukku.lotro.game.ExtraPlayCost;
@@ -1374,6 +1375,45 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
             damage += shadowCharacter.getBlueprint().getKeywordCount(Keyword.DAMAGE);
         }
         features.add((double) damage);
+
+        return features.stream().mapToDouble(Double::doubleValue).toArray();
+    }
+
+    @Override
+    public double[] getPlayFromHandCardFeatures(GameState gameState, int physicalId, String playerName) {
+        int copiesInDeck = 0;
+        for (String drawDeckCard : gameState.getLotroDeck(playerName).getDrawDeckCards()) {
+            if (drawDeckCard.equals(id)) {
+                copiesInDeck++;
+            }
+        }
+
+        List<Double> features = new ArrayList<>();
+
+        features.add(getSide() == Side.SHADOW ? 1.0 : 0.0);
+        features.add(getSide() == Side.FREE_PEOPLE ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.COMPANION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.ALLY ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.MINION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.POSSESSION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.ARTIFACT ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.CONDITION ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.FOLLOWER ? 1.0 : 0.0);
+        features.add(getCardType() == CardType.EVENT ? 1.0 : 0.0);
+
+        features.add((double) getTwilightCost());
+        features.add((double) getStrength());
+        features.add((double) getVitality());
+        features.add((double) getSiteNumber());
+
+        features.add((double) copiesInDeck);
+
+        try {
+            features.add(CardEvaluators.doesAnythingIfPlayed(gameState, physicalId, playerName, this) ? 1.0 : 0.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Unsupported card tried evaluation: " + id);
+            features.add(0.5);
+        }
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
