@@ -23,9 +23,6 @@ import org.json.simple.JSONObject;
 
 import java.util.*;
 
-import static com.gempukku.lotro.common.Timeword.*;
-import static com.gempukku.lotro.common.Timeword.RESPONSE;
-
 public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
     private final JSONObject jsonDefinition;
@@ -1293,6 +1290,19 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
             }
         }
 
+        boolean isSkirmishing = false;
+        if (gameState.getSkirmish() != null) {
+            try {
+                if (gameState.getSkirmish().getFellowshipCharacter().getCardId() == physicalId) {
+                    isSkirmishing = true;
+                } else if (gameState.getSkirmish().getShadowCharacters().stream().anyMatch(physicalCard -> physicalCard.getCardId() == physicalId)) {
+                    isSkirmishing = true;
+                }
+            } catch (NullPointerException ignored) {
+
+            }
+        }
+
         List<Double> features = new ArrayList<>();
 
         features.add(getSide() == Side.SHADOW ? 1.0 : 0.0);
@@ -1313,6 +1323,8 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add((double) getSiteNumber());
 
         features.add((double) wounds);
+
+        features.add(isSkirmishing ? 1.0 : 0.0);
 
         features.add((double) copiesInDeck);
 

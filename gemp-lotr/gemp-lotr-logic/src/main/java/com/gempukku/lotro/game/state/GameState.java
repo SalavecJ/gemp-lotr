@@ -748,6 +748,15 @@ public class GameState {
         throw new IllegalArgumentException("Card not found");
     }
 
+    public PhysicalCard getPhysicalCard(int cardId) {
+        for (PhysicalCardImpl physicalCard : _allCards.values()) {
+            if (physicalCard.getCardId() == cardId) {
+                return physicalCard;
+            }
+        }
+        throw new IllegalArgumentException("Card not found");
+    }
+
     public LotroDeck getLotroDeck(String playerId) {
         return _lotroDecks.get(playerId);
     }
