@@ -109,8 +109,7 @@ public class BotV2  extends RandomDecisionBot implements LearningBotPlayer {
             // No trainer found, make one
             switch (decision.getDecisionType()) {
                 case MULTIPLE_CHOICE -> SpecificChoiceTrainerFactory.makeAndRegisterTrainer(decision);
-                case ARBITRARY_CARDS ->
-                        SpecificArbitraryCardSelectionTrainerFactory.makeAndRegisterTrainer(decision);
+                case ARBITRARY_CARDS -> SpecificArbitraryCardSelectionTrainerFactory.makeAndRegisterTrainer(decision);
                 case CARD_SELECTION -> SpecificCardSelectionTrainerFactory.makeAndRegisterTrainer(decision);
             }
         }

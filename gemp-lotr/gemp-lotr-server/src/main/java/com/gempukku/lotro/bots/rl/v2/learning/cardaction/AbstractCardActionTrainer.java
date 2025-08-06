@@ -93,6 +93,7 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
         Map<String, String[]> params = decision.getDecisionParameters();
         List<String> cardIds = Arrays.stream(params.get("cardId")).toList();
         List<String> blueprintIds = Arrays.stream(params.get("blueprintId")).toList();
+        List<String> realBlueprintIds = Arrays.stream(params.get("realBlueprintId")).toList();
         List<String> actionTexts = Arrays.stream(params.get("actionText")).toList();
 
         double[] chosenVector = null;
@@ -105,7 +106,8 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
                         decision.getText(),
                         List.of(cardIds.get(i)),
                         List.of(blueprintIds.get(i)),
-                        List.of(actionTexts.get(i))) {
+                        List.of(actionTexts.get(i)),
+                        List.of(realBlueprintIds.get(i))) {
                     @Override
                     public void decisionMade(String result) {
 

@@ -85,6 +85,10 @@ public class TrainersV2 {
         trainers.add(trainer);
     }
 
+    public static void addSubTrainer(TrainerV2 trainer) {
+        subTrainers.add(trainer);
+    }
+
     public static List<TrainerV2> getAllV2Trainers() {
         return new UnmodifiableList<>(trainers);
     }

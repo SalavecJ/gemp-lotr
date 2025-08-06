@@ -189,6 +189,7 @@ public class SkirmishFpCardActionAnswerer extends AbstractCardActionAnswerer {
             List<String> cardIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("cardId")).toList());
             List<String> blueprintIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("blueprintId")).toList());
             List<String> actions = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("actionText")).toList());
+            List<String> realBlueprintIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("realBlueprintId")).toList());
 
             String bridgeText = "Use Ettenmoors";
             int indexOfBridge = actions.indexOf(bridgeText);
@@ -198,9 +199,9 @@ public class SkirmishFpCardActionAnswerer extends AbstractCardActionAnswerer {
                 actions.remove(indexOfBridge);
             }
 
-            AwaitingDecision filteredDecision = new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actions) {
+            AwaitingDecision filteredDecision = new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actions, realBlueprintIds) {
                 @Override
-                public void decisionMade(String result) throws DecisionResultInvalidException {
+                public void decisionMade(String result) {
 
                 }
             };

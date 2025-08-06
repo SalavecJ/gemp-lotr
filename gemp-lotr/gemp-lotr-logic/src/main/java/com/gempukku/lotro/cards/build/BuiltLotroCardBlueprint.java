@@ -1304,6 +1304,7 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         }
 
         List<Double> features = new ArrayList<>();
+        features.add(1.0); // is card, not pass
 
         features.add(getSide() == Side.SHADOW ? 1.0 : 0.0);
         features.add(getSide() == Side.FREE_PEOPLE ? 1.0 : 0.0);
@@ -1401,6 +1402,7 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         }
 
         List<Double> features = new ArrayList<>();
+        features.add(1.0); // is card, not pass
 
         features.add(getSide() == Side.SHADOW ? 1.0 : 0.0);
         features.add(getSide() == Side.FREE_PEOPLE ? 1.0 : 0.0);
@@ -1418,6 +1420,30 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add((double) getVitality());
         features.add((double) getSiteNumber());
 
+        features.add((double) copiesInDeck);
+
+        try {
+            features.add(CardEvaluators.doesAnythingIfPlayed(game, physicalId, playerName, this) ? 1.0 : 0.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Unsupported card tried evaluation: " + id);
+            features.add(0.5);
+        }
+
+        return features.stream().mapToDouble(Double::doubleValue).toArray();
+    }
+
+    @Override
+    public double[] getSpecificPlayFromHandCardFeatures(LotroGame game, int physicalId, String playerName) {
+        int copiesInDeck = 0;
+        for (String drawDeckCard : game.getGameState().getLotroDeck(playerName).getDrawDeckCards()) {
+            if (drawDeckCard.equals(id)) {
+                copiesInDeck++;
+            }
+        }
+
+        List<Double> features = new ArrayList<>();
+
+        features.add(1.0); // is card, not pass
         features.add((double) copiesInDeck);
 
         try {

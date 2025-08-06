@@ -101,6 +101,7 @@ public class ShadowCardActionAnswerer extends AbstractCardActionAnswerer {
             List<String> cardIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("cardId")).toList());
             List<String> blueprintIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("blueprintId")).toList());
             List<String> actions = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("actionText")).toList());
+            List<String> realBlueprintIds = new ArrayList<>(Arrays.stream(decision.getDecisionParameters().get("realBlueprintId")).toList());
 
             String bridgeText = "Use The Bridge of Khazad-dûm";
             int indexOfBridge = actions.indexOf(bridgeText);
@@ -110,9 +111,9 @@ public class ShadowCardActionAnswerer extends AbstractCardActionAnswerer {
                 actions.remove(indexOfBridge);
             }
 
-            AwaitingDecision filteredDecision = new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actions) {
+            AwaitingDecision filteredDecision = new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actions, realBlueprintIds) {
                 @Override
-                public void decisionMade(String result) throws DecisionResultInvalidException {
+                public void decisionMade(String result) {
 
                 }
             };

@@ -21,9 +21,10 @@ public abstract class CardActionSelectionDecision extends AbstractAwaitingDecisi
         setParam("cardId", getCardIds(actions));
         setParam("blueprintId", getBlueprintIdsForVirtualActions(actions));
         setParam("actionText", getActionTexts(actions));
+        setParam("realBlueprintId", getBlueprintIds(actions));
     }
 
-    public CardActionSelectionDecision(int id, String text, List<String> cardIds, List<String> blueprintIds, List<String> actionTexts) {
+    public CardActionSelectionDecision(int id, String text, List<String> cardIds, List<String> blueprintIds, List<String> actionTexts, List<String> realBlueprintIds) {
         super(id, text, AwaitingDecisionType.CARD_ACTION_CHOICE);
         _game = null;
         _actions = null;
@@ -31,6 +32,7 @@ public abstract class CardActionSelectionDecision extends AbstractAwaitingDecisi
         setParam("cardId", cardIds.toArray(new String[0]));
         setParam("blueprintId", blueprintIds.toArray(new String[0]));
         setParam("actionText", actionTexts.toArray(new String[0]));
+        setParam("realBlueprintId", realBlueprintIds.toArray(new String[0]));
 
         // Generate fake actionId array
         String[] actionIds = new String[actionTexts.size()];
@@ -64,6 +66,19 @@ public abstract class CardActionSelectionDecision extends AbstractAwaitingDecisi
                 result[i] = String.valueOf(action.getActionSource().getBlueprintId());
             else
                 result[i] = "inPlay";
+        }
+        return result;
+    }
+
+    private String[] getBlueprintIds(List<? extends Action> actions) {
+        String[] result = new String[actions.size()];
+        for (int i = 0; i < result.length; i++) {
+            Action action = actions.get(i);
+            if (action.getActionSource() == null) {
+                result[i] = "null";
+            } else {
+                result[i] = String.valueOf(action.getActionAttachedToCard().getBlueprintId());
+            }
         }
         return result;
     }
@@ -106,6 +121,7 @@ public abstract class CardActionSelectionDecision extends AbstractAwaitingDecisi
         obj.put("cardId", getDecisionParameters().get("cardId"));
         obj.put("blueprintId", getDecisionParameters().get("blueprintId"));
         obj.put("actionText", getDecisionParameters().get("actionText"));
+        obj.put("realBlueprintId", getDecisionParameters().get("realBlueprintId"));
 
         return obj;
     }
@@ -116,8 +132,9 @@ public abstract class CardActionSelectionDecision extends AbstractAwaitingDecisi
         List<String> cardIds = Arrays.asList(obj.getObject("cardId", String[].class));
         List<String> blueprintIds = Arrays.asList(obj.getObject("blueprintId", String[].class));
         List<String> actionTexts = Arrays.asList(obj.getObject("actionText", String[].class));
+        List<String> realBlueprintIds = Arrays.asList(obj.getObject("realBlueprintId", String[].class));
 
-        return new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actionTexts) {
+        return new CardActionSelectionDecision(id, text, cardIds, blueprintIds, actionTexts, realBlueprintIds) {
             @Override
             public void decisionMade(String result) throws DecisionResultInvalidException {
                 throw new UnsupportedOperationException("Not implemented in training context");
