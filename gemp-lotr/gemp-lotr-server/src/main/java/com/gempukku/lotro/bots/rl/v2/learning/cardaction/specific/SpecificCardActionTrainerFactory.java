@@ -47,6 +47,8 @@ public class SpecificCardActionTrainerFactory {
             protected double[] getCardVector(LotroGame game, int cardId, String blueprintId, String playerName) throws CardNotFoundException {
                 if (actionStartsWith.equals("Play")) {
                     return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getSpecificPlayFromHandCardFeatures(game, cardId, playerName);
+                } else if (actionStartsWith.equals("Use")) {
+                    return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getSpecificUseCardFeatures(game, cardId, playerName);
                 } else {
                     return super.getCardVector(game, cardId, blueprintId, playerName);
                 }
