@@ -57,6 +57,14 @@ public class CardEvaluators {
     }
 
     private static void addSetOnePossessions() {
+        // Goblin Scimitar - Bearer must be a [moria] Orc.<br>When you play this possession, you may draw a card.
+        EVALUATORS.put("1_180", new AbstractCardEvaluator() {
+            @Override
+            public boolean doesAnythingIfUsed(LotroGame game, int physicalId, String playerName) {
+                return true;
+            }
+        });
+
         // Athelas - Bearer must be a [gondor] Man.<br><b>Fellowship:</b> Discard this possession to heal a companion or to remove a Shadow condition from a companion.
         EVALUATORS.put("1_94", new AbstractCardEvaluator() {
             @Override
@@ -154,9 +162,57 @@ public class CardEvaluators {
                 return game.getGameState().getInPlay().stream().anyMatch((Predicate<PhysicalCard>) physicalCard -> game.getGameState().getWounds(physicalCard) > 0 && Race.URUK_HAI.equals(physicalCard.getBlueprint().getRace()));
             }
         });
+
+        // Goblin Sneak - When you play this minion, you may place a [moria] Orc from your discard pile beneath your draw deck.
+        EVALUATORS.put("1_181", new AbstractCardEvaluator() {
+            @Override
+            public boolean doesAnythingIfUsed(LotroGame game, int physicalId, String playerName) {
+                return game.getGameState().getDiscard(playerName).stream().anyMatch((Predicate<PhysicalCard>) physicalCard -> Culture.MORIA.equals(physicalCard.getBlueprint().getCulture()) && Race.ORC.equals(physicalCard.getBlueprint().getRace()));
+            }
+        });
+
+        // Uruk Soldier - <b>Damage +1</b>.<br>When you play this minion, you may make the Free Peoples player discard the top card of his draw deck.
+        EVALUATORS.put("1_154", new AbstractCardEvaluator() {
+            @Override
+            public boolean doesAnythingIfUsed(LotroGame game, int physicalId, String playerName) {
+                return true;
+            }
+        });
+
+        // Goblin Scavengers - When you play this minion, you may play a weapon from your discard pile on your [moria] Orc.
+        EVALUATORS.put("1_179", new AbstractCardEvaluator() {
+            @Override
+            public boolean doesAnythingIfUsed(LotroGame game, int physicalId, String playerName) {
+                return game.getGameState().getDiscard(playerName).stream().anyMatch((Predicate<PhysicalCard>) physicalCard -> {
+                    boolean isWeapon = physicalCard.getBlueprint().getPossessionClasses() != null
+                            && (physicalCard.getBlueprint().getPossessionClasses().contains(PossessionClass.HAND_WEAPON)
+                            || physicalCard.getBlueprint().getPossessionClasses().contains(PossessionClass.RANGED_WEAPON));
+                    if (!isWeapon)
+                        return false;
+
+                    if (game.getGameState().getTwilightPool() < 1 + physicalCard.getBlueprint().getTwilightCost())
+                        return false;
+
+                    Filter attachFilter = RuleUtils.getFullValidTargetFilter(playerName, game, physicalCard);
+                    return game.getGameState().getInPlay().stream().anyMatch((Predicate<PhysicalCard>) physicalCard1 -> attachFilter.accepts(game, physicalCard1)
+                            && Race.ORC.equals(physicalCard1.getBlueprint().getRace()) && Culture.MORIA.equals(physicalCard1.getBlueprint().getCulture()));
+                });
+            }
+        });
     }
 
     private static void addSetOneCompanions() {
+        // Aragorn, King in Exile - <b>Ranger</b>.<br>At the start of each of your turns, you may heal another companion who has the Aragorn signet.
+        EVALUATORS.put("1_365", new AbstractCardEvaluator() {
+            @Override
+            public boolean doesAnythingIfUsed(LotroGame game, int physicalId, String playerName) {
+                return game.getGameState().getInPlay().stream().anyMatch((Predicate<PhysicalCard>) physicalCard -> physicalCard.getOwner().equals(playerName)
+                        && physicalCard.getBlueprint().getCardType().equals(CardType.COMPANION)
+                        && Signet.ARAGORN.equals(physicalCard.getBlueprint().getSignet())
+                        && game.getModifiersQuerying().canBeHealed(game, physicalCard));
+            }
+        });
+
         // Frodo, Son of Drogo - <b>Ring-bearer (resistance 10).</b><br><b>Fellowship:</b> Exert another companion who has the Frodo signet to heal Frodo.
         EVALUATORS.put("1_290", new AbstractCardEvaluator() {
             @Override

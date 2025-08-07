@@ -1472,4 +1472,21 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
+
+    @Override
+    public double[] getSpecificTriggerCardFeatures(LotroGame game, int physicalId, String playerName) {
+        List<Double> features = new ArrayList<>();
+        features.add(1.0); // is card, not pass
+
+        features.add((double) game.getGameState().getWounds(physicalId));
+
+        try {
+            features.add(CardEvaluators.doesAnythingIfUsed(game, physicalId, playerName, this) ? 1.0 : 0.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Unsupported card tried evaluation: " + id);
+            features.add(0.5);
+        }
+
+        return features.stream().mapToDouble(Double::doubleValue).toArray();
+    }
 }

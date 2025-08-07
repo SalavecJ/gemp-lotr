@@ -28,6 +28,7 @@ public interface LotroCardBlueprint {
     double[] getPlayFromHandCardFeatures(LotroGame game, int physicalId, String playerName);
     double[] getSpecificPlayFromHandCardFeatures(LotroGame game, int physicalId, String playerName);
     double[] getSpecificUseCardFeatures(LotroGame game, int physicalId, String playerName);
+    double[] getSpecificTriggerCardFeatures(LotroGame game, int physicalId, String playerName);
 
     default LotroCardBlueprint getParent() {
         return this;

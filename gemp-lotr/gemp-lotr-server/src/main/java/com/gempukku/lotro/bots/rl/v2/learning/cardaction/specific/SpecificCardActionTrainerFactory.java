@@ -49,6 +49,8 @@ public class SpecificCardActionTrainerFactory {
                     return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getSpecificPlayFromHandCardFeatures(game, cardId, playerName);
                 } else if (actionStartsWith.equals("Use")) {
                     return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getSpecificUseCardFeatures(game, cardId, playerName);
+                } else if (actionStartsWith.equals("Optional")) {
+                    return BotService.staticLibrary.getLotroCardBlueprint(blueprintId).getSpecificTriggerCardFeatures(game, cardId, playerName);
                 } else {
                     return super.getCardVector(game, cardId, blueprintId, playerName);
                 }
