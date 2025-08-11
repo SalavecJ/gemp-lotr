@@ -117,6 +117,7 @@ public abstract class AbstractPhaseCardActionTrainer extends AbstractTrainerV2 {
         for (Map.Entry<String, IdActionPair> entry : actions.entrySet()) {
             if (entry.getValue().confidence > bestConfidence) {
                 answer = entry.getKey();
+                bestConfidence = entry.getValue().confidence;
             }
         }
         return answer;
