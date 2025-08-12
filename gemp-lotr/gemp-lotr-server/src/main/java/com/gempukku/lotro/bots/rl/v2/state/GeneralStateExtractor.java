@@ -47,9 +47,6 @@ public class GeneralStateExtractor {
         features.add((double) gameState.getHand(playerId).stream().filter((Predicate<PhysicalCard>) physicalCard -> physicalCard.getBlueprint().getSide().equals(Side.FREE_PEOPLE) && physicalCard.getBlueprint().getCardType().equals(CardType.EVENT) && physicalCard.getBlueprint().hasTimeword(Timeword.SKIRMISH)).count());
         features.add((double) gameState.getHand(playerId).stream().filter((Predicate<PhysicalCard>) physicalCard -> physicalCard.getBlueprint().getSide().equals(Side.SHADOW)).count());
         features.add((double) gameState.getHand(opponent).size());
-        // Cards in discard -> cards remaining in deck
-        features.add((double) gameState.getDeck(playerId).size());
-        features.add((double) gameState.getDiscard(opponent).size());
         // Burden count
         features.add((double) gameState.getPlayerBurdens(playerId));
         features.add((double) gameState.getPlayerBurdens(opponent));

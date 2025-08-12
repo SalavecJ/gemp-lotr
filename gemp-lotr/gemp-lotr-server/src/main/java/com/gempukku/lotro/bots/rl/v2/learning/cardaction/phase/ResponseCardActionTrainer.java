@@ -1,7 +1,9 @@
 package com.gempukku.lotro.bots.rl.v2.learning.cardaction.phase;
 
 import com.gempukku.lotro.bots.rl.v2.learning.cardaction.AbstractCardActionTrainer;
+import com.gempukku.lotro.cards.evaluation.CardEvaluators;
 import com.gempukku.lotro.game.state.GameState;
+import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
 
 import java.util.ArrayList;
@@ -26,6 +28,15 @@ public class ResponseCardActionTrainer extends AbstractPhaseCardActionTrainer {
         @Override
         protected boolean relevantCardChosen(GameState gameState, CardActionSelectionDecision decision, String answer) {
             return !answer.isEmpty();
+        }
+
+        @Override
+        protected boolean optionDoesAnything(LotroGame game, int cardId, String playerName) {
+            try {
+                return CardEvaluators.doesAnythingIfUsed(game, cardId, playerName, game.getGameState().getPhysicalCard(cardId).getBlueprint());
+            } catch (UnsupportedOperationException ignored) {
+                return CardEvaluators.doesAnythingIfPlayed(game, cardId, playerName, game.getGameState().getPhysicalCard(cardId).getBlueprint());
+            }
         }
 
         @Override

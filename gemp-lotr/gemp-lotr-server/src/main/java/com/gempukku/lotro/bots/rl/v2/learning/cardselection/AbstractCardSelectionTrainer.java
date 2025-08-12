@@ -8,6 +8,7 @@ import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.Skirmish;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import smile.classification.SoftClassifier;
@@ -41,6 +42,7 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
     @Override
     public String getAnswer(LotroGame game, AwaitingDecision decision, String playerName, ModelRegistryV2 modelRegistry) {
         // Always choose max
+        int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
         int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
         List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
 
@@ -51,6 +53,27 @@ public abstract class AbstractCardSelectionTrainer extends AbstractTrainerV2 {
         if (model == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
         }
+
+        // If in skirmish phase, and we should choose one card, choose skirmishing character if possible
+        if (game.getGameState().getSkirmish() != null &&
+                game.getGameState().getSkirmish().getFellowshipCharacter() != null &&
+                game.getGameState().getSkirmish().getShadowCharacters() != null &&
+                !game.getGameState().getSkirmish().getShadowCharacters().isEmpty()
+                && min == 1 && max == 1) {
+            Skirmish skirmish = game.getGameState().getSkirmish();
+            for (String cardId : cardIds) {
+                if (skirmish.getFellowshipCharacter().getCardId() == Integer.parseInt(cardId)) {
+                    return cardId;
+                }
+                for (PhysicalCard shadowCharacter : skirmish.getShadowCharacters()) {
+                    if (shadowCharacter.getCardId() == Integer.parseInt(cardId)) {
+                        return cardId;
+                    }
+                }
+            }
+            // Skirmishing character cannot be chosen, continue
+        }
+
         double[] stateVector = extractFeatures(game.getGameState(), decision, playerName);
         List<ScoredCard> scoredCards = new ArrayList<>();
 

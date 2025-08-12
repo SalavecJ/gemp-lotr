@@ -23,6 +23,7 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
     protected abstract String getTextTrigger();
     protected abstract boolean containsRelevantDecision(GameState gameState, CardActionSelectionDecision decision, String playerName);
     protected abstract boolean relevantCardChosen(GameState gameState, CardActionSelectionDecision decision, String answer);
+    protected abstract boolean optionDoesAnything(LotroGame game, int cardId, String playerName);
 
 
     @Override
@@ -56,6 +57,10 @@ public abstract class AbstractCardActionTrainer extends AbstractTrainerV2 {
         SoftClassifier<double[]> model = modelRegistry.getModel(getName());
         if (model == null) {
             throw new UnsupportedOperationException("Model not found for " + getName());
+        }
+
+        if (!optionDoesAnything(game, Integer.parseInt(idActionPair.cardId), playerName)) {
+            return;
         }
 
         try {

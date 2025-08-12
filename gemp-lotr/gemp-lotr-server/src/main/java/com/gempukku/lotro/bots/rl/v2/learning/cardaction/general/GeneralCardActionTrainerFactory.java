@@ -2,13 +2,16 @@ package com.gempukku.lotro.bots.rl.v2.learning.cardaction.general;
 
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.rl.v2.learning.cardaction.AbstractCardActionTrainer;
+import com.gempukku.lotro.cards.evaluation.CardEvaluators;
 import com.gempukku.lotro.game.CardNotFoundException;
+import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class GeneralCardActionTrainerFactory {
     public static List<AbstractCardActionTrainer> getGeneralTrainers(String phaseTrigger) {
@@ -27,6 +30,11 @@ public class GeneralCardActionTrainerFactory {
                     @Override
                     protected boolean relevantCardChosen(GameState gameState, CardActionSelectionDecision decision, String answer) {
                         return decision.getDecisionParameters().get("actionText")[Integer.parseInt(answer)].startsWith("Play");
+                    }
+
+                    @Override
+                    protected boolean optionDoesAnything(LotroGame game, int cardId, String playerName) {
+                        return CardEvaluators.doesAnythingIfPlayed(game, cardId, playerName, game.getGameState().getPhysicalCard(cardId).getBlueprint());
                     }
 
                     @Override
@@ -56,6 +64,11 @@ public class GeneralCardActionTrainerFactory {
                     }
 
                     @Override
+                    protected boolean optionDoesAnything(LotroGame game, int cardId, String playerName) {
+                        return CardEvaluators.doesAnythingIfUsed(game, cardId, playerName, game.getGameState().getPhysicalCard(cardId).getBlueprint());
+                    }
+
+                    @Override
                     public String getName() {
                         return "CasGeneralTrainerUse-" + getTextTrigger();
                     }
@@ -77,6 +90,12 @@ public class GeneralCardActionTrainerFactory {
                     }
 
                     @Override
+                    protected boolean optionDoesAnything(LotroGame game, int cardId, String playerName) {
+                        PhysicalCard toBeHealed = game.getGameState().getInPlay().stream().filter((Predicate<PhysicalCard>) physicalCard -> physicalCard.getBlueprintId().equals(game.getGameState().getPhysicalCard(cardId).getBlueprintId())).findFirst().orElseThrow();
+                        return game.getModifiersQuerying().canBeHealed(game, toBeHealed);
+                    }
+
+                    @Override
                     public String getName() {
                         return "CasGeneralTrainerHeal-" + getTextTrigger();
                     }
@@ -95,6 +114,11 @@ public class GeneralCardActionTrainerFactory {
                     @Override
                     protected boolean relevantCardChosen(GameState gameState, CardActionSelectionDecision decision, String answer) {
                         return decision.getDecisionParameters().get("actionText")[Integer.parseInt(answer)].startsWith("Transfer");
+                    }
+
+                    @Override
+                    protected boolean optionDoesAnything(LotroGame game, int cardId, String playerName) {
+                        return true;
                     }
 
                     @Override
