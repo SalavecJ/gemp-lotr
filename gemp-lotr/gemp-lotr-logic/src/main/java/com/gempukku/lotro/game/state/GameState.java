@@ -96,7 +96,7 @@ public class GameState {
 
     public void init(PlayerOrder playerOrder, String firstPlayer, Map<String, List<String>> cards,
             Map<String, String> ringBearers, Map<String, String> rings, Map<String, String> maps,
-            LotroCardBlueprintLibrary library, LotroFormat format) {
+            LotroCardBlueprintLibrary library, LotroFormat format, LotroGame game) {
         _isInit = true;
         _playerOrder = playerOrder;
         _currentPlayerId = firstPlayer;
@@ -117,15 +117,15 @@ public class GameState {
             _deadPiles.put(playerId, new LinkedList<>());
             _stacked.put(playerId, new LinkedList<>());
 
-            addPlayerCards(playerId, decks, library);
+            addPlayerCards(playerId, decks, library, game);
             try {
-                _ringBearers.put(playerId, createPhysicalCardImpl(playerId, library, ringBearers.get(playerId)));
+                _ringBearers.put(playerId, createPhysicalCardImpl(playerId, library, ringBearers.get(playerId), game));
                 String ringBlueprintId = rings.get(playerId);
                 if (ringBlueprintId != null)
-                    _rings.put(playerId, createPhysicalCardImpl(playerId, library, ringBlueprintId));
+                    _rings.put(playerId, createPhysicalCardImpl(playerId, library, ringBlueprintId, game));
 
                 if(format.usesMaps()) {
-                    _maps.put(playerId, createPhysicalCardImpl(playerId, library, maps.get(playerId)));
+                    _maps.put(playerId, createPhysicalCardImpl(playerId, library, maps.get(playerId), game));
                 }
             } catch (CardNotFoundException exp) {
                 throw new RuntimeException("Unable to create game, due to either ring-bearer or ring being invalid cards");
@@ -168,10 +168,11 @@ public class GameState {
         }
     }
 
-    private void addPlayerCards(String playerId, List<String> cards, LotroCardBlueprintLibrary library) {
+    private void addPlayerCards(String playerId, List<String> cards, LotroCardBlueprintLibrary library,
+                                LotroGame game) {
         for (String blueprintId : cards) {
             try {
-                PhysicalCardImpl physicalCard = createPhysicalCardImpl(playerId, library, blueprintId);
+                PhysicalCardImpl physicalCard = createPhysicalCardImpl(playerId, library, blueprintId, game);
                 if (physicalCard.getBlueprint().getCardType() == CardType.SITE) {
                     physicalCard.setZone(Zone.ADVENTURE_DECK);
                     _adventureDecks.get(playerId).add(physicalCard);
@@ -186,14 +187,16 @@ public class GameState {
     }
 
     public PhysicalCard createPhysicalCard(String ownerPlayerId, LotroCardBlueprintLibrary library, String blueprintId) throws CardNotFoundException {
-        return createPhysicalCardImpl(ownerPlayerId, library, blueprintId);
+        // method for testing, missing game
+        return createPhysicalCardImpl(ownerPlayerId, library, blueprintId, null);
     }
 
-    private PhysicalCardImpl createPhysicalCardImpl(String playerId, LotroCardBlueprintLibrary library, String blueprintId) throws CardNotFoundException {
+    private PhysicalCardImpl createPhysicalCardImpl(String playerId, LotroCardBlueprintLibrary library, String blueprintId,
+                                                    LotroGame game) throws CardNotFoundException {
         LotroCardBlueprint card = library.getLotroCardBlueprint(blueprintId);
 
         int cardId = nextCardId();
-        PhysicalCardImpl result = new PhysicalCardImpl(cardId, blueprintId, playerId, card);
+        PhysicalCardImpl result = new PhysicalCardImpl(cardId, blueprintId, playerId, card, game);
 
         _allCards.put(cardId, result);
 
@@ -420,6 +423,10 @@ public class GameState {
 
     public PhysicalCard getRingBearer(String playerId) {
         return _ringBearers.get(playerId);
+    }
+
+    public Collection<PhysicalCard> getRingBearers() {
+        return Collections.unmodifiableCollection(_ringBearers.values());
     }
 
     public PhysicalCard getRing(String playerId) {

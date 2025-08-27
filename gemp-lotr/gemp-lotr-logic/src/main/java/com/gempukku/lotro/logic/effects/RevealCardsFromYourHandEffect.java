@@ -56,7 +56,7 @@ public class RevealCardsFromYourHandEffect extends AbstractEffect {
         while ((nextPlayer = playerOrder.getNextPlayer()) != null) {
             game.getUserFeedback().sendAwaitingDecision(nextPlayer,
                     new ArbitraryCardsSelectionDecision(1, _handPlayerId + " revealed card(s) in hand", _cards,
-                            Collections.emptySet(), 0, 0, _source.getBlueprintId()) {
+                            Collections.emptySet(), 0, 0, _source.getCardId()) {
                         @Override
                         public void decisionMade(String result) {
                         }

@@ -39,7 +39,7 @@ public class RemoveBurdens implements EffectAppenderProducer {
                         if (min != max) {
                             return new PlayoutDecisionEffect(
                                     actionContext.getPerformingPlayer(),
-                                    new IntegerAwaitingDecision(1, "Choose how many burdens to remove", min, max) {
+                                    new IntegerAwaitingDecision(1, "Choose how many burdens to remove", min, max, action.getActionSource().getCardId()) {
                                         @Override
                                         public void decisionMade(String result) throws DecisionResultInvalidException {
                                             final int burdens = getValidatedResult(result);

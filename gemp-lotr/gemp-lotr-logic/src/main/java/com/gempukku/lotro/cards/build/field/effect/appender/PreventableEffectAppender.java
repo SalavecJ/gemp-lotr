@@ -43,7 +43,7 @@ public class PreventableEffectAppender extends DelayedAppender {
 
         if (preventingPredicate.test(actionContext) && areCostsPlayable(preventCostActionContext)) {
             SubAction subAction = new SubAction(action);
-            subAction.appendEffect(new PlayoutDecisionEffect(preventingPlayerId, new YesNoDecision(textToUse, actionContext.getSource().getBlueprintId()) {
+            subAction.appendEffect(new PlayoutDecisionEffect(preventingPlayerId, new YesNoDecision(textToUse, actionContext.getSource().getCardId()) {
                 @Override
                 protected void yes() {
                     actionContext.getGame().getGameState().sendMessage(GameUtils.substituteText(preventingPlayerId + " chooses to prevent.", actionContext));

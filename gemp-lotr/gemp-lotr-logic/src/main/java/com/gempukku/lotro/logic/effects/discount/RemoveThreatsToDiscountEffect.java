@@ -50,7 +50,7 @@ public class RemoveThreatsToDiscountEffect extends AbstractSubActionEffect imple
             int maxRemovableThreats = game.getGameState().getThreats();
             if (_minimalThreatsToRemove < maxRemovableThreats) {
                 game.getUserFeedback().sendAwaitingDecision(
-                        _action.getPerformingPlayer(), new IntegerAwaitingDecision(1, "Choose how many threats to remove", _minimalThreatsToRemove, maxRemovableThreats) {
+                        _action.getPerformingPlayer(), new IntegerAwaitingDecision(1, "Choose how many threats to remove", _minimalThreatsToRemove, maxRemovableThreats, _action.getActionSource().getCardId()) {
                     @Override
                     public void decisionMade(String result) throws DecisionResultInvalidException {
                         int threats = getValidatedResult(result);

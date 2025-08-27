@@ -52,7 +52,7 @@ public class LookAtTopCardOfADeckEffect extends AbstractEffect {
 
         game.getUserFeedback().sendAwaitingDecision(_playerId,
                 new ArbitraryCardsSelectionDecision(1, message, cards, Collections.emptyList(), 0, 0,
-                        _source.getBlueprintId()) {
+                        _source.getCardId()) {
                     @Override
                     public void decisionMade(String result) {
                     }

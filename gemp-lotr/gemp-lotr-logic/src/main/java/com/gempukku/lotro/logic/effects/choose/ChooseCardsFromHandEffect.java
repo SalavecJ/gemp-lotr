@@ -56,7 +56,7 @@ public abstract class ChooseCardsFromHandEffect extends AbstractEffect {
             cardsSelected(game, selectableCards);
         else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new CardsSelectionDecision(1, getText(game), selectableCards, minimum, maximum, _source.getBlueprintId()) {
+                    new CardsSelectionDecision(1, getText(game), selectableCards, minimum, maximum, _source.getCardId()) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Set<PhysicalCard> selectedCards = getSelectedCardsByResponse(result);

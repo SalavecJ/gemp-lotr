@@ -53,7 +53,7 @@ public class PlayerPlaysStartingFellowshipGameProcess implements GameProcess {
 
     private AwaitingDecision createChooseNextCharacterDecision(final LotroGame game, final String playerId, final Collection<PhysicalCard> possibleCharacters) {
         return new ArbitraryCardsSelectionDecision(1, "Starting fellowship - Choose next character or press DONE",
-                new LinkedList<>(possibleCharacters), 0, 1, "rules") {
+                new LinkedList<>(possibleCharacters), 0, 1, -1) {
             @Override
             public void decisionMade(String result) throws DecisionResultInvalidException {
                 List<PhysicalCard> selectedCharacters = getSelectedCardsByResponse(result);

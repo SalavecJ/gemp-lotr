@@ -60,7 +60,7 @@ public abstract class ChooseCardsFromDeckEffect extends AbstractEffect {
             if (showAll) {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                         new ArbitraryCardsSelectionDecision(2, "You may inspect the contents of your deck while retrieving cards",
-                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getBlueprintId()) {
+                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getCardId()) {
                             @Override
                             public void decisionMade(String result2) throws DecisionResultInvalidException {
                                 cardsSelected(game, Collections.emptySet());
@@ -74,7 +74,7 @@ public abstract class ChooseCardsFromDeckEffect extends AbstractEffect {
             if (showAll) {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                         new ArbitraryCardsSelectionDecision(2, "You may inspect the contents of your deck while retrieving cards",
-                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getBlueprintId()) {
+                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getCardId()) {
                             @Override
                             public void decisionMade(String result2) throws DecisionResultInvalidException {
                                 cardsSelected(game, cards);
@@ -89,12 +89,12 @@ public abstract class ChooseCardsFromDeckEffect extends AbstractEffect {
             if (showAll) {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                         new ArbitraryCardsSelectionDecision(1, "You may inspect the contents of your deck before retrieving cards",
-                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getBlueprintId()) {
+                                game.getGameState().getDeck(_deckId), new LinkedList<>(), 0, 0, _source.getCardId()) {
                             @Override
                             public void decisionMade(String ignored) throws DecisionResultInvalidException {
                                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                                         new ArbitraryCardsSelectionDecision(2, "Choose cards from deck",
-                                                new LinkedList<>(cards), minimum, _maximum, _source.getBlueprintId()) {
+                                                new LinkedList<>(cards), minimum, _maximum, _source.getCardId()) {
                                             @Override
                                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                                 cardsSelected(game, getSelectedCardsByResponse(result));
@@ -106,7 +106,7 @@ public abstract class ChooseCardsFromDeckEffect extends AbstractEffect {
             else {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                         new ArbitraryCardsSelectionDecision(1, "Choose cards from deck", new LinkedList<>(cards), minimum,
-                                _maximum, _source.getBlueprintId()) {
+                                _maximum, _source.getCardId()) {
                             @Override
                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                 cardsSelected(game, getSelectedCardsByResponse(result));

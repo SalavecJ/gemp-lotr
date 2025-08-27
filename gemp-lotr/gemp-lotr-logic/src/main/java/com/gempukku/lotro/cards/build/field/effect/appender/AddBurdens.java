@@ -40,7 +40,7 @@ public class AddBurdens implements EffectAppenderProducer {
                         if (min != max) {
                             return new PlayoutDecisionEffect(
                                     actionContext.getPerformingPlayer(),
-                                    new IntegerAwaitingDecision(1, "Choose how many burdens to add", min, max) {
+                                    new IntegerAwaitingDecision(1, "Choose how many burdens to add", min, max, action.getActionSource().getCardId()) {
                                         @Override
                                         public void decisionMade(String result) throws DecisionResultInvalidException {
                                             final int twilight = getValidatedResult(result);

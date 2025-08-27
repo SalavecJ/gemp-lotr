@@ -30,7 +30,7 @@ public class ChooseHowManyFPCulturesToSpot implements EffectAppenderProducer {
             protected Effect createEffect(boolean cost, CostToEffectAction action, ActionContext actionContext) {
                 int spottable = GameUtils.getSpottableFPCulturesCount(actionContext.getGame(), actionContext.getPerformingPlayer());
                 return new PlayoutDecisionEffect(actionContext.getPerformingPlayer(),
-                        new IntegerAwaitingDecision(1, GameUtils.substituteText(text, actionContext), 0, spottable, spottable) {
+                        new IntegerAwaitingDecision(1, GameUtils.substituteText(text, actionContext), 0, spottable, spottable, action.getActionSource().getCardId()) {
                             @Override
                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                 final int spotCount = getValidatedResult(result);

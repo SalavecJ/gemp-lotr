@@ -4,10 +4,6 @@ import com.gempukku.lotro.bots.rl.DecisionAnswerer;
 import com.gempukku.lotro.bots.rl.learning.LabeledPoint;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
 import com.gempukku.lotro.bots.rl.learning.Trainer;
-import com.gempukku.lotro.bots.rl.learning.semanticaction.SemanticAction;
-import com.gempukku.lotro.bots.rl.v2.learning.SavedVector;
-import com.gempukku.lotro.game.state.GameState;
-import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import smile.classification.LogisticRegression;
 import smile.classification.SoftClassifier;
 

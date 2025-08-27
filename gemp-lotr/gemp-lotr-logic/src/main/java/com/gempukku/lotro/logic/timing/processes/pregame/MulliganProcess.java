@@ -28,7 +28,7 @@ public class MulliganProcess implements GameProcess {
         final String nextPlayer = _playOrder.getNextPlayer();
         if (nextPlayer != null) {
             game.getUserFeedback().sendAwaitingDecision(nextPlayer,
-                    new MultipleChoiceAwaitingDecision(1, "Do you wish to mulligan? (Shuffle cards back and draw " + (handSize - 2) + ")", new String[]{"No", "Yes"}, "rules") {
+                    new MultipleChoiceAwaitingDecision(1, "Do you wish to mulligan? (Shuffle cards back and draw " + (handSize - 2) + ")", new String[]{"No", "Yes"}, -1) {
                         @Override
                         protected void validDecisionMade(int index, String result) {
                             if (index == 1) {

@@ -22,7 +22,7 @@ public abstract class ChooseOpponentEffect extends UnrespondableEffect {
 			opponentChosen(opponents[0]);
 		else
 			game.getUserFeedback().sendAwaitingDecision(_playerId,
-					new MultipleChoiceAwaitingDecision(1, "Choose an opponent", opponents, _source.getBlueprintId()) {
+					new MultipleChoiceAwaitingDecision(1, "Choose an opponent", opponents, _source.getCardId()) {
 						@Override
 						protected void validDecisionMade(int index, String result) {
 							opponentChosen(result);

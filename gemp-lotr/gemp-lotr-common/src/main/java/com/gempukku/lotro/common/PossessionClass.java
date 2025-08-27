@@ -20,4 +20,12 @@ public enum PossessionClass implements Filterable {
     public String getHumanReadable() {
         return _humanReadable;
     }
+
+    public static PossessionClass findPossessionClassByHumanReadable(String humanReadable) {
+        for (PossessionClass possessionClass : values()) {
+            if (possessionClass.getHumanReadable().equalsIgnoreCase(humanReadable))
+                return possessionClass;
+        }
+        return null;
+    }
 }

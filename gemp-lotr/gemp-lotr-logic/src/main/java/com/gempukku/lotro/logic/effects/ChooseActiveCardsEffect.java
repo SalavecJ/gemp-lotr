@@ -82,7 +82,7 @@ public abstract class ChooseActiveCardsEffect extends AbstractEffect {
             cardsSelected(game, matchingCards);
         } else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new CardsSelectionDecision(1, _choiceText, matchingCards, minimum, maximum, _source != null ? _source.getBlueprintId() : "null") {
+                    new CardsSelectionDecision(1, _choiceText, matchingCards, minimum, maximum, _source != null ? _source.getCardId() : -1) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Set<PhysicalCard> selectedCards = getSelectedCardsByResponse(result);

@@ -87,7 +87,7 @@ public class ChooseSeatingOrderGameProcess implements GameProcess {
     private void askNextPlayerToChoosePlace(final LotroGame game) {
         final String playerId = _biddingOrderPlayers.next();
         game.getUserFeedback().sendAwaitingDecision(playerId,
-                new MultipleChoiceAwaitingDecision(1, "Choose one", getEmptySeatNumbers(), "rules") {
+                new MultipleChoiceAwaitingDecision(1, "Choose one", getEmptySeatNumbers(), -1) {
                     @Override
                     protected void validDecisionMade(int index, String result) {
                         game.getGameState().sendMessage(playerId + " has chosen to go " + _choices[index]);

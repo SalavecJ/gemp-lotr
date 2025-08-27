@@ -83,7 +83,7 @@ public abstract class ChooseArbitraryCardsEffect extends AbstractEffect {
                 toShow = possibleCards;
 
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new ArbitraryCardsSelectionDecision(1, _choiceText, toShow, possibleCards, _minimum, _maximum, _source != null ? _source.getBlueprintId() : "null") {
+                    new ArbitraryCardsSelectionDecision(1, _choiceText, toShow, possibleCards, _minimum, _maximum, _source != null ? _source.getCardId() : -1) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             cardsSelected(game, getSelectedCardsByResponse(result));

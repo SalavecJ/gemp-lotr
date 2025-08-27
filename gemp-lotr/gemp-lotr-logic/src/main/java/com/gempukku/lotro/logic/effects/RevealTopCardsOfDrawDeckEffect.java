@@ -51,7 +51,7 @@ public abstract class RevealTopCardsOfDrawDeckEffect extends AbstractEffect {
             while ((nextPlayer = playerOrder.getNextPlayer()) != null) {
                 game.getUserFeedback().sendAwaitingDecision(nextPlayer,
                         new ArbitraryCardsSelectionDecision(1, _playerId + " revealed card(s) from top of deck",
-                                topCards, Collections.emptySet(), 0, 0, _source.getBlueprintId()) {
+                                topCards, Collections.emptySet(), 0, 0, _source.getCardId()) {
                             @Override
                             public void decisionMade(String result) {
                             }

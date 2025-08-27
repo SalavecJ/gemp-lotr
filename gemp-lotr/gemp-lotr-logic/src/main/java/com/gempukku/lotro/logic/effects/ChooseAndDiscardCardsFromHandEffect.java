@@ -76,7 +76,7 @@ public class ChooseAndDiscardCardsFromHandEffect extends AbstractSubActionEffect
             processSubAction(game, subAction);
             cardsBeingDiscardedCallback(hand);
         } else {
-            String source = _text.equals("Use Muster") ? "muster" : _action.getActionSource().getBlueprintId();
+            int source = _text.equals("Use Muster") ? -1 : _action.getActionSource().getCardId();
             game.getUserFeedback().sendAwaitingDecision(_playerId,
                     new CardsSelectionDecision(1, _text, hand, minimum, maximum, source) {
                         @Override

@@ -48,7 +48,7 @@ public class LookAtOpponentsHandEffect extends AbstractEffect {
 
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
                     new ArbitraryCardsSelectionDecision(1, "Opponent's hand", opponentHand, Collections.emptyList(),
-                            0, 0, _source.getBlueprintId()) {
+                            0, 0, _source.getCardId()) {
                         @Override
                         public void decisionMade(String result) {
                         }

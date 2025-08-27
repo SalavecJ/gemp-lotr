@@ -30,11 +30,22 @@ public class PhysicalCardImpl implements PhysicalCard {
 
     private Integer _siteNumber;
 
+    private final LotroGame game;
+
+    public PhysicalCardImpl(int cardId, String blueprintId, String owner, LotroCardBlueprint blueprint, LotroGame game) {
+        _cardId = cardId;
+        _blueprintId = blueprintId;
+        _owner = owner;
+        _blueprint = blueprint;
+        this.game = game;
+    }
+
     public PhysicalCardImpl(int cardId, String blueprintId, String owner, LotroCardBlueprint blueprint) {
         _cardId = cardId;
         _blueprintId = blueprintId;
         _owner = owner;
         _blueprint = blueprint;
+        this.game = null;
     }
 
     public void setCardId(int cardId) {
@@ -201,5 +212,10 @@ public class PhysicalCardImpl implements PhysicalCard {
     @Override
     public void setSiteNumber(Integer number) {
         _siteNumber = number;
+    }
+
+    @Override
+    public LotroGame getGame() {
+        return game;
     }
 }

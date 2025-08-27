@@ -1,7 +1,6 @@
 package com.gempukku.lotro.cards.build;
 
 import com.gempukku.lotro.cards.build.field.effect.EffectAppender;
-import com.gempukku.lotro.cards.evaluation.CardEvaluators;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.filters.Filters;
 import com.gempukku.lotro.game.ExtraPlayCost;
@@ -1422,13 +1421,6 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
         features.add((double) copiesInDeck);
 
-        try {
-            features.add(CardEvaluators.doesAnythingIfPlayed(game, physicalId, playerName, this) ? 1.0 : 0.0);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Unsupported card tried evaluation: " + id);
-            features.add(0.5);
-        }
-
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
@@ -1446,13 +1438,6 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add(1.0); // is card, not pass
         features.add((double) copiesInDeck);
 
-        try {
-            features.add(CardEvaluators.doesAnythingIfPlayed(game, physicalId, playerName, this) ? 1.0 : 0.0);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Unsupported card tried evaluation: " + id);
-            features.add(0.5);
-        }
-
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
@@ -1463,13 +1448,6 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
 
         features.add((double) game.getGameState().getWounds(physicalId));
 
-        try {
-            features.add(CardEvaluators.doesAnythingIfUsed(game, physicalId, playerName, this) ? 1.0 : 0.0);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Unsupported card tried evaluation: " + id);
-            features.add(0.5);
-        }
-
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
@@ -1479,13 +1457,6 @@ public class BuiltLotroCardBlueprint implements LotroCardBlueprint {
         features.add(1.0); // is card, not pass
 
         features.add((double) game.getGameState().getWounds(physicalId));
-
-        try {
-            features.add(CardEvaluators.doesAnythingIfUsed(game, physicalId, playerName, this) ? 1.0 : 0.0);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Unsupported card tried evaluation: " + id);
-            features.add(0.5);
-        }
 
         return features.stream().mapToDouble(Double::doubleValue).toArray();
     }

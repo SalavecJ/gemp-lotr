@@ -4,14 +4,14 @@ import com.alibaba.fastjson2.JSONObject;
 
 public abstract class MultipleChoiceAwaitingDecision extends AbstractAwaitingDecision {
     private final String[] _possibleResults;
-    private final String _source;
+    private final int _source;
 
-    public MultipleChoiceAwaitingDecision(int id, String text, String[] possibleResults, String source) {
+    public MultipleChoiceAwaitingDecision(int id, String text, String[] possibleResults, int source) {
         super(id, text, AwaitingDecisionType.MULTIPLE_CHOICE);
         _possibleResults = possibleResults;
         _source = source;
         setParam("results", _possibleResults);
-        setParam("source", _source);
+        setParam("source", String.valueOf(_source));
     }
 
     protected abstract void validDecisionMade(int index, String result);
@@ -43,7 +43,7 @@ public abstract class MultipleChoiceAwaitingDecision extends AbstractAwaitingDec
 
     public static MultipleChoiceAwaitingDecision fromJson(JSONObject obj) {
         return new MultipleChoiceAwaitingDecision(obj.getInteger("id"), obj.getString("text"),
-                obj.getObject("results", String[].class), obj.getString("source")) {
+                obj.getObject("results", String[].class), obj.getInteger("source")) {
             @Override
             protected void validDecisionMade(int index, String result) {
                 throw new UnsupportedOperationException("Not implemented in training context");

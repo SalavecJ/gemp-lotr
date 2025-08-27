@@ -24,7 +24,7 @@ public enum Race implements Filterable {
 
     public static Race findRaceByHumanReadable(String humanReadable) {
         for (Race race : values()) {
-            if (race.getHumanReadable().equals(humanReadable))
+            if (race.getHumanReadable().equalsIgnoreCase(humanReadable))
                 return race;
         }
         return null;

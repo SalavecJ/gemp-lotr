@@ -104,11 +104,12 @@ public class DefaultLotroGame implements LotroGame {
         CharacterDeathRule characterDeathRule = new CharacterDeathRule(_actionsEnvironment);
         characterDeathRule.applyRule();
 
+        LotroGame thisGame = this;
         _turnProcedure = new TurnProcedure(this, decks.keySet(), userFeedback, _actionStack,
                 new PlayerOrderFeedback() {
                     @Override
                     public void setPlayerOrder(PlayerOrder playerOrder, String firstPlayer) {
-                        _gameState.init(playerOrder, firstPlayer, cards, ringBearers, rings, maps, library, format);
+                        _gameState.init(playerOrder, firstPlayer, cards, ringBearers, rings, maps, library, format, thisGame);
                     }
                 },
                 new PregameSetupFeedback() {

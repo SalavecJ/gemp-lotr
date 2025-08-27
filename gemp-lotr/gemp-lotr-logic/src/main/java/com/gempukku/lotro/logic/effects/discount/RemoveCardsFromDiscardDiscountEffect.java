@@ -69,7 +69,7 @@ public class RemoveCardsFromDiscardDiscountEffect implements DiscountEffect {
         if (isPlayableInFull(game)) {
             if (!_required) {
                 game.getUserFeedback().sendAwaitingDecision(_playerId,
-                        new YesNoDecision("Do you want to remove cards from discard instead of paying twilight cost?", _source.getBlueprintId()) {
+                        new YesNoDecision("Do you want to remove cards from discard instead of paying twilight cost?", _source.getCardId()) {
                             @Override
                             protected void yes() {
                                 proceedDiscount(game);
@@ -84,7 +84,7 @@ public class RemoveCardsFromDiscardDiscountEffect implements DiscountEffect {
     private void proceedDiscount(final LotroGame game) {
         final Collection<PhysicalCard> removableCards = Filters.filter(game, game.getGameState().getDiscard(_playerId), _cardFilter);
         game.getUserFeedback().sendAwaitingDecision(_playerId,
-                new ArbitraryCardsSelectionDecision(1, "Choose cards to remove", removableCards, _count, _count, _source.getBlueprintId()) {
+                new ArbitraryCardsSelectionDecision(1, "Choose cards to remove", removableCards, _count, _count, _source.getCardId()) {
                     @Override
                     public void decisionMade(String result) throws DecisionResultInvalidException {
                         removeCards(game, getSelectedCardsByResponse(result));

@@ -2,6 +2,7 @@ package com.gempukku.lotro.game;
 
 import com.gempukku.lotro.common.Filterable;
 import com.gempukku.lotro.common.Zone;
+import com.gempukku.lotro.game.state.LotroGame;
 
 public interface PhysicalCard extends Filterable {
     Zone getZone();
@@ -29,6 +30,8 @@ public interface PhysicalCard extends Filterable {
     void setSiteNumber(Integer number);
 
     Integer getSiteNumber();
+
+    LotroGame getGame();
 
     interface WhileInZoneData {
         String getValue();

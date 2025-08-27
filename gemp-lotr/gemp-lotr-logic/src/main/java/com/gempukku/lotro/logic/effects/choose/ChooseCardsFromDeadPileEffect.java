@@ -58,7 +58,7 @@ public abstract class ChooseCardsFromDeadPileEffect extends AbstractEffect {
             cardsSelected(game, cards);
         } else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new ArbitraryCardsSelectionDecision(1, "Choose card from dead pile", new LinkedList<>(cards), minimum, _maximum, _source.getBlueprintId()) {
+                    new ArbitraryCardsSelectionDecision(1, "Choose card from dead pile", new LinkedList<>(cards), minimum, _maximum, _source.getCardId()) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             cardsSelected(game, getSelectedCardsByResponse(result));

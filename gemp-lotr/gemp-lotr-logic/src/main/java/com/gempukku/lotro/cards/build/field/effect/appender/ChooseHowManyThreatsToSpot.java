@@ -28,7 +28,7 @@ public class ChooseHowManyThreatsToSpot implements EffectAppenderProducer {
             protected Effect createEffect(boolean cost, CostToEffectAction action, ActionContext actionContext) {
                 final int count = actionContext.getGame().getGameState().getThreats();
                 return new PlayoutDecisionEffect(actionContext.getPerformingPlayer(),
-                        new IntegerAwaitingDecision(1, "Choose how many threats to spot", 0, count, count) {
+                        new IntegerAwaitingDecision(1, "Choose how many threats to spot", 0, count, count, action.getActionSource().getCardId()) {
                             @Override
                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                 final int spotCount = getValidatedResult(result);

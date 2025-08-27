@@ -53,7 +53,7 @@ public class RevealHandEffect extends AbstractEffect {
             while ((nextPlayer = playerOrder.getNextPlayer()) != null) {
                 game.getUserFeedback().sendAwaitingDecision(nextPlayer,
                         new ArbitraryCardsSelectionDecision(1, "Hand of " + _handPlayerId, hand, Collections.emptySet(),
-                                0, 0, _source.getBlueprintId()) {
+                                0, 0, _source.getCardId()) {
                             @Override
                             public void decisionMade(String result) {
                             }

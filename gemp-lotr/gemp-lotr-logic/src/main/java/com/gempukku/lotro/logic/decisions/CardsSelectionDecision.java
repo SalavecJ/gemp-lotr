@@ -9,9 +9,9 @@ public abstract class CardsSelectionDecision extends AbstractAwaitingDecision {
     private final List<? extends PhysicalCard> _physicalCards;
     private final int _minimum;
     private final int _maximum;
-    private final String _source;
+    private final int _source;
 
-    public CardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards, int minimum, int maximum, String source) {
+    public CardsSelectionDecision(int id, String text, Collection<? extends PhysicalCard> physicalCards, int minimum, int maximum, int source) {
         super(id, text, AwaitingDecisionType.CARD_SELECTION);
         _physicalCards = new LinkedList<PhysicalCard>(physicalCards);
         _minimum = minimum;
@@ -20,10 +20,10 @@ public abstract class CardsSelectionDecision extends AbstractAwaitingDecision {
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
         setParam("cardId", getCardIds(_physicalCards));
-        setParam("source", source);
+        setParam("source", String.valueOf(source));
     }
 
-    public CardsSelectionDecision(int id, String text, List<String> physicalCardIds, int minimum, int maximum, String source) {
+    public CardsSelectionDecision(int id, String text, List<String> physicalCardIds, int minimum, int maximum, int source) {
         super(id, text, AwaitingDecisionType.CARD_SELECTION);
         _physicalCards = null;
         _minimum = minimum;
@@ -32,7 +32,7 @@ public abstract class CardsSelectionDecision extends AbstractAwaitingDecision {
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
         setParam("cardId", physicalCardIds.toArray(new String[0]));
-        setParam("source", source);
+        setParam("source", String.valueOf(source));
     }
 
     private String[] getCardIds(List<? extends PhysicalCard> physicalCards) {
@@ -96,7 +96,7 @@ public abstract class CardsSelectionDecision extends AbstractAwaitingDecision {
     public static CardsSelectionDecision fromJson(JSONObject obj) {
         return new CardsSelectionDecision(obj.getInteger("id"), obj.getString("text"),
                 Arrays.asList(obj.getObject("physicalCards", String[].class)), obj.getInteger("min"),
-                obj.getInteger("max"), obj.getString("source")) {
+                obj.getInteger("max"), obj.getInteger("source")) {
             @Override
             public void decisionMade(String result) throws DecisionResultInvalidException {
                 throw new UnsupportedOperationException("Not implemented in training context");

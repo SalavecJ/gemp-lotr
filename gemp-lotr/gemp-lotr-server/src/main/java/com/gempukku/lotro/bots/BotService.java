@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots;
 
+import com.gempukku.lotro.bots.forge.ForgeBot;
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.random.RandomLearningBot;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
@@ -21,10 +22,6 @@ import com.gempukku.lotro.bots.rl.fotrstarters.models.integerchoice.BurdenTraine
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.AnotherMoveTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.GoFirstTrainer;
 import com.gempukku.lotro.bots.rl.fotrstarters.models.multiplechoice.MulliganTrainer;
-import com.gempukku.lotro.bots.rl.v2.BotV2;
-import com.gempukku.lotro.bots.rl.v2.ModelRegistryV2;
-import com.gempukku.lotro.bots.rl.v2.learning.SavedVectorBuffer;
-import com.gempukku.lotro.bots.rl.v2.learning.TrainersV2;
 import com.gempukku.lotro.bots.simulation.FotrStartersSimulation;
 import com.gempukku.lotro.bots.simulation.SimpleBatchSimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationRunner;
@@ -44,8 +41,9 @@ import java.time.ZonedDateTime;
 import java.util.*;
 
 public class BotService {
-    private static final boolean START_SIMULATIONS_AT_STARTUP = false;
+    private static final boolean START_OLD_BOT_SIMULATION_AT_STARTUP = false;
     private static final boolean LOAD_MODELS_FROM_FILES = true;
+    private static final boolean START_NEW_BOT_SIMULATION_AT_STARTUP = true;
 
     public static final String GENERAL_BOT_NAME = "~bot";
 
@@ -71,7 +69,7 @@ public class BotService {
         fillBotParticipantList();
 
 
-        if (START_SIMULATIONS_AT_STARTUP) {
+        if (START_OLD_BOT_SIMULATION_AT_STARTUP) {
             runSelfPlayTrainingLoop(5, 10000);
         } else {
             System.out.println("Loading bot models");
@@ -130,20 +128,20 @@ public class BotService {
             }
 
             System.out.println("Bot decision models ready");
+        }
 
-            SavedVectorBuffer savedVectorBuffer = new SavedVectorBuffer(10_000);
+        if (START_NEW_BOT_SIMULATION_AT_STARTUP) {
+            System.out.println("Random vs Forge");
             startFotrStartersSimulation(
-                    new RandomDecisionBot("~random"),
-                    new BotV2("~v2", savedVectorBuffer, null),
-                    1000);
-            savedVectorBuffer.save();
+                    new RandomDecisionBot("~randomBot"),
+                    new ForgeBot("~forgeBot", true),
+                    100);
 
-            ModelRegistryV2 modelRegistryV2 = new ModelRegistryV2();
-            TrainersV2.trainModels(modelRegistryV2);
+            System.out.println("Old vs Forge");
             startFotrStartersSimulation(
-                    new RandomDecisionBot("~random"),
-                    new BotV2("~v2", null, modelRegistryV2),
-                    1000);
+                    new FotrStarterBot(new FotrStartersRLGameStateFeatures(), "~oldBot", modelRegistry, null),
+                    new ForgeBot("~forgeBot", true),
+                    100);
         }
     }
 

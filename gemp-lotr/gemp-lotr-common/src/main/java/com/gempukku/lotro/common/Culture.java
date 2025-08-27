@@ -37,7 +37,7 @@ public enum Culture implements Filterable {
 
     public static Culture findCultureByHumanReadable(String humanReadable) {
         for (Culture culture : values()) {
-            if (culture.getHumanReadable().equals(humanReadable))
+            if (culture.getHumanReadable().equalsIgnoreCase(humanReadable))
                 return culture;
         }
         return null;

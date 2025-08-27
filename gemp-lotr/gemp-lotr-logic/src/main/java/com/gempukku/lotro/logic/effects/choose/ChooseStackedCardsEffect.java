@@ -62,7 +62,7 @@ public abstract class ChooseStackedCardsEffect extends AbstractEffect {
             cardsChosen(game, stackedCards);
         } else {
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new CardsSelectionDecision(1, getText(game), stackedCards, _minimum, maximum, _action.getActionSource().getBlueprintId()) {
+                    new CardsSelectionDecision(1, getText(game), stackedCards, _minimum, maximum, _action.getActionSource().getCardId()) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Set<PhysicalCard> stackedCards = getSelectedCardsByResponse(result);

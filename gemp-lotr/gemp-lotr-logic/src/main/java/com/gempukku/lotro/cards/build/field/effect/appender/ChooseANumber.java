@@ -41,7 +41,7 @@ public class ChooseANumber implements EffectAppenderProducer {
                 int defaultAmount = defaultSource.getEvaluator(actionContext).evaluateExpression(actionContext.getGame(), null);
                 return new PlayoutDecisionEffect(playerSource.getPlayer(actionContext),
                         new IntegerAwaitingDecision(1, GameUtils.substituteText(displayText, actionContext),
-                                min, max, defaultAmount) {
+                                min, max, defaultAmount, action.getActionSource().getCardId()) {
                             @Override
                             public void decisionMade(String result) throws DecisionResultInvalidException {
                                 final String value = String.valueOf(getValidatedResult(result));

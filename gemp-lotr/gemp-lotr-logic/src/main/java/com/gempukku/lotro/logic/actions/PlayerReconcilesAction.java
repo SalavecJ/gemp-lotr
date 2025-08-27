@@ -101,7 +101,7 @@ public class PlayerReconcilesAction implements Action {
 
                 if (cardsInHand.size() > handSize) {
                     _effectQueue.add(new PlayoutDecisionEffect(_playerId,
-                            new CardsSelectionDecision(1, "Choose cards to discard down to "+handSize, cardsInHand, cardsInHand.size() - handSize, cardsInHand.size() - handSize, "rules") {
+                            new CardsSelectionDecision(1, "Choose cards to discard down to "+handSize, cardsInHand, cardsInHand.size() - handSize, cardsInHand.size() - handSize, -1) {
                                 @Override
                                 public void decisionMade(String result) throws DecisionResultInvalidException {
                                     Set<PhysicalCard> cards = getSelectedCardsByResponse(result);
@@ -112,7 +112,7 @@ public class PlayerReconcilesAction implements Action {
                             }));
                 } else if (!cardsInHand.isEmpty()) {
                     _effectQueue.add(new PlayoutDecisionEffect(_playerId,
-                            new CardsSelectionDecision(1, "Reconcile - choose card to discard or press DONE", cardsInHand, 0, 1, "rules") {
+                            new CardsSelectionDecision(1, "Reconcile - choose card to discard or press DONE", cardsInHand, 0, 1, -1) {
                                 @Override
                                 public void decisionMade(String result) throws DecisionResultInvalidException {
                                     Set<PhysicalCard> selectedCards = getSelectedCardsByResponse(result);
