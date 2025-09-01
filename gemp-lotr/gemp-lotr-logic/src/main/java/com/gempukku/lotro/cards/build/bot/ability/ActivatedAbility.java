@@ -72,6 +72,13 @@ public class ActivatedAbility implements BotAbility {
                 && awaitingDecision.getText().equals("Choose cards to heal")) {
             return BotTargetingMode.HEAL;
         }
+        if (effect.getType().equals(AbilityProperty.Type.ADD_KEYWORD)
+                && effect.hasParam("untilRegroup")
+                && effect.getParam("untilRegroup", Boolean.class)
+                && costs.stream().anyMatch(abilityProperty -> abilityProperty.getType().equals(AbilityProperty.Type.EXERT_TARGET))
+                && awaitingDecision.getText().equals("Choose cards to exert")) {
+            return BotTargetingMode.SPECIAL;
+        }
         // TODO
         return null;
     }
