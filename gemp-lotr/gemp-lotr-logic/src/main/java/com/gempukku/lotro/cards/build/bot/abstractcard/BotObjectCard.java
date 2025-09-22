@@ -16,20 +16,20 @@ public abstract class BotObjectCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(LotroGame game) {
-        if (!phaseOk(game)) return false;
-        if (!uniqueRequirementOk(game)) return false;
+    public boolean canBePlayed() {
+        if (!phaseOk(self.getGame())) return false;
+        if (!uniqueRequirementOk(self.getGame())) return false;
         if (!playsToSupportArea()
-                && !RequirementsUtility.canSpot(game, self.getOwner(), this::isValidBearer))
+                && !RequirementsUtility.canSpot(self.getGame(), self.getOwner(), this::isValidBearer))
             return false;
-        return otherRequirementsNowOk(game);
+        return otherRequirementsNowOk(self.getGame());
     }
 
     @Override
-    public boolean canEverBePlayed(LotroGame game) {
-        if (!RequirementsUtility.canSpotEver(game, self.getOwner(), this::isValidBearer))
+    public boolean canEverBePlayed() {
+        if (!RequirementsUtility.canSpotEver(self.getGame(), self.getOwner(), this::isValidBearer))
             return false;
-        return otherRequirementsEverOk(game);
+        return otherRequirementsEverOk(self.getGame());
     }
 
     /**

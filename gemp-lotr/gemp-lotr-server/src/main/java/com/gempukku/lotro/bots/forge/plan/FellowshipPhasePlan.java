@@ -1,16 +1,18 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
-import com.gempukku.lotro.bots.forge.plan.action.DiscardCompanionToHealAction;
-import com.gempukku.lotro.bots.forge.plan.action.ReplanAction;
+import com.gempukku.lotro.bots.forge.plan.action.*;
+import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
+import com.gempukku.lotro.cards.build.bot.BotCardFactory;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import org.apache.commons.lang3.NotImplementedException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class FellowshipPhasePlan {
@@ -21,6 +23,7 @@ public class FellowshipPhasePlan {
 
     private int nextStep = 0;
     List<ActionToTake> actions = new ArrayList<>();
+    private final PlannedBoardState plannedBoardState;
 
     public FellowshipPhasePlan(boolean printDebugMessages, LotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
@@ -29,52 +32,149 @@ public class FellowshipPhasePlan {
         this.printDebugMessages = printDebugMessages;
 
         if (printDebugMessages) {
-            System.out.println("Making new fellowship phase plan");
+            System.out.println("Making new fellowship phase plan for site " + siteNumber);
         }
 
+        plannedBoardState = new PlannedBoardState(game, playerName);
         makePlan();
     }
 
     private void makePlan() {
-//        List<PhysicalCard> inPlayWithActivatedAbility = (List<PhysicalCard>) game.getGameState().getInPlay().stream().filter((Predicate<PhysicalCard>) card -> CardDatabase.getCard(card.getBlueprintId()).hasActivatedAbilities(Phase.FELLOWSHIP)).toList();
-//        List<PhysicalCard> inHandPlayableInFellowshipPhase = (List<PhysicalCard>) game.getGameState().getHand(playerName).stream().filter((Predicate<PhysicalCard>) card -> CardDatabase.getCard(card.getBlueprintId()).isPlayableInPhase(Phase.FELLOWSHIP)).toList();
-//
-//        addDiscardCompanionToHealActions(inHandPlayableInFellowshipPhase);
-//        addPlayCompanionFromHandActions(inHandPlayableInFellowshipPhase);
+        List<BotCard> inPlayWithActivatedAbility =
+                game.getGameState().getInPlay().stream()
+                        .filter((Predicate<PhysicalCard>) card -> card.getOwner().equals(playerName))
+                        .filter(card -> game.getGameState().isCardInPlayActive(card))
+                        .filter(card -> !BotCardFactory.create(card).getActivatedAbilities(Phase.FELLOWSHIP).isEmpty())
+                        .map((Function<PhysicalCard, BotCard>) BotCardFactory::create)
+                        .toList();
+        List<BotCard> inHandPlayableInFellowshipPhase =
+                new ArrayList<>(
+                        game.getGameState().getHand(playerName).stream()
+                                .filter((Predicate<PhysicalCard>) card -> BotCardFactory.create(card).isPlayableInPhase(Phase.FELLOWSHIP))
+                                .map((Function<PhysicalCard, BotCard>) BotCardFactory::create)
+                                .toList());
 
+        addDiscardCompanionToHealActions(inHandPlayableInFellowshipPhase);
+        addPlayCompanionFromHandActions(inHandPlayableInFellowshipPhase);
+        addPlayAlliesFromHandActions(inHandPlayableInFellowshipPhase);
+
+        //TODO add another actions to action lists
+
+        if (printDebugMessages) {
+            System.out.println("Finally, will pass");
+        }
+        actions.add(new PassAction());
     }
 
-    private void addPlayCompanionFromHandActions(List<PhysicalCard> inHandPlayableInFellowshipPhase) {
-        // TODO implement
-
-    }
-
-    private void addDiscardCompanionToHealActions(List<PhysicalCard> inHandPlayableInFellowshipPhase) {
-        List<PhysicalCard> woundedUniqueCompanionsInPlay = (List<PhysicalCard>) game.getGameState().getInPlay().stream()
-                .filter((Predicate<PhysicalCard>) card ->
-                        CardType.COMPANION.equals(card.getBlueprint().getCardType())
-                        && card.getBlueprint().isUnique()
-                        && game.getGameState().getWounds(card) > 0
-                        && game.getModifiersQuerying().canBeHealed(game, card))
+    private void addPlayAlliesFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotCard> playableAlliesInHand = inHandPlayableInFellowshipPhase.stream()
+                .filter(card ->
+                        CardType.ALLY.equals(card.getSelf().getBlueprint().getCardType())
+                                && card.canBePlayed())
                 .toList();
+
+        List<BotCard> uniqueFilteredPlayableAllies = new ArrayList<>();
+        for (BotCard ally : playableAlliesInHand) {
+            if (!ally.getSelf().getBlueprint().isUnique()) {
+                uniqueFilteredPlayableAllies.add(ally);
+            } else {
+                boolean additionalCopy = uniqueFilteredPlayableAllies.stream()
+                        .anyMatch(alreadyThere -> alreadyThere.getSelf().getBlueprint().getTitle().equals(ally.getSelf().getBlueprint().getTitle()));
+                if (!additionalCopy) {
+                    uniqueFilteredPlayableAllies.add(ally);
+                }
+            }
+        }
+        for (BotCard allyInHand : uniqueFilteredPlayableAllies) {
+            if (printDebugMessages) {
+                System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
+            }
+            actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
+            plannedBoardState.addAlly(allyInHand);
+            inHandPlayableInFellowshipPhase.remove(allyInHand);
+        }
+    }
+
+    private void addPlayCompanionFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotCard> playableCompanionsInHand = inHandPlayableInFellowshipPhase.stream()
+                .filter(card ->
+                        CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
+                                && card.canBePlayed())
+                .toList();
+
+        int companionsInPlay = BoardStateUtil.getCompanionsInPlayCount(game, playerName);
+
+        List<BotCard> uniqueFilteredPlayableCompanions = new ArrayList<>();
+        for (BotCard companion : playableCompanionsInHand) {
+            if (!companion.getSelf().getBlueprint().isUnique()) {
+                uniqueFilteredPlayableCompanions.add(companion);
+            } else {
+                boolean additionalCopy = uniqueFilteredPlayableCompanions.stream()
+                        .anyMatch(alreadyThere -> alreadyThere.getSelf().getBlueprint().getTitle().equals(companion.getSelf().getBlueprint().getTitle()));
+                if (!additionalCopy) {
+                    uniqueFilteredPlayableCompanions.add(companion);
+                }
+            }
+        }
+
+        int ruleOfNineRemainder = BoardStateUtil.getRuleOfNineRemainder(game, playerName);
+
+        int numberOfCompanionsThatCanBePlayed = Math.min(uniqueFilteredPlayableCompanions.size(), ruleOfNineRemainder);
+
+        int numberOfCompanionsToBePlayed;
+        if (companionsInPlay >= 6) {
+            // already getting hit enquea, play whatever
+            numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
+        } else {
+            // if can get to large fellowship number, do it, else fill to 5 comps
+            if (companionsInPlay + uniqueFilteredPlayableCompanions.size() >= 8) {
+                numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
+            } else {
+                numberOfCompanionsToBePlayed = Math.min(numberOfCompanionsThatCanBePlayed, 5 - companionsInPlay);
+            }
+        }
+
+        if (numberOfCompanionsToBePlayed == uniqueFilteredPlayableCompanions.size()) {
+            // play all
+            for (BotCard companionInHand : uniqueFilteredPlayableCompanions) {
+                if (printDebugMessages) {
+                    System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
+                }
+                actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
+                plannedBoardState.addCompanion(companionInHand);
+                inHandPlayableInFellowshipPhase.remove(companionInHand);
+            }
+        } else if (numberOfCompanionsToBePlayed == 0) {
+            if (printDebugMessages) {
+                System.out.println("Won't play any companions. Companions in play: " + companionsInPlay + ". Playable companions in hand: " + uniqueFilteredPlayableCompanions.size());
+            }
+            return;
+        } else {
+            // find the best cards to play and play those
+            throw new NotImplementedException("Choosing which companion to play is not yet implemented");
+        }
+    }
+
+    private void addDiscardCompanionToHealActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<PhysicalCard> woundedUniqueCompanionsInPlay = BoardStateUtil.getWoundedCompanionsInPlay(game, playerName);
 
         for (PhysicalCard companion : woundedUniqueCompanionsInPlay) {
             int wounds = game.getGameState().getWounds(companion);
 
-            List<PhysicalCard> matchingCardsInHand = inHandPlayableInFellowshipPhase.stream()
+            List<BotCard> matchingCardsInHand = inHandPlayableInFellowshipPhase.stream()
                     .filter(cardInHand ->
-                            CardType.COMPANION.equals(cardInHand.getBlueprint().getCardType())
-                            && cardInHand.getBlueprint().getTitle().equals(companion.getBlueprint().getTitle()))
+                            CardType.COMPANION.equals(cardInHand.getSelf().getBlueprint().getCardType())
+                            && cardInHand.getSelf().getBlueprint().getTitle().equals(companion.getBlueprint().getTitle()))
                     .toList();
 
             int cardsToDiscardToHeal = Math.min(wounds, matchingCardsInHand.size());
 
             for (int i = 0; i < cardsToDiscardToHeal; i++) {
-                PhysicalCard toDiscard = matchingCardsInHand.get(i);
+                BotCard toDiscard = matchingCardsInHand.get(i);
                 if (printDebugMessages) {
-                    System.out.println("Will discard " + toDiscard.getBlueprint().getFullName() + " from hand to heal companion in play");
+                    System.out.println("Will discard " + toDiscard.getSelf().getBlueprint().getFullName() + " from hand to heal companion in play");
                 }
-                actions.add(new DiscardCompanionToHealAction(toDiscard));
+                actions.add(new DiscardCompanionToHealAction(toDiscard.getSelf()));
                 inHandPlayableInFellowshipPhase.remove(toDiscard);
             }
         }
@@ -99,7 +199,7 @@ public class FellowshipPhasePlan {
 
         ActionToTake action = actions.get(nextStep);
         if (printDebugMessages) {
-            System.out.println("Action " + nextStep + " out of " + actions.size());
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
             System.out.println(action.toString());
         }
         nextStep++;

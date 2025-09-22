@@ -11,16 +11,16 @@ public abstract class BotCharacterCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(LotroGame game) {
-        if (!phaseOk(game)) return false;
-        if (!uniqueRequirementOk(game)) return false;
-        return otherRequirementsNowOk(game);
+    public boolean canBePlayed() {
+        if (!phaseOk(self.getGame())) return false;
+        if (!uniqueRequirementOk(self.getGame())) return false;
+        return otherRequirementsNowOk(self.getGame());
     }
 
     @Override
-    public boolean canEverBePlayed(LotroGame game) {
-        if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide()) && !uniqueRequirementOk(game)) return false;
-        return otherRequirementsEverOk(game);
+    public boolean canEverBePlayed() {
+        if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide()) && !uniqueRequirementOk(self.getGame())) return false;
+        return otherRequirementsEverOk(self.getGame());
     }
 
     private boolean phaseOk(LotroGame game) {

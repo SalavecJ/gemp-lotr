@@ -10,13 +10,13 @@ public abstract class BotCompanionCard extends BotCharacterCard {
     }
 
     @Override
-    public boolean canBePlayed(LotroGame game) {
-        return super.canBePlayed(game) && ruleOfNineOk(game);
+    public boolean canBePlayed() {
+        return super.canBePlayed() && ruleOfNineOk(self.getGame());
     }
 
     @Override
-    public boolean canEverBePlayed(LotroGame game) {
-        return super.canEverBePlayed(game) && ruleOfNineOk(game);
+    public boolean canEverBePlayed() {
+        return super.canEverBePlayed() && ruleOfNineOk(self.getGame());
     }
 
     private boolean ruleOfNineOk(LotroGame game) {

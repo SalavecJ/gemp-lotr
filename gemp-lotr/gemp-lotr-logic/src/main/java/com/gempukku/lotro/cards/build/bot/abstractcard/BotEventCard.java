@@ -10,14 +10,14 @@ public abstract class BotEventCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(LotroGame game) {
-        if (!phaseOk(game)) return false;
-        return otherRequirementsNowOk(game);
+    public boolean canBePlayed() {
+        if (!phaseOk(self.getGame())) return false;
+        return otherRequirementsNowOk(self.getGame());
     }
 
     @Override
-    public boolean canEverBePlayed(LotroGame game) {
-        return otherRequirementsEverOk(game);
+    public boolean canEverBePlayed() {
+        return otherRequirementsEverOk(self.getGame());
     }
 
     public boolean isResponseEvent() {

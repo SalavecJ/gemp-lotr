@@ -1,7 +1,13 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
+import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
+import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
+import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Phase;
+import com.gempukku.lotro.common.Side;
+import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
@@ -19,11 +25,37 @@ public abstract class BotCard {
         return self;
     }
 
-    public abstract boolean canBePlayed(LotroGame game);
+    public abstract boolean canBePlayed();
 
-    public abstract boolean canEverBePlayed(LotroGame game);
+    public abstract boolean canEverBePlayed();
 
     public abstract List<BotAbility> getAbilities();
+
+    public List<BotAbility> getActivatedAbilities(Phase phase) {
+        return getAbilities().stream().filter(botAbility -> {
+            if (botAbility instanceof ActivatedAbility aa) {
+                return aa.getConditions().stream().anyMatch(abilityProperty ->
+                        abilityProperty.getType().equals(AbilityProperty.Type.PHASE_IS)
+                        && abilityProperty.getParam("phase", Phase.class).equals(phase));
+            } else {
+                return false;
+            }
+        }).toList();
+    }
+
+    public boolean isPlayableInPhase(Phase phase) {
+      return switch (phase) {
+          case PUT_RING_BEARER, PLAY_STARTING_FELLOWSHIP, BETWEEN_TURNS -> false;
+          case FELLOWSHIP -> self.getBlueprint().getSide().equals(Side.FREE_PEOPLE)
+                  && (!self.getBlueprint().getCardType().equals(CardType.EVENT)
+                  || self.getBlueprint().hasTimeword(Timeword.findByPhase(Phase.FELLOWSHIP)));
+          case SHADOW -> self.getBlueprint().getSide().equals(Side.SHADOW)
+                  && (!self.getBlueprint().getCardType().equals(CardType.EVENT)
+                  || self.getBlueprint().hasTimeword(Timeword.findByPhase(Phase.SHADOW)));
+          case MANEUVER, ARCHERY, ASSIGNMENT, SKIRMISH, REGROUP -> self.getBlueprint().getCardType().equals(CardType.EVENT)
+                  && self.getBlueprint().hasTimeword(Timeword.findByPhase(phase));
+      };
+    }
 
     public BotTargetingMode getTargetingModeForDecision(LotroGame game, AwaitingDecision decision) {
         PhysicalCard fromDecision = game.getGameState().getPhysicalCard(

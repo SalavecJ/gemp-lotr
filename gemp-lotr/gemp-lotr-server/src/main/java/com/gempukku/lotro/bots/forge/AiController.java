@@ -93,7 +93,7 @@ public class AiController {
     }
 
     public boolean wantToMulligan(LotroGame game) {
-        boolean goingFirst = game.getGameState().getCurrentPlayerId().equals(aiPlayerName);
+        boolean goingFirst = game.getGameState().getFirstPlayerId().equals(aiPlayerName);
 
         if (printDebugMessages) {
             printSeparator();
@@ -548,10 +548,10 @@ public class AiController {
         }
 
         // Check for unplayable cards in hand
-        boolean handContainsAlwaysDeadCard = cardsInHand.stream().anyMatch((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed(game));
+        boolean handContainsAlwaysDeadCard = cardsInHand.stream().anyMatch((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed());
 
         if (handContainsAlwaysDeadCard) {
-            List<? extends PhysicalCard> toDiscard = cardsInHand.stream().filter((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed(game)).toList().subList(0, Math.max(1, min));
+            List<? extends PhysicalCard> toDiscard = cardsInHand.stream().filter((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed()).toList().subList(0, Math.max(1, min));
             if (printDebugMessages) {
                 System.out.println("Discard unusable card: ");
                 for (PhysicalCard physicalCard : toDiscard) {
@@ -679,21 +679,21 @@ public class AiController {
     }
 
     public int chooseActionToTakeNext(LotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
-//        if (printDebugMessages) {
-//            printSeparator();
-//        }
-//
-//        if (awaitingDecision.getText().equals("Play Fellowship action or Pass")) {
-//            if (fellowshipPhasePlan == null || fellowshipPhasePlan.replanningNeeded()) {
-//                fellowshipPhasePlan = new FellowshipPhasePlan(printDebugMessages, game);
-//            }
-//            try {
-//                return fellowshipPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
-//            } catch (Exception e) {
-//                throw new UnsupportedOperationException("Fellowship plan error: " + e.getMessage());
-//            }
-//        } else {
+        if (printDebugMessages) {
+            printSeparator();
+        }
+
+        if (awaitingDecision.getText().equals("Play Fellowship action or Pass")) {
+            if (fellowshipPhasePlan == null || fellowshipPhasePlan.replanningNeeded()) {
+                fellowshipPhasePlan = new FellowshipPhasePlan(printDebugMessages, game);
+            }
+            try {
+                return fellowshipPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
+            } catch (Exception e) {
+                throw new UnsupportedOperationException("Fellowship plan error: " + e.getMessage());
+            }
+        } else {
             throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
-//        }
+        }
     }
 }

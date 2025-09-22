@@ -1,7 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
 import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.LotroGame;
 
 public abstract class BotSiteCard extends BotCard {
     public BotSiteCard(PhysicalCard self) {
@@ -9,12 +8,12 @@ public abstract class BotSiteCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(LotroGame game) {
+    public boolean canBePlayed() {
         throw new IllegalStateException("The bot should not ask if site card can be played.");
     }
 
     @Override
-    public boolean canEverBePlayed(LotroGame game) {
+    public boolean canEverBePlayed() {
         throw new IllegalStateException("The bot should not ask if site card can be played.");
     }
 }

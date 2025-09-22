@@ -9,7 +9,7 @@ public class HandValueUtil {
     public static int scoreCardInHand(LotroGame game, PhysicalCard card, Side notWanted) {
         // TODO do something better
 
-        if (!BotCardFactory.create(card).canEverBePlayed(game)) {
+        if (!BotCardFactory.create(card).canEverBePlayed()) {
             return -100;
         }
 
