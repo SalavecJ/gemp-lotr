@@ -15,6 +15,6 @@ public abstract class BotObjectSupportAreaCard extends BotObjectCard {
 
     @Override
     protected boolean playsToSupportArea() {
-        return false;
+        return true;
     }
 }

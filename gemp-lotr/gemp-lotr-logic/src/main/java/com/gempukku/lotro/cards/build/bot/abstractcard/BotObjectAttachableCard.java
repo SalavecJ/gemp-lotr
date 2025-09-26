@@ -12,7 +12,7 @@ public abstract class BotObjectAttachableCard extends BotObjectCard {
 
     @Override
     protected boolean playsToSupportArea() {
-        return true;
+        return false;
     }
 
     @Override
