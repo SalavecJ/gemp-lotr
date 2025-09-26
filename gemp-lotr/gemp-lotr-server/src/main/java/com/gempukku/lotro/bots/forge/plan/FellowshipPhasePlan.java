@@ -8,6 +8,7 @@ import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import org.apache.commons.lang3.NotImplementedException;
 
@@ -35,7 +36,7 @@ public class FellowshipPhasePlan {
             System.out.println("Making new fellowship phase plan for site " + siteNumber);
         }
 
-        plannedBoardState = new PlannedBoardState(game, playerName);
+        plannedBoardState = new PlannedBoardState(game);
         makePlan();
     }
 
@@ -70,7 +71,7 @@ public class FellowshipPhasePlan {
         List<BotCard> playableAlliesInHand = inHandPlayableInFellowshipPhase.stream()
                 .filter(card ->
                         CardType.ALLY.equals(card.getSelf().getBlueprint().getCardType())
-                                && card.canBePlayed())
+                                && card.canBePlayed(plannedBoardState))
                 .toList();
 
         List<BotCard> uniqueFilteredPlayableAllies = new ArrayList<>();
@@ -90,7 +91,7 @@ public class FellowshipPhasePlan {
                 System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
             }
             actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
-            plannedBoardState.addAlly(allyInHand);
+            plannedBoardState.playAlly(allyInHand);
             inHandPlayableInFellowshipPhase.remove(allyInHand);
         }
     }
@@ -99,7 +100,7 @@ public class FellowshipPhasePlan {
         List<BotCard> playableCompanionsInHand = inHandPlayableInFellowshipPhase.stream()
                 .filter(card ->
                         CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
-                                && card.canBePlayed())
+                                && card.canBePlayed(plannedBoardState))
                 .toList();
 
         int companionsInPlay = BoardStateUtil.getCompanionsInPlayCount(game, playerName);
@@ -126,7 +127,7 @@ public class FellowshipPhasePlan {
             // already getting hit enquea, play whatever
             numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
         } else {
-            // if can get to large fellowship number, do it, else fill to 5 comps
+            // if fellowship can get to large companion number, do it, else fill to 5 comps
             if (companionsInPlay + uniqueFilteredPlayableCompanions.size() >= 8) {
                 numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
             } else {
@@ -141,7 +142,7 @@ public class FellowshipPhasePlan {
                     System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
                 }
                 actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
-                plannedBoardState.addCompanion(companionInHand);
+                plannedBoardState.playCompanion(companionInHand);
                 inHandPlayableInFellowshipPhase.remove(companionInHand);
             }
         } else if (numberOfCompanionsToBePlayed == 0) {

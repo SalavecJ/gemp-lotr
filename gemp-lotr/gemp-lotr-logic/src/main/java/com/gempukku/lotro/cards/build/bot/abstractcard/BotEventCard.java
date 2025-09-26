@@ -3,6 +3,7 @@ package com.gempukku.lotro.cards.build.bot.abstractcard;
 import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public abstract class BotEventCard extends BotCard {
     public BotEventCard(PhysicalCard self) {
@@ -10,9 +11,8 @@ public abstract class BotEventCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed() {
-        if (!phaseOk(self.getGame())) return false;
-        return otherRequirementsNowOk(self.getGame());
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        return otherRequirementsNowOk(plannedBoardState);
     }
 
     @Override
@@ -24,14 +24,10 @@ public abstract class BotEventCard extends BotCard {
         return self.getBlueprint().hasTimeword(Timeword.RESPONSE);
     }
 
-    private boolean phaseOk(LotroGame game) {
-        return self.getBlueprint().hasTimeword(Timeword.findByPhase(game.getGameState().getCurrentPhase())) || isResponseEvent();
-    }
-
     /**
      * Hook for subclasses to implement card-specific rules for current board state
      */
-    protected boolean otherRequirementsNowOk(LotroGame game) {
+    protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
         return true;
     }
 

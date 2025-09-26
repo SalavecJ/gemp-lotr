@@ -5,6 +5,7 @@ import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.List;
 import java.util.Set;
@@ -249,8 +250,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canSpot(game, self.getOwner(), "Gandalf");
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canSpot(self.getOwner(), "Gandalf");
                 }
 
                 @Override
@@ -302,8 +303,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExert(game, self.getOwner(), "Gandalf");
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExert(self.getOwner(), "Gandalf");
                 }
 
                 @Override
@@ -327,8 +328,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canSpot(game, self.getOwner(), "Gandalf");
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canSpot(self.getOwner(), "Gandalf");
                 }
 
                 @Override
@@ -357,7 +358,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Race.MAN.equals(target.getBlueprint().getRace());
                 }
 
@@ -395,7 +396,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Culture.GONDOR.equals(target.getBlueprint().getCulture())
                             && Race.MAN.equals(target.getBlueprint().getRace());
                 }
@@ -442,7 +443,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Race.MAN.equals(target.getBlueprint().getRace());
                 }
 
@@ -473,8 +474,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExertRanger(game, self.getOwner());
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExertRanger(self.getOwner());
                 }
 
                 @Override
@@ -500,8 +501,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExertRanger(game, self.getOwner());
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExertRanger(self.getOwner());
                 }
 
                 @Override
@@ -524,7 +525,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Race.MAN.equals(target.getBlueprint().getRace());
                 }
 
@@ -548,9 +549,9 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
-                    return game.getModifiersQuerying().hasKeyword(game, target, Keyword.RANGER)
-                            && game.getGameState().getAttachedCards(target).stream().noneMatch(card1 -> card1.getBlueprint().getTitle().equals(self.getBlueprint().getTitle()));
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
+                    return target.getBlueprint().hasKeyword(Keyword.RANGER)
+                            && plannedBoardState.getAttachedCards(target).stream().noneMatch(card1 -> card1.getSelf().getBlueprint().getTitle().equals(self.getBlueprint().getTitle()));
                 }
 
                 @Override
@@ -574,8 +575,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canSpotRanger(game, self.getOwner());
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canSpotRanger(self.getOwner());
                 }
 
                 @Override
@@ -653,8 +654,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExert(game, self.getOwner(), Race.URUK_HAI);
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExert(self.getOwner(), Race.URUK_HAI);
                 }
 
                 @Override
@@ -727,9 +728,9 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canSpot(game, self.getOwner(), Race.URUK_HAI)
-                            || RequirementsUtility.canSpot(game, self.getOwner(), "Saruman");
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canSpot(self.getOwner(), Race.URUK_HAI)
+                            || plannedBoardState.canSpot(self.getOwner(), "Saruman");
                 }
 
                 @Override
@@ -969,7 +970,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Culture.MORIA.equals(target.getBlueprint().getCulture())
                             && Race.ORC.equals(target.getBlueprint().getRace());
                 }
@@ -1023,8 +1024,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.isInDiscard(game, self.getOwner(), Culture.MORIA, Race.ORC);
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.isInDiscard(self.getOwner(), Culture.MORIA, Race.ORC);
                 }
 
                 @Override
@@ -1243,7 +1244,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(LotroGame game, PhysicalCard target) {
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
                     return Race.HOBBIT.equals(target.getBlueprint().getRace());
                 }
 
@@ -1276,10 +1277,10 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExert(game, self.getOwner(),
-                            card -> CardType.COMPANION.equals(card.getBlueprint().getCardType())
-                                    && !Race.HOBBIT.equals(card.getBlueprint().getRace()));
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExert(self.getOwner(),
+                            card -> CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
+                                    && !Race.HOBBIT.equals(card.getSelf().getBlueprint().getRace()));
                 }
 
                 @Override
@@ -1356,8 +1357,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(LotroGame game) {
-                    return RequirementsUtility.canExert(game, self.getOwner(), Race.HOBBIT, CardType.COMPANION);
+                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
+                    return plannedBoardState.canExert(self.getOwner(), Race.HOBBIT, CardType.COMPANION);
                 }
 
                 @Override

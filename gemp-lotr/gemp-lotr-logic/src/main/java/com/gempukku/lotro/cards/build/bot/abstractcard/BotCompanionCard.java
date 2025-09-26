@@ -1,8 +1,8 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
-import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public abstract class BotCompanionCard extends BotCharacterCard {
     public BotCompanionCard(PhysicalCard self) {
@@ -10,8 +10,8 @@ public abstract class BotCompanionCard extends BotCharacterCard {
     }
 
     @Override
-    public boolean canBePlayed() {
-        return super.canBePlayed() && ruleOfNineOk(self.getGame());
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        return super.canBePlayed(plannedBoardState) && ruleOfNineOk(plannedBoardState);
     }
 
     @Override
@@ -19,16 +19,11 @@ public abstract class BotCompanionCard extends BotCharacterCard {
         return super.canEverBePlayed() && ruleOfNineOk(self.getGame());
     }
 
+    private boolean ruleOfNineOk(PlannedBoardState plannedBoardState) {
+        return plannedBoardState.ruleOfNineRemainder(self.getOwner()) > 0;
+    }
+
     private boolean ruleOfNineOk(LotroGame game) {
-        int companionsInPlay = (int) game.getGameState().getInPlay().stream()
-                .filter(pc -> CardType.COMPANION.equals(pc.getBlueprint().getCardType())
-                        && pc.getOwner().equals(self.getOwner()))
-                .count();
-
-        int companionsInDeadPile = (int) game.getGameState().getDeadPile(self.getOwner()).stream()
-                .filter(pc -> CardType.COMPANION.equals(pc.getBlueprint().getCardType()))
-                .count();
-
-        return companionsInPlay + companionsInDeadPile < 9;
+        return ruleOfNineOk(new PlannedBoardState(game));
     }
 }

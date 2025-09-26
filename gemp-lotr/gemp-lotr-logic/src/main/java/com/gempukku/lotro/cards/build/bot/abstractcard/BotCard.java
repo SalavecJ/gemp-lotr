@@ -10,6 +10,7 @@ import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public abstract class BotCard {
         return self;
     }
 
-    public abstract boolean canBePlayed();
+    public abstract boolean canBePlayed(PlannedBoardState plannedBoardState);
 
     public abstract boolean canEverBePlayed();
 

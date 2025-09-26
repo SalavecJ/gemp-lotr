@@ -1,7 +1,7 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
 import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public abstract class BotObjectSupportAreaCard extends BotObjectCard {
     public BotObjectSupportAreaCard(PhysicalCard self) {
@@ -9,7 +9,7 @@ public abstract class BotObjectSupportAreaCard extends BotObjectCard {
     }
 
     @Override
-    protected final boolean canBearThis(LotroGame game, PhysicalCard target) {
+    protected final boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
         return false;
     }
 

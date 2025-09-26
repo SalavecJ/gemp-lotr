@@ -1,9 +1,9 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
-import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public abstract class BotCharacterCard extends BotCard {
     public BotCharacterCard(PhysicalCard self) {
@@ -11,10 +11,9 @@ public abstract class BotCharacterCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed() {
-        if (!phaseOk(self.getGame())) return false;
-        if (!uniqueRequirementOk(self.getGame())) return false;
-        return otherRequirementsNowOk(self.getGame());
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        if (!uniqueRequirementOk(plannedBoardState)) return false;
+        return otherRequirementsNowOk(plannedBoardState);
     }
 
     @Override
@@ -22,14 +21,8 @@ public abstract class BotCharacterCard extends BotCard {
         if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide()) && !uniqueRequirementOk(self.getGame())) return false;
         return otherRequirementsEverOk(self.getGame());
     }
-
-    private boolean phaseOk(LotroGame game) {
-        if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide())) {
-            return Phase.FELLOWSHIP.equals(game.getGameState().getCurrentPhase());
-        } else if (Side.SHADOW.equals(self.getBlueprint().getSide())) {
-            return Phase.SHADOW.equals(game.getGameState().getCurrentPhase());
-        }
-        throw new IllegalStateException("Character cards need to have side: " + self.getBlueprint().getFullName());
+    private boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
+        return !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
     }
 
     private boolean uniqueRequirementOk(LotroGame game) {
@@ -46,7 +39,7 @@ public abstract class BotCharacterCard extends BotCard {
     }
 
     /** Hook for subclasses to implement card-specific rules for current board state */
-    protected boolean otherRequirementsNowOk(LotroGame game) {
+    protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
         return true;
     }
 

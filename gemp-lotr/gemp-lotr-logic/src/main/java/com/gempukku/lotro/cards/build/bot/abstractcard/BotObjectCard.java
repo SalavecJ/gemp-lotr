@@ -2,11 +2,10 @@ package com.gempukku.lotro.cards.build.bot.abstractcard;
 
 import com.gempukku.lotro.cards.build.bot.RequirementsUtility;
 import com.gempukku.lotro.common.CardType;
-import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.PossessionClass;
-import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.Set;
 
@@ -16,13 +15,12 @@ public abstract class BotObjectCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed() {
-        if (!phaseOk(self.getGame())) return false;
-        if (!uniqueRequirementOk(self.getGame())) return false;
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        if (!uniqueRequirementOk(plannedBoardState)) return false;
         if (!playsToSupportArea()
-                && !RequirementsUtility.canSpot(self.getGame(), self.getOwner(), this::isValidBearer))
+                && !plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState)))
             return false;
-        return otherRequirementsNowOk(self.getGame());
+        return otherRequirementsNowOk(plannedBoardState);
     }
 
     @Override
@@ -35,7 +33,7 @@ public abstract class BotObjectCard extends BotCard {
     /**
      * Hook for subclasses to implement card-specific rules for current board state
      */
-    protected boolean otherRequirementsNowOk(LotroGame game) {
+    protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
         return true;
     }
 
@@ -49,35 +47,24 @@ public abstract class BotObjectCard extends BotCard {
     /**
      * Hook for subclasses to implement card-specific rules for potential play
      */
-    protected abstract boolean canBearThis(LotroGame game, PhysicalCard target);
+    protected abstract boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target);
 
     protected abstract boolean playsToSupportArea();
 
-    private boolean phaseOk(LotroGame game) {
-        if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide())) {
-            return Phase.FELLOWSHIP.equals(game.getGameState().getCurrentPhase());
-        } else if (Side.SHADOW.equals(self.getBlueprint().getSide())) {
-            return Phase.SHADOW.equals(game.getGameState().getCurrentPhase());
-        }
-        throw new IllegalStateException("Character cards need to have side: " + self.getBlueprint().getFullName());
+    private boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
+        return !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
     }
 
-    private boolean uniqueRequirementOk(LotroGame game) {
-        if (!self.getBlueprint().isUnique()) return true;
-
-        boolean sameNameInPlay = game.getGameState().getInPlay().stream()
-                .anyMatch(pc -> pc.getOwner().equals(self.getOwner())
-                        && pc.getBlueprint().getTitle().equals(self.getBlueprint().getTitle()));
-
-        boolean sameNameDead = game.getGameState().getDeadPile(self.getOwner()).stream()
-                .anyMatch(pc -> pc.getBlueprint().getTitle().equals(self.getBlueprint().getTitle()));
-
-        return !sameNameInPlay && !sameNameDead;
+    public boolean isValidBearer(BotCard target, PlannedBoardState plannedBoardState) {
+        return isValidBearer(target.getSelf(), plannedBoardState);
     }
 
     public boolean isValidBearer(PhysicalCard target) {
-        LotroGame game = target.getGame();
-        return canBearThis(game, target) && isCharacter(target) && hasFreeSlotForThis(game, target);
+        return isValidBearer(target, new PlannedBoardState(target.getGame()));
+    }
+
+    public boolean isValidBearer(PhysicalCard target, PlannedBoardState plannedBoardState) {
+        return canBearThis(plannedBoardState, target) && isCharacter(target) && hasFreeSlotForThis(plannedBoardState, target);
     }
 
     private boolean isCharacter(PhysicalCard target) {
@@ -85,19 +72,11 @@ public abstract class BotObjectCard extends BotCard {
         return ct.equals(CardType.COMPANION) || ct.equals(CardType.ALLY) || ct.equals(CardType.MINION);
     }
 
-    private boolean hasFreeSlotForThis(LotroGame game, PhysicalCard target) {
+    private boolean hasFreeSlotForThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
         Set<PossessionClass> classes = self.getBlueprint().getPossessionClasses();
         if (classes == null) {
             return true;
         }
-        for (PossessionClass possessionClass : classes) {
-            for (PhysicalCard attachedCard : game.getGameState().getAttachedCards(target)) {
-                if (attachedCard.getBlueprint().getPossessionClasses() != null
-                        && attachedCard.getBlueprint().getPossessionClasses().contains(possessionClass)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return plannedBoardState.hasFreeSlotForThis(target, classes);
     }
 }
