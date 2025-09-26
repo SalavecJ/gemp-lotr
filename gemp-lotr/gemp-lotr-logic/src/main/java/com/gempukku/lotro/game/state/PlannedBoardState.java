@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 public class PlannedBoardState {
     private final List<String> players = new ArrayList<>();
+    private final Map<String, BotCard> ringBearers = new HashMap<>();
 
     private final Map<String, List<BotCard>> adventureDecks = new HashMap<>();
     private final Map<String, List<BotCard>> decks = new HashMap<>();
@@ -46,6 +47,9 @@ public class PlannedBoardState {
                     } else if (Side.FREE_PEOPLE.equals(botCard.getSelf().getBlueprint().getSide())
                             || CardType.THE_ONE_RING.equals(botCard.getSelf().getBlueprint().getCardType())) {
                         inPlayFpCards.computeIfAbsent(botCard.getSelf().getOwner(), s -> new ArrayList<>()).add(botCard);
+                        if (game.getGameState().getRingBearers().contains(card)) {
+                            ringBearers.put(botCard.getSelf().getOwner(), botCard);
+                        }
                     } else if (Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide())) {
                         inPlayShadowCards.computeIfAbsent(botCard.getSelf().getOwner(), s -> new ArrayList<>()).add(botCard);
                     } else {
@@ -104,9 +108,22 @@ public class PlannedBoardState {
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
     }
 
-    public void playAlly(BotCard botCard) {
+    public void playToFpSupportArea(BotCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+    }
+
+    public void playOnBearer(BotCard botCard, BotCard bearer) {
+        boolean fp = botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE);
+        if (fp) {
+            inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
+            attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
+            twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+        } else {
+            inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
+            attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
+            twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
+        }
     }
 
     public boolean sameTitleInPlayOrInDeadPile(String title, String player) {
@@ -162,6 +179,28 @@ public class PlannedBoardState {
             }
         }
         return new ArrayList<>();
+    }
+
+    public List<BotCard> getFpCardsInPlay(String owner) {
+        return inPlayFpCards.get(owner);
+    }
+
+    public List<BotCard> getRingBearers() {
+        return new ArrayList<>(ringBearers.values());
+    }
+
+    public int getStrength(BotCard botCard) {
+        int tbr = botCard.getSelf().getBlueprint().getStrength();
+        // TODO effects
+        for (BotCard attachedCard : getAttachedCards(botCard.getSelf())) {
+            tbr += attachedCard.getSelf().getBlueprint().getStrength();
+        }
+        return tbr;
+    }
+
+    public int getVitality(BotCard botCard) {
+        // TODO effects
+        return botCard.getSelf().getBlueprint().getVitality() - getTokenCount(botCard, Token.WOUND);
     }
 
     /*

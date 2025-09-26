@@ -1,5 +1,14 @@
 package com.gempukku.lotro.cards.build.bot;
 
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.game.state.PlannedBoardState;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.function.ToIntFunction;
+
 public enum BotTargetingMode {
     SPECIAL("Special targeting rules needed"),
     RANDOM("Random"),
@@ -18,6 +27,106 @@ public enum BotTargetingMode {
 
     BotTargetingMode(String humanReadable) {
         this.humanReadable = humanReadable;
+    }
+
+    public BotCard chooseTarget(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        List<BotCard> list = chooseTargets(plannedBoardState, options, 1, 1, printDebugMessages);
+        if (list.isEmpty()) return null;
+        return list.getFirst();
+    }
+
+    public List<BotCard> chooseTargets(PlannedBoardState plannedBoardState, List<BotCard> options, int min, int max, boolean printDebugMessages) {
+        if (printDebugMessages) {
+            System.out.println("Targeting mode: " + this);
+            if (min != max) {
+                System.out.println("Min options to choose: " + min);
+                System.out.println("Max options to choose: " + max);
+            } else {
+                System.out.println("Options to choose: " + min);
+            }
+        }
+
+        List<BotCard> myOptions = new ArrayList<>(options);
+
+        List<BotCard> tbr = new ArrayList<>();
+        for (int i = 1; i <= min; i++) {
+            BotCard chosen = switch (this) {
+                case SPECIAL -> throw new IllegalStateException("Cannot choose target for special targeting mode like this");
+                case RANDOM -> chooseTargetRandom(myOptions, printDebugMessages);
+                case COMPANION_HIGH_STRENGTH -> chooseHighestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
+                case COMPANION_LOW_STRENGTH -> chooseLowestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
+                case COMPANION_NOT_DYING -> chooseCompanionLeastLikelyToDie(plannedBoardState, myOptions, printDebugMessages);
+                default -> throw new IllegalStateException("Targeting from enum for " + this + " is not implemented yet");
+            };
+            tbr.add(chosen);
+            myOptions.remove(chosen);
+        }
+
+        return tbr;
+    }
+
+    private BotCard chooseHighestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen =  options.stream()
+                .max(Comparator
+                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
+                        .thenComparingInt(plannedBoardState::getStrength)
+                        .thenComparingInt(plannedBoardState::getVitality))
+                .orElseThrow();
+
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
+            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+        }
+
+        return chosen;
+    }
+
+    private BotCard chooseLowestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen =  options.stream()
+                .max(Comparator
+                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
+                        .thenComparingInt(card -> - plannedBoardState.getStrength(card))
+                        .thenComparingInt(plannedBoardState::getVitality))
+                .orElseThrow();
+
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
+            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+        }
+
+        return chosen;
+    }
+
+    private BotCard chooseCompanionLeastLikelyToDie(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen = options.stream()
+                .max(Comparator
+                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getRingBearers().contains(card) ? 1 : 0)
+                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
+                        .thenComparingInt(plannedBoardState::getStrength)
+                        .thenComparingInt(plannedBoardState::getVitality))
+                .orElseThrow();
+
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+            System.out.println("Ring-bearer: " + plannedBoardState.getRingBearers().contains(chosen));
+            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
+            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+        }
+
+        return chosen;
+    }
+
+    private BotCard chooseTargetRandom(List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen = options.get(new Random().nextInt(0, options.size()));
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+        }
+        return chosen;
     }
 
     @Override

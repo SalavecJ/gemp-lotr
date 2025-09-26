@@ -32,5 +32,5 @@ public abstract class BotObjectAttachableCard extends BotObjectCard {
         return super.getTargetingModeForDecision(game, decision);
     }
 
-    protected abstract BotTargetingMode getAttachTargetingMode();
+    public abstract BotTargetingMode getAttachTargetingMode();
 }

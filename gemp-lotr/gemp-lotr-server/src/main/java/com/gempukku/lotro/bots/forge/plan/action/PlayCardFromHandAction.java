@@ -4,8 +4,8 @@ import com.gempukku.lotro.game.PhysicalCard;
 
 public class PlayCardFromHandAction extends ChooseCardAction {
 
-    public PlayCardFromHandAction(PhysicalCard toDiscard) {
-        super(toDiscard);
+    public PlayCardFromHandAction(PhysicalCard toPlay) {
+        super(toPlay);
     }
 
     @Override

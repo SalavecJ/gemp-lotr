@@ -3,7 +3,10 @@ package com.gempukku.lotro.bots.forge.plan;
 import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
+import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -58,6 +61,7 @@ public class FellowshipPhasePlan {
         addDiscardCompanionToHealActions(inHandPlayableInFellowshipPhase);
         addPlayCompanionFromHandActions(inHandPlayableInFellowshipPhase);
         addPlayAlliesFromHandActions(inHandPlayableInFellowshipPhase);
+        addPlayPossessionsFromHandActions(inHandPlayableInFellowshipPhase);
 
         //TODO add another actions to action lists
 
@@ -65,6 +69,43 @@ public class FellowshipPhasePlan {
             System.out.println("Finally, will pass");
         }
         actions.add(new PassAction());
+    }
+
+    private void addPlayPossessionsFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotCard> possessionsInHand = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> CardType.POSSESSION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .toList());
+
+        Collections.shuffle(possessionsInHand);
+        for (BotCard possession : possessionsInHand) {
+            if (possession.canBePlayed(plannedBoardState)) {
+                if (possession instanceof BotObjectSupportAreaCard) {
+                    if (printDebugMessages) {
+                        System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand to support area");
+                    }
+                    actions.add(new PlayCardFromHandAction(possession.getSelf()));
+                    plannedBoardState.playToFpSupportArea(possession);
+                    inHandPlayableInFellowshipPhase.remove(possession);
+                } else if (possession instanceof BotObjectAttachableCard attachableCard) {
+                    List<BotCard> potentialTargets = plannedBoardState.getFpCardsInPlay(playerName).stream()
+                            .filter(botCard -> attachableCard.isValidBearer(botCard, plannedBoardState))
+                            .toList();
+                    BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
+                    BotCard target = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
+                    if (target == null) {
+                        throw new IllegalStateException("Could not find target for " + possession.getSelf().getBlueprint().getFullName());
+                    }
+                    if (printDebugMessages) {
+                        System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
+                    }
+                    actions.add(new PlayCardFromHandWithTargetAction(possession.getSelf(), target.getSelf()));
+                    plannedBoardState.playOnBearer(possession, target);
+                    inHandPlayableInFellowshipPhase.remove(possession);
+                } else {
+                    throw new IllegalStateException("Possession not instance of support area nor attachable object card: " + possession.getSelf().getBlueprint().getFullName());
+                }
+            }
+        }
     }
 
     private void addPlayAlliesFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
@@ -91,7 +132,7 @@ public class FellowshipPhasePlan {
                 System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
             }
             actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
-            plannedBoardState.playAlly(allyInHand);
+            plannedBoardState.playToFpSupportArea(allyInHand);
             inHandPlayableInFellowshipPhase.remove(allyInHand);
         }
     }
@@ -205,6 +246,39 @@ public class FellowshipPhasePlan {
         }
         nextStep++;
         return action.carryOut(awaitingDecision);
+    }
+
+    public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
+        if (printDebugMessages) {
+            System.out.println("Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString());
+        }
+
+        if (!isActive()) {
+            if (printDebugMessages) {
+                System.out.println("Plan is outdated");
+            }
+            throw new IllegalStateException("Plan is outdated");
+        }
+
+        if (nextStep > actions.size()) {
+            System.out.println("All actions from plan already fully taken");
+            throw new IllegalStateException("All actions from plan already fully taken");
+        }
+
+        ActionToTake action = actions.get(nextStep - 1);
+        if (printDebugMessages) {
+            System.out.println("Last action");
+            System.out.println(action.toString());
+        }
+
+        if (action instanceof PlayCardFromHandWithTargetAction actionWithTarget) {
+            if (printDebugMessages) {
+                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
+            }
+            return List.of(actionWithTarget.getTarget());
+        } else {
+            throw new IllegalStateException("Last action should not trigger targeting");
+        }
     }
 
     public boolean replanningNeeded() {

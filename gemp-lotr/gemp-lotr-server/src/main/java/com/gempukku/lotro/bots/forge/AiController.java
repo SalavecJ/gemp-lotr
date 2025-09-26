@@ -651,6 +651,16 @@ public class AiController {
             printSeparator();
         }
 
+
+        if (fellowshipPhasePlan != null && !fellowshipPhasePlan.replanningNeeded()) {
+            List<PhysicalCard> plannedTargets = fellowshipPhasePlan.chooseTarget(awaitingDecision);
+            int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
+            int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
+            if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
+                return plannedTargets;
+            }
+        }
+
         return new AiTargetController(printDebugMessages, game, options, source, awaitingDecision).chooseTarget();
     }
 

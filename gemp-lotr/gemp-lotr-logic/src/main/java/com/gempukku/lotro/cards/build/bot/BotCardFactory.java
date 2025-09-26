@@ -363,7 +363,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_LOW_STRENGTH;
                 }
             };
@@ -402,7 +402,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_NOT_DYING;
                 }
             };
@@ -448,7 +448,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_LOW_STRENGTH;
                 }
             };
@@ -530,7 +530,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_NOT_DYING;
                 }
             };
@@ -555,7 +555,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_NOT_DYING;
                 }
             };
@@ -976,7 +976,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.HIGH_STRENGTH;
                 }
             };
@@ -1249,7 +1249,7 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected BotTargetingMode getAttachTargetingMode() {
+                public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.COMPANION_HIGH_STRENGTH;
                 }
             };
