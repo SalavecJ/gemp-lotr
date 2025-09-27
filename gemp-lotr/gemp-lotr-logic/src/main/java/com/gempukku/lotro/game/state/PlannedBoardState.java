@@ -126,6 +126,19 @@ public class PlannedBoardState {
         }
     }
 
+    public void heal(PhysicalCard physicalCard) {
+        AtomicBoolean healed = new AtomicBoolean(false);
+        Stream.of(inPlayFpCards.values(), inPlayShadowCards.values()).forEach(lists -> lists.forEach(botCards -> botCards.forEach(botCard -> {
+            if (physicalCard.equals(botCard.getSelf())) {
+                cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) - 1);
+                healed.set(true);
+            }
+        })));
+        if (!healed.get()) {
+            throw new IllegalStateException("Could not find card to heal: " + physicalCard.getBlueprint().getFullName());
+        }
+    }
+
     public boolean sameTitleInPlayOrInDeadPile(String title, String player) {
         AtomicBoolean sameTitleInPlay = new AtomicBoolean(false);
         Stream.of(inPlayFpCards.values(), inPlayShadowCards.values()).forEach(lists -> lists.forEach(botCards -> botCards.forEach(botCard -> {

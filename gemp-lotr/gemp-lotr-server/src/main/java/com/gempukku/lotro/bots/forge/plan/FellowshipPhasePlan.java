@@ -217,6 +217,7 @@ public class FellowshipPhasePlan {
                     System.out.println("Will discard " + toDiscard.getSelf().getBlueprint().getFullName() + " from hand to heal companion in play");
                 }
                 actions.add(new DiscardCompanionToHealAction(toDiscard.getSelf()));
+                plannedBoardState.heal(companion);
                 inHandPlayableInFellowshipPhase.remove(toDiscard);
             }
         }
