@@ -35,6 +35,10 @@ public class AbilityProperty {
         params.put("target", value);
     }
 
+    public Predicate<PhysicalCard> getTargetPredicate() {
+        return getParam("target", Predicate.class);
+    }
+
     public enum Type {
         // Helper for conditional effects
         IF_ELSE,

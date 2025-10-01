@@ -4,11 +4,16 @@ import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
+import com.gempukku.lotro.cards.build.bot.TriggerCondition;
+import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
+import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
+import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
+import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PlannedBoardState;
@@ -59,6 +64,9 @@ public class FellowshipPhasePlan {
                                 .toList());
 
         addDiscardCompanionToHealActions(inHandPlayableInFellowshipPhase);
+
+        addDiscardShadowCardsByEffectActions(inHandPlayableInFellowshipPhase, inPlayWithActivatedAbility);
+
         addPlayCompanionFromHandActions(inHandPlayableInFellowshipPhase);
         addPlayAlliesFromHandActions(inHandPlayableInFellowshipPhase);
         addPlayPossessionsFromHandActions(inHandPlayableInFellowshipPhase);
@@ -69,6 +77,114 @@ public class FellowshipPhasePlan {
             System.out.println("Finally, will pass");
         }
         actions.add(new PassAction());
+    }
+
+    private void addDiscardShadowCardsByEffectActions(List<BotCard> inHandPlayableInFellowshipPhase, List<BotCard> inPlayWithActivatedAbility) {
+        List<BotCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT))
+                .filter(botCard -> botCard.getAbilities().stream()
+                        .filter(botAbility -> {
+                            if (botAbility instanceof TriggeredAbility ta) {
+                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
+
+                            } else {
+                                return false;
+                            }
+                        })
+                        .filter(botAbility -> {
+                            AbilityProperty effect = botAbility.getEffect();
+                            if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
+                            List<BotCard> targets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
+                            if (targets.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()))) return false;
+                            return true; // can discard shadow card from play
+                        })
+                        .anyMatch(botAbility -> {
+                            TriggeredAbility ta = (TriggeredAbility) botAbility;
+                            return plannedBoardState.canPayAllCosts(ta, playerName, Side.FREE_PEOPLE);
+                        }))
+                .toList());
+
+        List<BotCard> fellowshipCardsInPlay = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getActivatedAbilities(Phase.FELLOWSHIP).stream()
+                        .anyMatch(botAbility -> {
+                            AbilityProperty effect = botAbility.getEffect();
+                            if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
+                            List<BotCard> targets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
+                            if (targets.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()))) return false;
+                            return true; // can discard shadow card from play
+                        }))
+                .toList());
+
+        while (!fellowshipEvents.isEmpty()) {
+            fellowshipEvents.sort((o1, o2) -> Double.compare(getValueOfFellowshipEvent(o1), getValueOfFellowshipEvent(o2)));
+            BotCard topEvent = fellowshipEvents.getFirst();
+            if (getValueOfFellowshipEvent(topEvent) <= 0.0) {
+                break;
+            } else {
+                List<BotCard> targets = new ArrayList<>();
+                topEvent.getAbilities().stream()
+                        .filter(botAbility -> {
+                            if (botAbility instanceof TriggeredAbility ta) {
+                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
+                            } else {
+                                return false;
+                            }
+                        })
+                        .filter(botAbility -> {
+                            AbilityProperty effect = botAbility.getEffect();
+                            if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
+                            List<BotCard> targets1 = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
+                            if (targets1.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()))) return false;
+                            return true; // can discard shadow card from play
+                        })
+                        .forEach(ability -> {
+                            AbilityProperty effect = ability.getEffect();
+                            int numberOfTargets = effect.getParam("numberOfTargets", Integer.class);
+                            List<BotCard> potentialTargets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
+                            if (numberOfTargets >= potentialTargets.size()) {
+                                targets.addAll(potentialTargets);
+                            } else {
+                                throw new IllegalStateException("Choosing targets for fellowship phase discarding not implemented for card " + topEvent.getSelf().getBlueprint().getFullName());
+                            }
+                        });
+
+                if (printDebugMessages) {
+                    if (targets.size() == 1) {
+                        System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to discard " + targets.getFirst().getSelf().getBlueprint().getFullName());
+                    } else {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (BotCard target : targets) {
+                            stringBuilder.append(target.getSelf().getBlueprint().getFullName());
+                            stringBuilder.append("; ");
+                        }
+                        System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to discard cards: " + stringBuilder);
+                    }
+                }
+                actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
+                plannedBoardState.playEvent(topEvent);
+                fellowshipEvents.remove(topEvent);
+            }
+        }
+
+        if (!fellowshipCardsInPlay.isEmpty()) {
+            throw new IllegalStateException("Discarding Shadow cards with abilities in fellowship phase not implemented");
+        }
+    }
+
+    private double getValueOfFellowshipEvent(BotCard fellowshipEvent) {
+        List<BotAbility> whenPlayedAbility = fellowshipEvent.getAbilities().stream()
+                .filter(botAbility -> {
+                    if (botAbility instanceof TriggeredAbility ta) {
+                        return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
+                    } else {
+                        return false;
+                    }
+                }).toList();
+        double value = 0.0;
+        for (BotAbility ability : whenPlayedAbility) {
+            value += plannedBoardState.getValueIfUsed(ability, playerName, Side.FREE_PEOPLE);
+        }
+        return value;
     }
 
     private void addPlayPossessionsFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
@@ -217,7 +333,7 @@ public class FellowshipPhasePlan {
                     System.out.println("Will discard " + toDiscard.getSelf().getBlueprint().getFullName() + " from hand to heal companion in play");
                 }
                 actions.add(new DiscardCompanionToHealAction(toDiscard.getSelf()));
-                plannedBoardState.heal(companion);
+                plannedBoardState.healByDiscard(toDiscard);
                 inHandPlayableInFellowshipPhase.remove(toDiscard);
             }
         }

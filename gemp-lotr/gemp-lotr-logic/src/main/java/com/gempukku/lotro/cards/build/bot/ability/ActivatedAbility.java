@@ -5,7 +5,6 @@ import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.List;
-import java.util.function.Predicate;
 
 public class ActivatedAbility implements BotAbility {
     private final AbilityProperty effect;
