@@ -117,12 +117,16 @@ public class PlannedBoardState {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+
+        cardTokens.put(botCard, new HashMap<>());
     }
 
     public void playToFpSupportArea(BotCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+
+        cardTokens.put(botCard, new HashMap<>());
     }
 
     public void playOnBearer(BotCard botCard, BotCard bearer) {
@@ -132,11 +136,15 @@ public class PlannedBoardState {
             hands.get(botCard.getSelf().getOwner()).remove(botCard);
             attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
             twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+
+            cardTokens.put(botCard, new HashMap<>());
         } else {
             inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
             hands.get(botCard.getSelf().getOwner()).remove(botCard);
             attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
             twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
+
+            cardTokens.put(botCard, new HashMap<>());
         }
     }
 
@@ -151,14 +159,23 @@ public class PlannedBoardState {
         }
     }
 
-    private void resolveTriggeredAbility(TriggeredAbility triggeredAbility, BotCard source) {
-        resolveAbilityProperty(triggeredAbility.getEffect(), source.getSelf().getOwner(), source.getSelf().getBlueprint().getSide());
-        for (AbilityProperty cost : triggeredAbility.getCosts()) {
-            resolveAbilityProperty(cost, source.getSelf().getOwner(), source.getSelf().getBlueprint().getSide());
+    public void useActivatedAbility(BotCard botCard, ActivatedAbility activatedAbility) {
+        resolveAbilityProperty(botCard, activatedAbility.getEffect());
+        for (AbilityProperty cost : activatedAbility.getCosts()) {
+            resolveAbilityProperty(botCard, cost);
         }
     }
 
-    private void resolveAbilityProperty(AbilityProperty abilityProperty, String player, Side side) {
+    private void resolveTriggeredAbility(TriggeredAbility triggeredAbility, BotCard source) {
+        resolveAbilityProperty(source, triggeredAbility.getEffect());
+        for (AbilityProperty cost : triggeredAbility.getCosts()) {
+            resolveAbilityProperty(source, cost);
+        }
+    }
+
+    private void resolveAbilityProperty(BotCard source, AbilityProperty abilityProperty) {
+        String player = source.getSelf().getOwner();
+        Side side = source.getSelf().getBlueprint().getSide();
         switch (abilityProperty.getType()) {
             case DISCARD_FROM_PLAY -> {
                 List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
@@ -184,6 +201,14 @@ public class PlannedBoardState {
                     } else {
                         cardTokens.get(toBeExerted).put(Token.WOUND, amount);
                     }
+                }
+            }
+            case EXERT_SELF -> {
+                int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(source) - 1);
+                if (cardTokens.get(source).containsKey(Token.WOUND)) {
+                    cardTokens.get(source).put(Token.WOUND, cardTokens.get(source).get(Token.WOUND) + amount);
+                } else {
+                    cardTokens.get(source).put(Token.WOUND, amount);
                 }
             }
             case REMOVE_BURDEN -> {
@@ -342,25 +367,27 @@ public class PlannedBoardState {
         throw new IllegalStateException("Cannot determine if costs can be payed for type " + cost.getType());
     }
 
-    public double getValueIfUsed(BotAbility ability, String player, Side side) {
+    public double getValueIfUsed(BotCard source, BotAbility ability) {
         double value = 0.0;
         if (ability instanceof TriggeredAbility ta) {
-            value += getValueIfUsed(ta.getEffect(), player, side);
+            value += getValueIfUsed(source, ta.getEffect());
             for (AbilityProperty cost : ta.getCosts()) {
-                value += getValueIfUsed(cost, player, side);
+                value += getValueIfUsed(source, cost);
             }
             return value;
         } else if (ability instanceof ActivatedAbility aa) {
-            value += getValueIfUsed(aa.getEffect(), player, side);
+            value += getValueIfUsed(source, aa.getEffect());
             for (AbilityProperty cost : aa.getCosts()) {
-                value += getValueIfUsed(cost, player, side);
+                value += getValueIfUsed(source, cost);
             }
             return value;
         }
         throw new IllegalStateException("Cannot compute value of this ability");
     }
 
-    private double getValueIfUsed(AbilityProperty abilityProperty, String player, Side side) {
+    private double getValueIfUsed(BotCard source, AbilityProperty abilityProperty) {
+        String player = source.getSelf().getOwner();
+        Side side = source.getSelf().getBlueprint().getSide();
         return switch (abilityProperty.getType()) {
             case DISCARD_FROM_PLAY -> {
                 List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
@@ -395,6 +422,18 @@ public class PlannedBoardState {
                     }
                     yield toBeExerted.getSelf().getOwner().equals(player) ? -value : value;
                 }
+            }
+            case EXERT_SELF -> {
+                int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(source) - 1);
+                double value = amount;
+                if (source.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
+                    value /= 2.0;
+                }
+                if (source.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
+                        && getVitality(source) - amount == 1) {
+                    value += 0.5;
+                }
+                yield -value;
             }
             case REMOVE_BURDEN -> {
                 int amount = abilityProperty.getParam("amount", Integer.class);
