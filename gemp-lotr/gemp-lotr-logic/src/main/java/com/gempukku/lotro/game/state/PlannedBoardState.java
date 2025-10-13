@@ -186,6 +186,15 @@ public class PlannedBoardState {
                     }
                 }
             }
+            case REMOVE_BURDEN -> {
+                int amount = abilityProperty.getParam("amount", Integer.class);
+                BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
+                int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);
+                int toBeRemoved = Math.min(amount, burdensPlaced);
+                if (toBeRemoved > 0) {
+                    cardTokens.get(ringBearer).put(Token.BURDEN, burdensPlaced - toBeRemoved);
+                }
+            }
             default -> throw new IllegalStateException("Cannot compute value for ability property of " + abilityProperty.getType());
         }
     }
@@ -300,10 +309,17 @@ public class PlannedBoardState {
         throw new IllegalStateException("Could not determine targets for side " + side);
     }
 
-    public boolean canPayAllCosts(BotAbility ability, String player, Side side) {
+    public boolean canPayAllCosts(BotCard source, BotAbility ability) {
         if (ability instanceof TriggeredAbility ta) {
             for (AbilityProperty cost : ta.getCosts()) {
-                if (!canPayCost(cost, player, side)) {
+                if (!canPayCost(source, cost)) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (ability instanceof ActivatedAbility aa) {
+            for (AbilityProperty cost : aa.getCosts()) {
+                if (!canPayCost(source, cost)) {
                     return false;
                 }
             }
@@ -313,11 +329,15 @@ public class PlannedBoardState {
         }
     }
 
-    private boolean canPayCost(AbilityProperty cost, String player, Side side) {
+    private boolean canPayCost(BotCard source, AbilityProperty cost) {
         if (cost.getType().equals(AbilityProperty.Type.EXERT)) {
-            List<BotCard> potentialTargets = getCardsEffectCanTarget(cost, player, side);
+            List<BotCard> potentialTargets = getCardsEffectCanTarget(cost, source.getSelf().getOwner(), source.getSelf().getBlueprint().getSide());
             int amount = cost.getParam("amount", Integer.class);
             return potentialTargets.stream().anyMatch(botCard -> getVitality(botCard) > amount);
+        } else if (cost.getType().equals(AbilityProperty.Type.EXERT_SELF)) {
+            int amount = cost.getParam("amount", Integer.class);
+            int vitality = getVitality(source);
+            return vitality > amount;
         }
         throw new IllegalStateException("Cannot determine if costs can be payed for type " + cost.getType());
     }
@@ -375,6 +395,14 @@ public class PlannedBoardState {
                     }
                     yield toBeExerted.getSelf().getOwner().equals(player) ? -value : value;
                 }
+            }
+            case REMOVE_BURDEN -> {
+                int amount = abilityProperty.getParam("amount", Integer.class);
+                BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
+                int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);
+                int toBeRemoved = Math.min(amount, burdensPlaced);
+                double valueOfRemovedBurden = 0.9 + ((double) burdensPlaced / 10); // more burdens placed, better to remove
+                yield toBeRemoved * valueOfRemovedBurden;
             }
             default -> throw new IllegalStateException("Cannot compute value for ability property of " + abilityProperty.getType());
         };
