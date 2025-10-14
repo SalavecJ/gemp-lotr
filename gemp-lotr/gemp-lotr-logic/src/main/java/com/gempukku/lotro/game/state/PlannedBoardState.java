@@ -1,6 +1,7 @@
 package com.gempukku.lotro.game.state;
 
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
+import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.TriggerCondition;
 import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
 import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
@@ -192,8 +193,8 @@ public class PlannedBoardState {
             case EXERT -> {
                 List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
                 if (potentialTargets.size() > 1) {
-                    throw new IllegalStateException("Cannot compute exert value if target can be chosen");
-                } else { // potentialTargets.size() == 1
+                    throw new IllegalStateException("Cannot resolve exert action if target can be chosen");
+                } else if (potentialTargets.size() == 1 ){
                     BotCard toBeExerted = potentialTargets.getFirst();
                     int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(toBeExerted) - 1);
                     if (cardTokens.get(toBeExerted).containsKey(Token.WOUND)) {
@@ -211,6 +212,16 @@ public class PlannedBoardState {
                     cardTokens.get(source).put(Token.WOUND, amount);
                 }
             }
+            case HEAL -> {
+                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
+                if (!potentialTargets.isEmpty()) {
+                    BotCard toBeHealed = BotTargetingMode.HEAL.chooseTarget(this, potentialTargets, false);
+                    int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getTokenCount(toBeHealed, Token.WOUND));
+                    if (amount > 0) {
+                        cardTokens.get(toBeHealed).put(Token.WOUND, cardTokens.get(toBeHealed).get(Token.WOUND) - amount);
+                    }
+                }
+            }
             case REMOVE_BURDEN -> {
                 int amount = abilityProperty.getParam("amount", Integer.class);
                 BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
@@ -220,7 +231,11 @@ public class PlannedBoardState {
                     cardTokens.get(ringBearer).put(Token.BURDEN, burdensPlaced - toBeRemoved);
                 }
             }
-            default -> throw new IllegalStateException("Cannot compute value for ability property of " + abilityProperty.getType());
+            case DISCARD_SELF -> {
+                inPlayFpCards.get(source.getSelf().getOwner()).remove(source);
+                inPlayShadowCards.get(source.getSelf().getOwner()).remove(source);
+            }
+            default -> throw new IllegalStateException("Cannot resolve ability property of " + abilityProperty.getType());
         }
     }
 
@@ -363,6 +378,9 @@ public class PlannedBoardState {
             int amount = cost.getParam("amount", Integer.class);
             int vitality = getVitality(source);
             return vitality > amount;
+        } else if (cost.getType().equals(AbilityProperty.Type.DISCARD_SELF)) {
+            return inPlayFpCards.get(source.getSelf().getOwner()).contains(source)
+                    || inPlayShadowCards.get(source.getSelf().getOwner()).contains(source);
         }
         throw new IllegalStateException("Cannot determine if costs can be payed for type " + cost.getType());
     }
@@ -435,6 +453,23 @@ public class PlannedBoardState {
                 }
                 yield -value;
             }
+            case HEAL -> {
+                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
+                if (potentialTargets.isEmpty()) {
+                    yield 0.0;
+                } else {
+                    BotCard toBeHealed = BotTargetingMode.HEAL.chooseTarget(this, potentialTargets, false);
+                    double value = Math.min(abilityProperty.getParam("amount", Integer.class), getTokenCount(toBeHealed, Token.WOUND));
+                    if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
+                        value /= 2.0;
+                    }
+                    if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
+                            && getVitality(toBeHealed) == 1) {
+                        value += 0.5;
+                    }
+                    yield toBeHealed.getSelf().getOwner().equals(player) ? value : -value;
+                }
+            }
             case REMOVE_BURDEN -> {
                 int amount = abilityProperty.getParam("amount", Integer.class);
                 BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
@@ -443,6 +478,7 @@ public class PlannedBoardState {
                 double valueOfRemovedBurden = 0.9 + ((double) burdensPlaced / 10); // more burdens placed, better to remove
                 yield toBeRemoved * valueOfRemovedBurden;
             }
+            case DISCARD_SELF -> -1; // should depend on the card being discarded
             default -> throw new IllegalStateException("Cannot compute value for ability property of " + abilityProperty.getType());
         };
     }

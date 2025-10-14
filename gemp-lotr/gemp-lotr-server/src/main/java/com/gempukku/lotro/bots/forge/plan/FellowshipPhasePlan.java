@@ -66,6 +66,7 @@ public class FellowshipPhasePlan {
         addPlayAlliesFromHandActions(inHandPlayableInFellowshipPhase);
         addPlayPossessionsFromHandActions(inHandPlayableInFellowshipPhase);
 
+        addHealCompanionsActions(inHandPlayableInFellowshipPhase);
         addRemoveBurdensActions(inHandPlayableInFellowshipPhase);
 
         //TODO add another actions to action lists
@@ -74,6 +75,88 @@ public class FellowshipPhasePlan {
             System.out.println("Finally, will pass");
         }
         actions.add(new PassAction());
+    }
+
+    private void addHealCompanionsActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT))
+                .filter(botCard -> botCard.getAbilities().stream()
+                        .filter(botAbility -> {
+                            if (botAbility instanceof TriggeredAbility ta) {
+                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
+
+                            } else {
+                                return false;
+                            }
+                        })
+                        .filter(botAbility -> {
+                            AbilityProperty effect = botAbility.getEffect();
+                            return effect.getType().equals(AbilityProperty.Type.HEAL);
+                        })
+                        .anyMatch(botAbility -> {
+                            TriggeredAbility ta = (TriggeredAbility) botAbility;
+                            return plannedBoardState.canPayAllCosts(botCard, ta);
+                        }))
+                .toList());
+
+        if (!fellowshipEvents.isEmpty()) {
+            throw new IllegalStateException("Healing with events in fellowship phase not implemented");
+        }
+
+        while (true) {
+            List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
+                    .filter(botCard -> botCard.getActivatedAbilities(Phase.FELLOWSHIP).stream()
+                            .filter(botAbility -> {
+                                AbilityProperty effect = botAbility.getEffect();
+                                return effect.getType().equals(AbilityProperty.Type.HEAL);
+                            })
+                            .anyMatch(botAbility -> {
+                                ActivatedAbility aa = (ActivatedAbility) botAbility;
+                                return plannedBoardState.canPayAllCosts(botCard, aa);
+                            }))
+                    .toList());
+
+            Map<BotCard, List<BotAbility>> cardsWithAbilities = new HashMap<>();
+            for (BotCard botCard : inPlayWithActivatedAbility) {
+                cardsWithAbilities.put(botCard, new ArrayList<>());
+                for (BotAbility activatedAbility : botCard.getActivatedAbilities(Phase.FELLOWSHIP)) {
+                    ActivatedAbility aa = (ActivatedAbility) activatedAbility;
+                    AbilityProperty effect = aa.getEffect();
+                    if (effect.getType().equals(AbilityProperty.Type.HEAL) && plannedBoardState.canPayAllCosts(botCard, aa)) {
+                        cardsWithAbilities.get(botCard).add(activatedAbility);
+                    }
+                }
+            }
+
+            double maxValue = 0.0;
+            BotCard chosenCard = null;
+
+            for (Map.Entry<BotCard, List<BotAbility>> botCardListEntry : cardsWithAbilities.entrySet()) {
+                for (BotAbility botAbility : botCardListEntry.getValue()) {
+                    double value = getValueOfActivatedAbility(botCardListEntry.getKey(), (ActivatedAbility) botAbility);
+                    if (value > maxValue) {
+                        maxValue = value;
+                        chosenCard = botCardListEntry.getKey();
+                    }
+                }
+            }
+
+            if (chosenCard == null) {
+                break;
+            } else {
+                if (cardsWithAbilities.get(chosenCard).size() != 1) {
+                    throw new IllegalStateException("Support for cards with multiple heal abilities in fellowship phase not implemented");
+                }
+                int numberOfWounds = cardsWithAbilities.get(chosenCard).getFirst().getEffect().getParam("amount", Integer.class);
+                if (printDebugMessages) {
+                    System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to remove wounds: " + numberOfWounds);
+                }
+                actions.add(new UseCardWithTargetAction(
+                        chosenCard.getSelf(),
+                        BotTargetingMode.HEAL.chooseTarget(plannedBoardState, plannedBoardState.getCardsEffectCanTarget(cardsWithAbilities.get(chosenCard).getFirst().getEffect(), playerName, Side.FREE_PEOPLE), false).getSelf()));
+                plannedBoardState.useActivatedAbility(chosenCard, (ActivatedAbility) cardsWithAbilities.get(chosenCard).getFirst());
+            }
+        }
     }
 
     private void addRemoveBurdensActions(List<BotCard> inHandPlayableInFellowshipPhase) {
@@ -502,6 +585,11 @@ public class FellowshipPhasePlan {
         }
 
         if (action instanceof PlayCardFromHandWithTargetAction actionWithTarget) {
+            if (printDebugMessages) {
+                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
+            }
+            return List.of(actionWithTarget.getTarget());
+        } else if (action instanceof UseCardWithTargetAction actionWithTarget) {
             if (printDebugMessages) {
                 System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
             }
