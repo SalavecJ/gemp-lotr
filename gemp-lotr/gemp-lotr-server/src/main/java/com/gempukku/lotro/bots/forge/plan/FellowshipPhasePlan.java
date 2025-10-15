@@ -12,10 +12,7 @@ import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectDiscardFromPlay;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectRemoveBurden;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -26,7 +23,6 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -374,14 +370,16 @@ public class FellowshipPhasePlan {
     }
 
     private void addPlayAlliesFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<BotCard> playableAlliesInHand = inHandPlayableInFellowshipPhase.stream()
+        List<BotAllyCard> playableAlliesInHand = inHandPlayableInFellowshipPhase.stream()
+                .filter(card -> card instanceof BotAllyCard)
                 .filter(card ->
                         CardType.ALLY.equals(card.getSelf().getBlueprint().getCardType())
                                 && card.canBePlayed(plannedBoardState))
+                .map(botCard -> (BotAllyCard) botCard)
                 .toList();
 
-        List<BotCard> uniqueFilteredPlayableAllies = new ArrayList<>();
-        for (BotCard ally : playableAlliesInHand) {
+        List<BotAllyCard> uniqueFilteredPlayableAllies = new ArrayList<>();
+        for (BotAllyCard ally : playableAlliesInHand) {
             if (!ally.getSelf().getBlueprint().isUnique()) {
                 uniqueFilteredPlayableAllies.add(ally);
             } else {
@@ -392,7 +390,7 @@ public class FellowshipPhasePlan {
                 }
             }
         }
-        for (BotCard allyInHand : uniqueFilteredPlayableAllies) {
+        for (BotAllyCard allyInHand : uniqueFilteredPlayableAllies) {
             if (printDebugMessages) {
                 System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
             }
@@ -403,16 +401,18 @@ public class FellowshipPhasePlan {
     }
 
     private void addPlayCompanionFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<BotCard> playableCompanionsInHand = inHandPlayableInFellowshipPhase.stream()
+        List<BotCompanionCard> playableCompanionsInHand = inHandPlayableInFellowshipPhase.stream()
+                .filter(card -> card instanceof BotCompanionCard)
                 .filter(card ->
                         CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
                                 && card.canBePlayed(plannedBoardState))
+                .map(botCard -> (BotCompanionCard) botCard)
                 .toList();
 
-        int companionsInPlay = BoardStateUtil.getCompanionsInPlayCount(game, playerName);
+        int companionsInPlay = BoardStateUtil.getActiveCompanionsInPlayCount(plannedBoardState);
 
-        List<BotCard> uniqueFilteredPlayableCompanions = new ArrayList<>();
-        for (BotCard companion : playableCompanionsInHand) {
+        List<BotCompanionCard> uniqueFilteredPlayableCompanions = new ArrayList<>();
+        for (BotCompanionCard companion : playableCompanionsInHand) {
             if (!companion.getSelf().getBlueprint().isUnique()) {
                 uniqueFilteredPlayableCompanions.add(companion);
             } else {
@@ -424,26 +424,13 @@ public class FellowshipPhasePlan {
             }
         }
 
-        int ruleOfNineRemainder = BoardStateUtil.getRuleOfNineRemainder(game, playerName);
+        int ruleOfNineRemainder = BoardStateUtil.getRuleOfNineRemainder(plannedBoardState);
 
-        int numberOfCompanionsThatCanBePlayed = Math.min(uniqueFilteredPlayableCompanions.size(), ruleOfNineRemainder);
-
-        int numberOfCompanionsToBePlayed;
-        if (companionsInPlay >= 6) {
-            // already getting hit enquea, play whatever
-            numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
-        } else {
-            // if fellowship can get to large companion number, do it, else fill to 5 comps
-            if (companionsInPlay + uniqueFilteredPlayableCompanions.size() >= 8) {
-                numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
-            } else {
-                numberOfCompanionsToBePlayed = Math.min(numberOfCompanionsThatCanBePlayed, 5 - companionsInPlay);
-            }
-        }
+        int numberOfCompanionsToBePlayed = getNumberOfCompanionsToBePlayed(uniqueFilteredPlayableCompanions.size(), ruleOfNineRemainder, companionsInPlay);
 
         if (numberOfCompanionsToBePlayed == uniqueFilteredPlayableCompanions.size()) {
             // play all
-            for (BotCard companionInHand : uniqueFilteredPlayableCompanions) {
+            for (BotCompanionCard companionInHand : uniqueFilteredPlayableCompanions) {
                 if (printDebugMessages) {
                     System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
                 }
@@ -462,16 +449,34 @@ public class FellowshipPhasePlan {
         }
     }
 
-    private void addHealCompanionsByDiscardActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<PhysicalCard> woundedUniqueCompanionsInPlay = BoardStateUtil.getWoundedCompanionsInPlay(game, playerName);
+    private int getNumberOfCompanionsToBePlayed(int playableCompanions, int ruleOfNineRemainder, int companionsInPlay) {
+        int numberOfCompanionsThatCanBePlayed = Math.min(playableCompanions, ruleOfNineRemainder);
 
-        for (PhysicalCard companion : woundedUniqueCompanionsInPlay) {
-            int wounds = game.getGameState().getWounds(companion);
+        int numberOfCompanionsToBePlayed;
+        if (companionsInPlay >= 6) {
+            // already getting hit enquea, play whatever
+            numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
+        } else {
+            // if fellowship can get to large companion number, do it, else fill to 5 comps
+            if (companionsInPlay + playableCompanions >= 8) {
+                numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
+            } else {
+                numberOfCompanionsToBePlayed = Math.min(numberOfCompanionsThatCanBePlayed, 5 - companionsInPlay);
+            }
+        }
+        return numberOfCompanionsToBePlayed;
+    }
+
+    private void addHealCompanionsByDiscardActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotCard> woundedUniqueCompanionsInPlay = BoardStateUtil.getWoundedActiveCompanionsInPlay(plannedBoardState);
+
+        for (BotCard companion : woundedUniqueCompanionsInPlay) {
+            int wounds = plannedBoardState.getWounds(companion);
 
             List<BotCard> matchingCardsInHand = inHandPlayableInFellowshipPhase.stream()
                     .filter(cardInHand ->
                             CardType.COMPANION.equals(cardInHand.getSelf().getBlueprint().getCardType())
-                            && cardInHand.getSelf().getBlueprint().getTitle().equals(companion.getBlueprint().getTitle()))
+                            && cardInHand.getSelf().getBlueprint().getTitle().equals(companion.getSelf().getBlueprint().getTitle()))
                     .toList();
 
             int cardsToDiscardToHeal = Math.min(wounds, matchingCardsInHand.size());

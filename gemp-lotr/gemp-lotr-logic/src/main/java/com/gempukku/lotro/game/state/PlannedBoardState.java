@@ -7,6 +7,7 @@ import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
 import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotCompanionCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -177,7 +178,7 @@ public class PlannedBoardState {
         }
     }
 
-    public void playCompanion(BotCard botCard) {
+    public void playCompanion(BotCompanionCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
@@ -213,8 +214,6 @@ public class PlannedBoardState {
     }
 
     public void playEvent(BotEventCard botCard) {
-        hands.get(botCard.getSelf().getOwner()).remove(botCard);
-
         if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
             twilight += botCard.getSelf().getBlueprint().getTwilightCost();
         } else {
@@ -226,6 +225,7 @@ public class PlannedBoardState {
 
         botCard.getEventAbility().resolveAbility(botCard, this);
 
+        hands.get(botCard.getSelf().getOwner()).remove(botCard);
         discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
@@ -394,6 +394,10 @@ public class PlannedBoardState {
         return getTokenCount(ringBearers.get(currentPlayer), Token.BURDEN);
     }
 
+    public int getWounds(BotCard botCard) {
+        return getTokenCount(botCard, Token.WOUND);
+    }
+
     public List<BotCard> getRingBearers() {
         return new ArrayList<>(ringBearers.values());
     }
@@ -409,7 +413,7 @@ public class PlannedBoardState {
 
     public int getVitality(BotCard botCard) {
         // TODO effects
-        return botCard.getSelf().getBlueprint().getVitality() - getTokenCount(botCard, Token.WOUND);
+        return botCard.getSelf().getBlueprint().getVitality() - getWounds(botCard);
     }
 
     public List<BotCard> getCardsEffectCanTarget(AbilityProperty effect, String player, Side side) {
@@ -433,6 +437,10 @@ public class PlannedBoardState {
 
     public List<BotCard> getDiscard(String player) {
         return new ArrayList<>(discards.get(player));
+    }
+
+    public List<BotCard> getDeadPile(String player) {
+        return new ArrayList<>(deadPiles.get(player));
     }
 
     public List<BotCard> getSitesInPlay() {
@@ -682,7 +690,7 @@ public class PlannedBoardState {
 
     private boolean hasVitalityToExert(BotCard botCard) {
         int printedVitality = botCard.getSelf().getBlueprint().getVitality();
-        int wounds = getTokenCount(botCard, Token.WOUND);
+        int wounds = getWounds(botCard);
         return  printedVitality - wounds > 1;
     }
 }
