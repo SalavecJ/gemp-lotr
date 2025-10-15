@@ -27,4 +27,16 @@ public abstract class Cost {
     public static CostExert exert(String title, int amount) {
         return exert(Target.title(title), amount);
     }
+
+    public static CostExertSelf exertSelf() {
+        return exertSelf(1);
+    }
+
+    public static CostExertSelf exertSelf(int amount) {
+        return new CostExertSelf(amount);
+    }
+
+    public static CostDiscardSelf discardSelf() {
+        return new CostDiscardSelf();
+    }
 }

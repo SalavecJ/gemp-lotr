@@ -130,6 +130,18 @@ public class PlannedBoardState {
         }
     }
 
+    public void heal(BotCard botCard) {
+        heal(botCard, 1);
+    }
+
+    public void heal(BotCard botCard, int amount) {
+        int realAmount = Math.min(amount, getWounds(botCard));
+
+        if (cardTokens.get(botCard).containsKey(Token.WOUND)) {
+            cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) - realAmount);
+        }
+    }
+
     public void exert(BotCard botCard) {
         exert(botCard, 1);
     }
@@ -231,78 +243,6 @@ public class PlannedBoardState {
         discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
-    public void useActivatedAbility(BotCard botCard, ActivatedAbility activatedAbility) {
-        resolveAbilityProperty(botCard, activatedAbility.getEffect());
-        for (AbilityProperty cost : activatedAbility.getCosts()) {
-            resolveAbilityProperty(botCard, cost);
-        }
-    }
-
-    private void resolveAbilityProperty(BotCard source, AbilityProperty abilityProperty) {
-        String player = source.getSelf().getOwner();
-        Side side = source.getSelf().getBlueprint().getSide();
-        switch (abilityProperty.getType()) {
-            case DISCARD_FROM_PLAY -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                int numberOfTargets = abilityProperty.getParam("numberOfTargets", Integer.class);
-                if (numberOfTargets >= potentialTargets.size()) {
-                    for (BotCard potentialTarget : potentialTargets) {
-                        inPlayFpCards.forEach((s, botCards) -> botCards.remove(potentialTarget));
-                        inPlayShadowCards.forEach((s, botCards) -> botCards.remove(potentialTarget));
-                    }
-                } else {
-                    throw new IllegalStateException("Choosing targets for discarding not implemented");
-                }
-            }
-            case EXERT -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                if (potentialTargets.size() > 1) {
-                    throw new IllegalStateException("Cannot resolve exert action if target can be chosen");
-                } else if (potentialTargets.size() == 1 ){
-                    BotCard toBeExerted = potentialTargets.getFirst();
-                    int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(toBeExerted) - 1);
-                    if (cardTokens.get(toBeExerted).containsKey(Token.WOUND)) {
-                        cardTokens.get(toBeExerted).put(Token.WOUND, cardTokens.get(toBeExerted).get(Token.WOUND) + amount);
-                    } else {
-                        cardTokens.get(toBeExerted).put(Token.WOUND, amount);
-                    }
-                }
-            }
-            case EXERT_SELF -> {
-                int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(source) - 1);
-                if (cardTokens.get(source).containsKey(Token.WOUND)) {
-                    cardTokens.get(source).put(Token.WOUND, cardTokens.get(source).get(Token.WOUND) + amount);
-                } else {
-                    cardTokens.get(source).put(Token.WOUND, amount);
-                }
-            }
-            case HEAL -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                if (!potentialTargets.isEmpty()) {
-                    BotCard toBeHealed = BotTargetingMode.HEAL.chooseTarget(this, potentialTargets, false);
-                    int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getTokenCount(toBeHealed, Token.WOUND));
-                    if (amount > 0) {
-                        cardTokens.get(toBeHealed).put(Token.WOUND, cardTokens.get(toBeHealed).get(Token.WOUND) - amount);
-                    }
-                }
-            }
-            case REMOVE_BURDEN -> {
-                int amount = abilityProperty.getParam("amount", Integer.class);
-                BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
-                int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);
-                int toBeRemoved = Math.min(amount, burdensPlaced);
-                if (toBeRemoved > 0) {
-                    cardTokens.get(ringBearer).put(Token.BURDEN, burdensPlaced - toBeRemoved);
-                }
-            }
-            case DISCARD_SELF -> {
-                inPlayFpCards.get(source.getSelf().getOwner()).remove(source);
-                inPlayShadowCards.get(source.getSelf().getOwner()).remove(source);
-            }
-            default -> throw new IllegalStateException("Cannot resolve ability property of " + abilityProperty.getType());
-        }
-    }
-
     public void healByDiscard(BotCard discardedCard) {
         AtomicBoolean healed = new AtomicBoolean(false);
         inPlayFpCards.values().forEach(lists -> lists.forEach(botCard -> {
@@ -316,29 +256,6 @@ public class PlannedBoardState {
         if (!healed.get()) {
             throw new IllegalStateException("Could not find card to heal: " + discardedCard.getSelf().getBlueprint().getFullName());
         }
-    }
-
-    public boolean sameTitleInPlayOrInDeadPile(String title, String player) {
-        AtomicBoolean sameTitleInPlay = new AtomicBoolean(false);
-        Stream.of(inPlayFpCards.values(), inPlayShadowCards.values()).forEach(lists -> lists.forEach(botCards -> botCards.forEach(botCard -> {
-            if (player.equals(botCard.getSelf().getOwner())) {
-                boolean sameTitle = botCard.getSelf().getBlueprint().getTitle().equals(title);
-                if (sameTitle) {
-                    sameTitleInPlay.set(true);
-                }
-            }
-        })));
-        if (sameTitleInPlay.get()) {
-            return true;
-        }
-
-        for (BotCard deadCard : deadPiles.get(player)) {
-            if (deadCard.getSelf().getBlueprint().getTitle().equals(title)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /*
@@ -377,6 +294,29 @@ public class PlannedBoardState {
             }
         }
         return true;
+    }
+
+    public boolean sameTitleInPlayOrInDeadPile(String title, String player) {
+        AtomicBoolean sameTitleInPlay = new AtomicBoolean(false);
+        Stream.of(inPlayFpCards.values(), inPlayShadowCards.values()).forEach(lists -> lists.forEach(botCards -> botCards.forEach(botCard -> {
+            if (player.equals(botCard.getSelf().getOwner())) {
+                boolean sameTitle = botCard.getSelf().getBlueprint().getTitle().equals(title);
+                if (sameTitle) {
+                    sameTitleInPlay.set(true);
+                }
+            }
+        })));
+        if (sameTitleInPlay.get()) {
+            return true;
+        }
+
+        for (BotCard deadCard : deadPiles.get(player)) {
+            if (deadCard.getSelf().getBlueprint().getTitle().equals(title)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public List<BotCard> getAttachedCards(BotCard card) {
@@ -453,140 +393,6 @@ public class PlannedBoardState {
         return new ArrayList<>(adventureDecks.get(player));
     }
 
-    public boolean canPayAllCosts(BotCard source, BotAbility ability) {
-        if (ability instanceof TriggeredAbility ta) {
-            for (AbilityProperty cost : ta.getCosts()) {
-                if (!canPayCost(source, cost)) {
-                    return false;
-                }
-            }
-            return true;
-        } else if (ability instanceof ActivatedAbility aa) {
-            for (AbilityProperty cost : aa.getCosts()) {
-                if (!canPayCost(source, cost)) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            throw new IllegalStateException("Cannot determine if costs can be payed for this ability");
-        }
-    }
-
-    private boolean canPayCost(BotCard source, AbilityProperty cost) {
-        if (cost.getType().equals(AbilityProperty.Type.EXERT)) {
-            List<BotCard> potentialTargets = getCardsEffectCanTarget(cost, source.getSelf().getOwner(), source.getSelf().getBlueprint().getSide());
-            int amount = cost.getParam("amount", Integer.class);
-            return potentialTargets.stream().anyMatch(botCard -> getVitality(botCard) > amount);
-        } else if (cost.getType().equals(AbilityProperty.Type.EXERT_SELF)) {
-            int amount = cost.getParam("amount", Integer.class);
-            int vitality = getVitality(source);
-            return vitality > amount;
-        } else if (cost.getType().equals(AbilityProperty.Type.DISCARD_SELF)) {
-            return inPlayFpCards.get(source.getSelf().getOwner()).contains(source)
-                    || inPlayShadowCards.get(source.getSelf().getOwner()).contains(source);
-        }
-        throw new IllegalStateException("Cannot determine if costs can be payed for type " + cost.getType());
-    }
-
-    public double getValueIfUsed(BotCard source, BotAbility ability) {
-        double value = 0.0;
-        if (ability instanceof TriggeredAbility ta) {
-            value += getValueIfUsed(source, ta.getEffect());
-            for (AbilityProperty cost : ta.getCosts()) {
-                value += getValueIfUsed(source, cost);
-            }
-            return value;
-        } else if (ability instanceof ActivatedAbility aa) {
-            value += getValueIfUsed(source, aa.getEffect());
-            for (AbilityProperty cost : aa.getCosts()) {
-                value += getValueIfUsed(source, cost);
-            }
-            return value;
-        }
-        throw new IllegalStateException("Cannot compute value of this ability");
-    }
-
-    private double getValueIfUsed(BotCard source, AbilityProperty abilityProperty) {
-        String player = source.getSelf().getOwner();
-        Side side = source.getSelf().getBlueprint().getSide();
-        return switch (abilityProperty.getType()) {
-            case DISCARD_FROM_PLAY -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                int numberOfTargets = abilityProperty.getParam("numberOfTargets", Integer.class);
-                if (numberOfTargets >= potentialTargets.size()) {
-                    double value = 0.0;
-                    for (BotCard potentialTarget : potentialTargets) {
-                        value += potentialTarget.getSelf().getOwner().equals(player) ? -1.1: 1.1;
-                    }
-                    yield value;
-                } else {
-                    throw new IllegalStateException("Choosing targets for discarding not implemented");
-                }
-
-            }
-            case EXERT -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                if (potentialTargets.isEmpty()) {
-                    yield 0.0;
-                } else if (potentialTargets.size() > 1) {
-                    throw new IllegalStateException("Cannot compute exert value if target can be chosen");
-                } else { // potentialTargets.size() == 1
-                    BotCard toBeExerted = potentialTargets.getFirst();
-                    int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(toBeExerted) - 1);
-                    double value = amount;
-                    if (toBeExerted.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-                        value /= 2.0;
-                    }
-                    if (toBeExerted.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                            && getVitality(toBeExerted) - amount == 1) {
-                        value += 0.5;
-                    }
-                    yield toBeExerted.getSelf().getOwner().equals(player) ? -value : value;
-                }
-            }
-            case EXERT_SELF -> {
-                int amount = Math.min(abilityProperty.getParam("amount", Integer.class), getVitality(source) - 1);
-                double value = amount;
-                if (source.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-                    value /= 2.0;
-                }
-                if (source.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                        && getVitality(source) - amount == 1) {
-                    value += 0.5;
-                }
-                yield -value;
-            }
-            case HEAL -> {
-                List<BotCard> potentialTargets = getCardsEffectCanTarget(abilityProperty, player, side);
-                if (potentialTargets.isEmpty()) {
-                    yield 0.0;
-                } else {
-                    BotCard toBeHealed = BotTargetingMode.HEAL.chooseTarget(this, potentialTargets, false);
-                    double value = Math.min(abilityProperty.getParam("amount", Integer.class), getTokenCount(toBeHealed, Token.WOUND));
-                    if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-                        value /= 2.0;
-                    }
-                    if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                            && getVitality(toBeHealed) == 1) {
-                        value += 0.5;
-                    }
-                    yield toBeHealed.getSelf().getOwner().equals(player) ? value : -value;
-                }
-            }
-            case REMOVE_BURDEN -> {
-                int amount = abilityProperty.getParam("amount", Integer.class);
-                BotCard ringBearer = side.equals(Side.FREE_PEOPLE) ? ringBearers.get(player) : ringBearers.get(getOpponent(player));
-                int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);
-                int toBeRemoved = Math.min(amount, burdensPlaced);
-                double valueOfRemovedBurden = 0.9 + ((double) burdensPlaced / 10); // more burdens placed, better to remove
-                yield toBeRemoved * valueOfRemovedBurden;
-            }
-            case DISCARD_SELF -> -1; // should depend on the card being discarded
-            default -> throw new IllegalStateException("Cannot compute value for ability property of " + abilityProperty.getType());
-        };
-    }
-
     /*
         SPOT CHECKS
      */
@@ -609,10 +415,6 @@ public class PlannedBoardState {
 
     public boolean canSpot(String owner, CardType cardType) {
         return canSpot(owner, card -> cardType.equals(card.getSelf().getBlueprint().getCardType()));
-    }
-
-    public boolean canSpotRanger(String owner) {
-        return canSpot(owner, card -> card.getSelf().getBlueprint().hasKeyword(Keyword.RANGER));
     }
 
     public boolean canSpot(String owner, Race race, CardType cardType) {
@@ -639,24 +441,8 @@ public class PlannedBoardState {
         return canExert(owner, card -> race.equals(card.getSelf().getBlueprint().getRace()));
     }
 
-    public boolean canExertRanger(String owner) {
-        return canExert(owner, card -> card.getSelf().getBlueprint().hasKeyword(Keyword.RANGER));
-    }
-
     public boolean canExert(String owner, Race race, CardType cardType) {
         return canExert(owner, card -> cardType.equals(card.getSelf().getBlueprint().getCardType()) && race.equals(card.getSelf().getBlueprint().getRace()));
-    }
-
-    /*
-        DISCARD CHECKS
-     */
-    public boolean isInDiscard(String owner, Predicate<BotCard> predicate) {
-        return discards.get(owner).stream()
-                .anyMatch(predicate);
-    }
-
-    public boolean isInDiscard(String owner, Culture culture, Race race) {
-        return  isInDiscard(owner, card -> culture.equals(card.getSelf().getBlueprint().getCulture()) && race.equals(card.getSelf().getBlueprint().getRace()));
     }
 
 

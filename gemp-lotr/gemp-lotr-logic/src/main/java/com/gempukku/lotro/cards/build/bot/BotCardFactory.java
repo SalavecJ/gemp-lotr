@@ -1,12 +1,15 @@
 package com.gempukku.lotro.cards.build.bot;
 
 import com.gempukku.lotro.cards.build.bot.ability.*;
-import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
-import com.gempukku.lotro.cards.build.bot.ability2.EventAbilityBuilder;
+import com.gempukku.lotro.cards.build.bot.ability2.*;
+import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.Target;
 import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
-import com.gempukku.lotro.cards.build.bot.ability2.Target;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectDiscardFromPlay;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectHeal;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectRemoveBurden;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -413,6 +416,28 @@ public class BotCardFactory {
                                             attachedTo(CardType.COMPANION)))
                                     .build()
                     );
+                }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectHeal.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.discardSelf())
+                                .effect(Effect.heal(CardType.COMPANION))
+                                .build();
+                    } else if (effectClass.equals(EffectDiscardFromPlay.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.discardSelf())
+                                .effect(Effect.discardFromPlay(Target.and(Target.and(
+                                        Target.side(Side.SHADOW),
+                                        Target.cardType(CardType.CONDITION)),
+                                        Target.attachedTo(CardType.COMPANION))))
+                                .build();
+                    } else {
+                        return null;
+                    }
                 }
 
                 @Override
@@ -1328,6 +1353,19 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectHeal.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exertSelf())
+                                .effect(Effect.heal("Sam"))
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_310
@@ -1349,6 +1387,19 @@ public class BotCardFactory {
                                     .effect(makeSamRingBearer())
                                     .build()
                     );
+                }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectRemoveBurden.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exertSelf())
+                                .effect(Effect.removeBurden())
+                                .build();
+                    } else {
+                        return null;
+                    }
                 }
             };
         }

@@ -5,6 +5,7 @@ import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
 import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -32,6 +33,10 @@ public abstract class BotCard {
     public abstract List<BotAbility> getAbilities();
 
     public EventAbility getEventAbility() {
+        return null;
+    }
+
+    public com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
         return null;
     }
 

@@ -4,13 +4,9 @@ import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.TriggerCondition;
-import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
-import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
-import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
-import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectDiscardFromPlay;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectHeal;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectRemoveBurden;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.CardType;
@@ -66,7 +62,7 @@ public class FellowshipPhasePlan {
         addPlayAlliesFromHandActions(inHandPlayableInFellowshipPhase);
         addPlayPossessionsFromHandActions(inHandPlayableInFellowshipPhase);
 
-        addHealCompanionsActions(inHandPlayableInFellowshipPhase);
+        addHealActions(inHandPlayableInFellowshipPhase);
         addRemoveBurdensActions(inHandPlayableInFellowshipPhase);
 
         //TODO add another actions to action lists
@@ -77,26 +73,19 @@ public class FellowshipPhasePlan {
         actions.add(new PassAction());
     }
 
-    private void addHealCompanionsActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<BotCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
-                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT))
-                .filter(botCard -> botCard.getAbilities().stream()
-                        .filter(botAbility -> {
-                            if (botAbility instanceof TriggeredAbility ta) {
-                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-
-                            } else {
-                                return false;
-                            }
-                        })
-                        .filter(botAbility -> {
-                            AbilityProperty effect = botAbility.getEffect();
-                            return effect.getType().equals(AbilityProperty.Type.HEAL);
-                        })
-                        .anyMatch(botAbility -> {
-                            TriggeredAbility ta = (TriggeredAbility) botAbility;
-                            return plannedBoardState.canPayAllCosts(botCard, ta);
-                        }))
+    private void addHealActions(List<BotCard> inHandPlayableInFellowshipPhase) {
+        List<BotEventCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)
+                        && botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> {
+                    if (botCard instanceof BotEventCard eventCard) {
+                        EventAbility eventAbility = eventCard.getEventAbility();
+                        return eventAbility.getEffect() instanceof EffectHeal;
+                    } else {
+                        throw new IllegalStateException("Event " + botCard.getSelf().getBlueprint().getFullName() + " is not implemented as BotEventCard");
+                    }
+                })
+                .map(botCard -> (BotEventCard) botCard)
                 .toList());
 
         if (!fellowshipEvents.isEmpty()) {
@@ -105,56 +94,46 @@ public class FellowshipPhasePlan {
 
         while (true) {
             List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
-                    .filter(botCard -> botCard.getActivatedAbilities(Phase.FELLOWSHIP).stream()
-                            .filter(botAbility -> {
-                                AbilityProperty effect = botAbility.getEffect();
-                                return effect.getType().equals(AbilityProperty.Type.HEAL);
-                            })
-                            .anyMatch(botAbility -> {
-                                ActivatedAbility aa = (ActivatedAbility) botAbility;
-                                return plannedBoardState.canPayAllCosts(botCard, aa);
-                            }))
+                    .filter(botCard -> {
+                        com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility activatedAbility = botCard.getActivatedAbility(EffectHeal.class);
+                        if (activatedAbility == null) return false;
+                        if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                        if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
+                        return true;
+                    })
                     .toList());
-
-            Map<BotCard, List<BotAbility>> cardsWithAbilities = new HashMap<>();
-            for (BotCard botCard : inPlayWithActivatedAbility) {
-                cardsWithAbilities.put(botCard, new ArrayList<>());
-                for (BotAbility activatedAbility : botCard.getActivatedAbilities(Phase.FELLOWSHIP)) {
-                    ActivatedAbility aa = (ActivatedAbility) activatedAbility;
-                    AbilityProperty effect = aa.getEffect();
-                    if (effect.getType().equals(AbilityProperty.Type.HEAL) && plannedBoardState.canPayAllCosts(botCard, aa)) {
-                        cardsWithAbilities.get(botCard).add(activatedAbility);
-                    }
-                }
-            }
 
             double maxValue = 0.0;
             BotCard chosenCard = null;
 
-            for (Map.Entry<BotCard, List<BotAbility>> botCardListEntry : cardsWithAbilities.entrySet()) {
-                for (BotAbility botAbility : botCardListEntry.getValue()) {
-                    double value = getValueOfActivatedAbility(botCardListEntry.getKey(), (ActivatedAbility) botAbility);
-                    if (value > maxValue) {
-                        maxValue = value;
-                        chosenCard = botCardListEntry.getKey();
-                    }
+            for (BotCard botCard : inPlayWithActivatedAbility) {
+                double value = botCard.getActivatedAbility(EffectHeal.class).getValueIfUsed(botCard, plannedBoardState);
+                if (value > maxValue) {
+                    maxValue = value;
+                    chosenCard = botCard;
                 }
             }
 
             if (chosenCard == null) {
                 break;
             } else {
-                if (cardsWithAbilities.get(chosenCard).size() != 1) {
-                    throw new IllegalStateException("Support for cards with multiple heal abilities in fellowship phase not implemented");
-                }
-                int numberOfWounds = cardsWithAbilities.get(chosenCard).getFirst().getEffect().getParam("amount", Integer.class);
+                EffectHeal effectHeal = ((EffectHeal) chosenCard.getActivatedAbility(EffectHeal.class).getEffect());
+                BotCard target = effectHeal.chooseTarget(plannedBoardState);
                 if (printDebugMessages) {
-                    System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to remove wounds: " + numberOfWounds);
+                    if (target != null) {
+                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName()
+                                + " to remove " + effectHeal.getAmount()
+                                + " wound(s) from "
+                                + target.getSelf().getBlueprint().getFullName());
+                    } else {
+                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName()
+                                + " but there is nothing to heal");
+                    }
                 }
                 actions.add(new UseCardWithTargetAction(
                         chosenCard.getSelf(),
-                        BotTargetingMode.HEAL.chooseTarget(plannedBoardState, plannedBoardState.getCardsEffectCanTarget(cardsWithAbilities.get(chosenCard).getFirst().getEffect(), playerName, Side.FREE_PEOPLE), false).getSelf()));
-                plannedBoardState.useActivatedAbility(chosenCard, (ActivatedAbility) cardsWithAbilities.get(chosenCard).getFirst());
+                        target.getSelf()));
+                chosenCard.getActivatedAbility(EffectHeal.class).resolveAbility(chosenCard, plannedBoardState);
             }
         }
     }
@@ -195,54 +174,35 @@ public class FellowshipPhasePlan {
 
         while (true) {
             List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
-                    .filter(botCard -> botCard.getActivatedAbilities(Phase.FELLOWSHIP).stream()
-                            .filter(botAbility -> {
-                                AbilityProperty effect = botAbility.getEffect();
-                                return effect.getType().equals(AbilityProperty.Type.REMOVE_BURDEN);
-                            })
-                            .anyMatch(botAbility -> {
-                                ActivatedAbility aa = (ActivatedAbility) botAbility;
-                                return plannedBoardState.canPayAllCosts(botCard, aa);
-                            }))
+                    .filter(botCard -> {
+                        com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility activatedAbility = botCard.getActivatedAbility(EffectRemoveBurden.class);
+                        if (activatedAbility == null) return false;
+                        if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                        if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
+                        return true;
+                    })
                     .toList());
-
-            Map<BotCard, List<BotAbility>> cardsWithAbilities = new HashMap<>();
-            for (BotCard botCard : inPlayWithActivatedAbility) {
-                cardsWithAbilities.put(botCard, new ArrayList<>());
-                for (BotAbility activatedAbility : botCard.getActivatedAbilities(Phase.FELLOWSHIP)) {
-                    ActivatedAbility aa = (ActivatedAbility) activatedAbility;
-                    AbilityProperty effect = aa.getEffect();
-                    if (effect.getType().equals(AbilityProperty.Type.REMOVE_BURDEN) && plannedBoardState.canPayAllCosts(botCard, aa)) {
-                        cardsWithAbilities.get(botCard).add(activatedAbility);
-                    }
-                }
-            }
 
             double maxValue = 0.0;
             BotCard chosenCard = null;
 
-            for (Map.Entry<BotCard, List<BotAbility>> botCardListEntry : cardsWithAbilities.entrySet()) {
-                for (BotAbility botAbility : botCardListEntry.getValue()) {
-                    double value = getValueOfActivatedAbility(botCardListEntry.getKey(), (ActivatedAbility) botAbility);
-                    if (value > maxValue) {
-                        maxValue = value;
-                        chosenCard = botCardListEntry.getKey();
-                    }
+            for (BotCard botCard : inPlayWithActivatedAbility) {
+                double value = botCard.getActivatedAbility(EffectRemoveBurden.class).getValueIfUsed(botCard, plannedBoardState);
+                if (value > maxValue) {
+                    maxValue = value;
+                    chosenCard = botCard;
                 }
             }
 
             if (chosenCard == null) {
                 break;
             } else {
-                if (cardsWithAbilities.get(chosenCard).size() != 1) {
-                    throw new IllegalStateException("Support for cards with multiple burden removal abilities in fellowship phase not implemented");
-                }
-                int numberOfBurdens = cardsWithAbilities.get(chosenCard).getFirst().getEffect().getParam("amount", Integer.class);
+                int numberOfBurdens = ((EffectRemoveBurden) chosenCard.getActivatedAbility(EffectRemoveBurden.class).getEffect()).getAmount();
                 if (printDebugMessages) {
                     System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to remove burdens: " + numberOfBurdens);
                 }
                 actions.add(new UseCardAction(chosenCard.getSelf()));
-                plannedBoardState.useActivatedAbility(chosenCard, (ActivatedAbility) cardsWithAbilities.get(chosenCard).getFirst());
+                chosenCard.getActivatedAbility(EffectRemoveBurden.class).resolveAbility(chosenCard, plannedBoardState);
             }
         }
     }
@@ -265,19 +225,6 @@ public class FellowshipPhasePlan {
                 })
                 .map(botCard -> (BotEventCard) botCard)
                 .toList());
-
-        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
-                        .filter(card -> card.getActivatedAbilities(Phase.FELLOWSHIP).isEmpty())
-                        .filter(botCard -> botCard.getActivatedAbilities(Phase.FELLOWSHIP).stream()
-                                .anyMatch(botAbility -> {
-                                    AbilityProperty effect = botAbility.getEffect();
-                                    if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
-                                    List<BotCard> targets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
-                                    if (targets.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())))
-                                        return false;
-                                    return true; // can discard shadow card from play
-                                }))
-                        .toList());
 
         while (!fellowshipEvents.isEmpty()) {
             fellowshipEvents.sort((o1, o2) -> Double.compare(getValueOfFellowshipEvent(o1), getValueOfFellowshipEvent(o2)));
@@ -315,8 +262,36 @@ public class FellowshipPhasePlan {
             }
         }
 
-        if (!inPlayWithActivatedAbility.isEmpty()) {
-            throw new IllegalStateException("Discarding Shadow cards with abilities in fellowship phase not implemented");
+        while (true) {
+            List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
+                    .filter(botCard -> {
+                        com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility activatedAbility = botCard.getActivatedAbility(EffectDiscardFromPlay.class);
+                        if (activatedAbility == null) return false;
+                        if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                        if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
+                        List<BotCard> targets = ((EffectDiscardFromPlay) activatedAbility.getEffect()).getPotentialTargets(plannedBoardState);
+                        if (targets.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())))
+                            return false;
+                        return true;
+                    })
+                    .toList());
+
+            double maxValue = 0.0;
+            BotCard chosenCard = null;
+
+            for (BotCard botCard : inPlayWithActivatedAbility) {
+                double value = botCard.getActivatedAbility(EffectDiscardFromPlay.class).getValueIfUsed(botCard, plannedBoardState);
+                if (value > maxValue) {
+                    maxValue = value;
+                    chosenCard = botCard;
+                }
+            }
+
+            if (chosenCard == null) {
+                break;
+            } else {
+                throw new IllegalStateException("Discarding Shadow cards with abilities in fellowship phase not implemented");
+            }
         }
     }
 
@@ -326,10 +301,6 @@ public class FellowshipPhasePlan {
         } else {
             throw new IllegalStateException("Not an event: " + fellowshipEvent.getSelf().getBlueprint().getFullName());
         }
-    }
-
-    private double getValueOfActivatedAbility(BotCard source, ActivatedAbility activatedAbility) {
-        return plannedBoardState.getValueIfUsed(source, activatedAbility);
     }
 
     private void addPlayPossessionsFromHandActions(List<BotCard> inHandPlayableInFellowshipPhase) {
