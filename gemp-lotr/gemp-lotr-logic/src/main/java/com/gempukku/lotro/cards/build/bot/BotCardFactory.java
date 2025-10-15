@@ -10,7 +10,6 @@ import com.gempukku.lotro.cards.build.bot.ability2.Target;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.List;
@@ -379,8 +378,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Race.MAN.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Race.MAN.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override
@@ -417,9 +416,9 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Culture.GONDOR.equals(target.getBlueprint().getCulture())
-                            && Race.MAN.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Culture.GONDOR.equals(target.getSelf().getBlueprint().getCulture())
+                            && Race.MAN.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override
@@ -464,8 +463,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Race.MAN.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Race.MAN.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override
@@ -536,8 +535,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Race.MAN.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Race.MAN.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override
@@ -560,8 +559,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return target.getBlueprint().hasKeyword(Keyword.RANGER)
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return target.getSelf().getBlueprint().hasKeyword(Keyword.RANGER)
                             && plannedBoardState.getAttachedCards(target).stream().noneMatch(card1 -> card1.getSelf().getBlueprint().getTitle().equals(self.getBlueprint().getTitle()));
                 }
 
@@ -746,15 +745,10 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canSpot(self.getOwner(), Race.URUK_HAI)
-                            || plannedBoardState.canSpot(self.getOwner(), "Saruman");
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canSpotEver(game, self.getOwner(), Race.URUK_HAI)
-                            || RequirementsUtility.canSpotEver(game, self.getOwner(), "Saruman");
+                public Condition getCondition() {
+                    return Condition.spot(Target.or(
+                            Target.race(Race.URUK_HAI),
+                            Target.title("Saruman")));
                 }
             };
         }
@@ -993,9 +987,9 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Culture.MORIA.equals(target.getBlueprint().getCulture())
-                            && Race.ORC.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Culture.MORIA.equals(target.getSelf().getBlueprint().getCulture())
+                            && Race.ORC.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override
@@ -1272,8 +1266,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
-                    return Race.HOBBIT.equals(target.getBlueprint().getRace());
+                protected boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
+                    return Race.HOBBIT.equals(target.getSelf().getBlueprint().getRace());
                 }
 
                 @Override

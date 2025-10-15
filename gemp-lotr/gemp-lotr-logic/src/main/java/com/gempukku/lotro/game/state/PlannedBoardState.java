@@ -9,6 +9,7 @@ import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCompanionCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 
@@ -178,38 +179,39 @@ public class PlannedBoardState {
         }
     }
 
-    public void playCompanion(BotCompanionCard botCard) {
+    private void playFpCard(BotCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
-
         cardTokens.put(botCard, new HashMap<>());
+    }
+
+    private void playShadowCard(BotCard botCard) {
+        if (twilight < botCard.getSelf().getBlueprint().getTwilightCost()) {
+            throw new IllegalStateException("Cannot pay twilight for event " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
+        hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
+        cardTokens.put(botCard, new HashMap<>());
+    }
+
+    public void playCompanion(BotCompanionCard botCard) {
+        playFpCard(botCard);
     }
 
     public void playToFpSupportArea(BotCard botCard) {
-        inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
-        hands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight += botCard.getSelf().getBlueprint().getTwilightCost();
-
-        cardTokens.put(botCard, new HashMap<>());
+        playFpCard(botCard);
     }
 
-    public void playOnBearer(BotCard botCard, BotCard bearer) {
+    public void playOnBearer(BotObjectAttachableCard botCard, BotCard bearer) {
         boolean fp = botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE);
         if (fp) {
-            inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
-            hands.get(botCard.getSelf().getOwner()).remove(botCard);
+            playFpCard(botCard);
             attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
-            twilight += botCard.getSelf().getBlueprint().getTwilightCost();
-
-            cardTokens.put(botCard, new HashMap<>());
         } else {
-            inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
-            hands.get(botCard.getSelf().getOwner()).remove(botCard);
+            playShadowCard(botCard);
             attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
-            twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
-
-            cardTokens.put(botCard, new HashMap<>());
         }
     }
 
@@ -361,10 +363,10 @@ public class PlannedBoardState {
         return 9 - (companionsInPlay + companionsDead);
     }
 
-    public boolean hasFreeSlotForThis(PhysicalCard target, Set<PossessionClass> classes) {
+    public boolean hasFreeSlotForThis(BotCard target, Set<PossessionClass> classes) {
         for (PossessionClass possessionClass : classes) {
             for (Map.Entry<BotCard, Set<BotCard>> entry : attachedCards.entrySet()) {
-                if (entry.getKey().getSelf().equals(target)) {
+                if (entry.getKey().getSelf().equals(target.getSelf())) {
                     for (BotCard attachedCard : entry.getValue()) {
                         if (attachedCard.getSelf().getBlueprint().getPossessionClasses() != null
                                 && attachedCard.getSelf().getBlueprint().getPossessionClasses().contains(possessionClass)) {
@@ -377,9 +379,9 @@ public class PlannedBoardState {
         return true;
     }
 
-    public List<BotCard> getAttachedCards(PhysicalCard card) {
+    public List<BotCard> getAttachedCards(BotCard card) {
         for (Map.Entry<BotCard, Set<BotCard>> entry : attachedCards.entrySet()) {
-            if (entry.getKey().getSelf().equals(card)) {
+            if (entry.getKey().getSelf().equals(card.getSelf())) {
                 return new ArrayList<>(entry.getValue());
             }
         }
@@ -405,7 +407,7 @@ public class PlannedBoardState {
     public int getStrength(BotCard botCard) {
         int tbr = botCard.getSelf().getBlueprint().getStrength();
         // TODO effects
-        for (BotCard attachedCard : getAttachedCards(botCard.getSelf())) {
+        for (BotCard attachedCard : getAttachedCards(botCard)) {
             tbr += attachedCard.getSelf().getBlueprint().getStrength();
         }
         return tbr;

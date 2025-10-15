@@ -9,7 +9,7 @@ public abstract class BotObjectSupportAreaCard extends BotObjectCard {
     }
 
     @Override
-    protected final boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
+    protected final boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target) {
         return false;
     }
 

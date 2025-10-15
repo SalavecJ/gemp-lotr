@@ -341,14 +341,9 @@ public class FellowshipPhasePlan {
         for (BotCard possession : possessionsInHand) {
             if (possession.canBePlayed(plannedBoardState)) {
                 if (possession instanceof BotObjectSupportAreaCard) {
-                    if (printDebugMessages) {
-                        System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand to support area");
-                    }
-                    actions.add(new PlayCardFromHandAction(possession.getSelf()));
-                    plannedBoardState.playToFpSupportArea(possession);
-                    inHandPlayableInFellowshipPhase.remove(possession);
+                    throw new IllegalStateException("Support Area possessions not implemented yet: " + possession.getSelf().getBlueprint().getFullName());
                 } else if (possession instanceof BotObjectAttachableCard attachableCard) {
-                    List<BotCard> potentialTargets = plannedBoardState.getFpCardsInPlay(playerName).stream()
+                    List<BotCard> potentialTargets = plannedBoardState.getActiveCards().stream()
                             .filter(botCard -> attachableCard.isValidBearer(botCard, plannedBoardState))
                             .toList();
                     BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
@@ -360,7 +355,7 @@ public class FellowshipPhasePlan {
                         System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
                     }
                     actions.add(new PlayCardFromHandWithTargetAction(possession.getSelf(), target.getSelf()));
-                    plannedBoardState.playOnBearer(possession, target);
+                    plannedBoardState.playOnBearer(attachableCard, target);
                     inHandPlayableInFellowshipPhase.remove(possession);
                 } else {
                     throw new IllegalStateException("Possession not instance of support area nor attachable object card: " + possession.getSelf().getBlueprint().getFullName());

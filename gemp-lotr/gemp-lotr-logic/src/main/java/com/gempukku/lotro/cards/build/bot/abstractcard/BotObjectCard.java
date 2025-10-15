@@ -1,10 +1,9 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
-import com.gempukku.lotro.cards.build.bot.RequirementsUtility;
+import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.PossessionClass;
 import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.Set;
@@ -20,27 +19,20 @@ public abstract class BotObjectCard extends BotCard {
         if (!playsToSupportArea()
                 && !plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState)))
             return false;
-        return otherRequirementsNowOk(plannedBoardState);
+        return (getCondition() == null || getCondition().isOk(this, plannedBoardState));
     }
 
     /**
      * Hook for subclasses to implement card-specific rules for current board state
      */
-    protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-        return true;
+    public Condition getCondition() {
+        return null;
     }
 
     /**
      * Hook for subclasses to implement card-specific rules for potential play
      */
-    protected boolean otherRequirementsEverOk(LotroGame game) {
-        return true;
-    }
-
-    /**
-     * Hook for subclasses to implement card-specific rules for potential play
-     */
-    protected abstract boolean canBearThis(PlannedBoardState plannedBoardState, PhysicalCard target);
+    protected abstract boolean canBearThis(PlannedBoardState plannedBoardState, BotCard target);
 
     protected abstract boolean playsToSupportArea();
 
@@ -49,23 +41,15 @@ public abstract class BotObjectCard extends BotCard {
     }
 
     public boolean isValidBearer(BotCard target, PlannedBoardState plannedBoardState) {
-        return isValidBearer(target.getSelf(), plannedBoardState);
-    }
-
-    public boolean isValidBearer(PhysicalCard target) {
-        return isValidBearer(target, new PlannedBoardState(target.getGame()));
-    }
-
-    public boolean isValidBearer(PhysicalCard target, PlannedBoardState plannedBoardState) {
         return canBearThis(plannedBoardState, target) && isCharacter(target) && hasFreeSlotForThis(plannedBoardState, target);
     }
 
-    private boolean isCharacter(PhysicalCard target) {
-        CardType ct = target.getBlueprint().getCardType();
+    private boolean isCharacter(BotCard target) {
+        CardType ct = target.getSelf().getBlueprint().getCardType();
         return ct.equals(CardType.COMPANION) || ct.equals(CardType.ALLY) || ct.equals(CardType.MINION);
     }
 
-    private boolean hasFreeSlotForThis(PlannedBoardState plannedBoardState, PhysicalCard target) {
+    private boolean hasFreeSlotForThis(PlannedBoardState plannedBoardState, BotCard target) {
         Set<PossessionClass> classes = self.getBlueprint().getPossessionClasses();
         if (classes == null) {
             return true;
