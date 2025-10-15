@@ -1,6 +1,12 @@
 package com.gempukku.lotro.cards.build.bot;
 
 import com.gempukku.lotro.cards.build.bot.ability.*;
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbilityBuilder;
+import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
+import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
+import com.gempukku.lotro.cards.build.bot.ability2.Target;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -126,6 +132,11 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
+                }
             };
         }
         // 1_27
@@ -156,6 +167,11 @@ public class BotCardFactory {
                                     .target(race(Race.ELF))
                                     .build()
                     );
+                }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
                 }
             };
         }
@@ -250,13 +266,13 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canSpot(self.getOwner(), "Gandalf");
+                public Condition getCondition() {
+                    return Condition.spot("Gandalf");
                 }
 
                 @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canSpotEver(game, self.getOwner(), "Gandalf");
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Response events not yet implemented");
                 }
             };
         }
@@ -279,6 +295,11 @@ public class BotCardFactory {
                                     .target(title("Gandalf"))
                                     .build()
                     );
+                }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
                 }
             };
         }
@@ -303,13 +324,11 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExert(self.getOwner(), "Gandalf");
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertEver(game, self.getOwner(), "Gandalf");
+                public EventAbility getEventAbility() {
+                    return new EventAbilityBuilder()
+                            .cost(Cost.exert("Gandalf"))
+                            .effect(Effect.discardFromPlayAll(CardType.CONDITION))
+                            .build();
                 }
             };
         }
@@ -328,13 +347,15 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canSpot(self.getOwner(), "Gandalf");
+                public Condition getCondition() {
+                    return Condition.spot("Gandalf");
                 }
 
                 @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canSpotEver(game, self.getOwner(), "Gandalf");
+                public EventAbility getEventAbility() {
+                    return new EventAbilityBuilder()
+                            .effect(Effect.revealOpponentsHand())
+                            .build();
                 }
             };
         }
@@ -474,13 +495,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExertRanger(self.getOwner());
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertRangerEver(game, self.getOwner());
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Maneuver events not yet implemented");
                 }
             };
         }
@@ -501,13 +517,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExertRanger(self.getOwner());
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertRangerEver(game, self.getOwner());
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Regroup events not yet implemented");
                 }
             };
         }
@@ -575,13 +586,15 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canSpotRanger(self.getOwner());
+                public Condition getCondition() {
+                    return Condition.spot(Keyword.RANGER);
                 }
 
                 @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canSpotRangerEver(game, self.getOwner());
+                public EventAbility getEventAbility() {
+                    return new EventAbilityBuilder()
+                            .effect(Effect.playFellowshipsNextSite())
+                            .build();
                 }
             };
         }
@@ -612,6 +625,11 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
+                }
             };
         }
         // 1_117 Swordsman of the Northern Kingdom - Skirmish: Make a ranger strength +2 (or +4 when skirmishing a roaming minion).
@@ -632,6 +650,11 @@ public class BotCardFactory {
                                     .target(keyword(Keyword.RANGER))
                                     .build()
                     );
+                }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
                 }
             };
         }
@@ -654,13 +677,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExert(self.getOwner(), Race.URUK_HAI);
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertEver(game, self.getOwner(), Race.URUK_HAI);
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
                 }
             };
         }
@@ -894,6 +912,11 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
+                }
             };
         }
         // 1_169
@@ -1024,13 +1047,13 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.isInDiscard(self.getOwner(), Culture.MORIA, Race.ORC);
+                public Condition getCondition() {
+                    return Condition.spotInDiscard(Culture.MORIA, Race.ORC, self.getOwner());
                 }
 
                 @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canBeInDiscardEver(game, self.getOwner(), Culture.MORIA, Race.ORC);
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Shadow events not yet implemented");
                 }
             };
         }
@@ -1231,6 +1254,11 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
+                }
             };
         }
         // 1_297
@@ -1277,17 +1305,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExert(self.getOwner(),
-                            card -> CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
-                                    && !Race.HOBBIT.equals(card.getSelf().getBlueprint().getRace()));
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertEver(game, self.getOwner(),
-                            card -> CardType.COMPANION.equals(card.getBlueprint().getCardType())
-                                    && !Race.HOBBIT.equals(card.getBlueprint().getRace()));
+                public EventAbility getEventAbility() {
+                    throw new IllegalStateException("Skirmish events not yet implemented");
                 }
             };
         }
@@ -1357,13 +1376,14 @@ public class BotCardFactory {
                 }
 
                 @Override
-                protected boolean otherRequirementsNowOk(PlannedBoardState plannedBoardState) {
-                    return plannedBoardState.canExert(self.getOwner(), Race.HOBBIT, CardType.COMPANION);
-                }
-
-                @Override
-                protected boolean otherRequirementsEverOk(LotroGame game) {
-                    return RequirementsUtility.canExertEver(game, self.getOwner(), Race.HOBBIT, CardType.COMPANION);
+                public EventAbility getEventAbility() {
+                    return new EventAbilityBuilder()
+                            .cost(Cost.exert(Target.and(
+                                    Target.race(Race.HOBBIT),
+                                    Target.cardType(CardType.COMPANION)
+                            )))
+                            .effect(Effect.removeBurden())
+                            .build();
                 }
             };
         }

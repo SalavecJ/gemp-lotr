@@ -2,12 +2,12 @@ package com.gempukku.lotro.game.state;
 
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.TriggerCondition;
 import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
 import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
 import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 
@@ -19,6 +19,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class PlannedBoardState {
+    private Phase phase;
+    private String currentPlayer;
     private final List<String> players = new ArrayList<>();
     private final Map<String, BotCard> ringBearers = new HashMap<>();
 
@@ -41,6 +43,9 @@ public class PlannedBoardState {
     private final Map<String, Integer> playerThreats = new HashMap<>();
 
     public PlannedBoardState(LotroGame game) {
+        phase = game.getGameState().getCurrentPhase();
+        currentPlayer = game.getGameState().getCurrentPlayerId();
+
         // Player names
         players.addAll(game.getGameState().getPlayerOrder().getAllPlayers());
 
@@ -114,6 +119,64 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
+    public void removeBurden(int amount) {
+        BotCard ringBearer = ringBearers.get(currentPlayer);
+        int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);
+        int toBeRemoved = Math.min(amount, burdensPlaced);
+        if (toBeRemoved > 0) {
+            cardTokens.get(ringBearer).put(Token.BURDEN, burdensPlaced - toBeRemoved);
+        }
+    }
+
+    public void exert(BotCard botCard) {
+        exert(botCard, 1);
+    }
+
+    public void exert(BotCard botCard, int amount) {
+        int realAmount = Math.min(amount, getVitality(botCard) - 1);
+
+        if (cardTokens.get(botCard).containsKey(Token.WOUND)) {
+            cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) + realAmount);
+        } else {
+            cardTokens.get(botCard).put(Token.WOUND, realAmount);
+        }
+    }
+
+    public void discardFromPlay(BotCard botCard) {
+        String owner = botCard.getSelf().getOwner();
+        boolean isFpCard = botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE);
+
+        if (isFpCard ? !inPlayFpCards.get(owner).contains(botCard) : !inPlayShadowCards.get(owner).contains(botCard)) {
+            throw new IllegalStateException("Card " + botCard.getSelf().getBlueprint().getFullName() + " not in play");
+        }
+
+        if (isFpCard) {
+            inPlayFpCards.get(botCard.getSelf().getOwner()).remove(botCard);
+        } else {
+            inPlayShadowCards.get(botCard.getSelf().getOwner()).remove(botCard);
+        }
+        discards.get(owner).add(botCard);
+    }
+
+    public void playFellowshipsNextSite(String ownerOfEffect) {
+        int current = getCurrentPlayerPosition();
+        int next = current + 1;
+
+        if (next > 9) {
+            // no next site
+            return;
+        }
+
+        BotCard nextSite = getSitesInPlay().stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+        BotCard nextSiteInAdventureDeck = getAdventureDeck(ownerOfEffect).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+
+        if (nextSiteInAdventureDeck != null) {
+            inPlaySites.remove(nextSite);
+            inPlaySites.add(nextSiteInAdventureDeck);
+            adventureDecks.get(nextSite.getSelf().getOwner()).add(nextSite);
+        }
+    }
+
     public void playCompanion(BotCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
@@ -149,28 +212,27 @@ public class PlannedBoardState {
         }
     }
 
-    public void playEvent(BotCard botCard) {
+    public void playEvent(BotEventCard botCard) {
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight += botCard.getSelf().getBlueprint().getTwilightCost();
-        for (BotAbility ability : botCard.getAbilities()) {
-            if (ability instanceof TriggeredAbility ta
-                    && ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED)) {
-                resolveTriggeredAbility(ta, botCard);
+
+        if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
+            twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+        } else {
+            if (twilight < botCard.getSelf().getBlueprint().getTwilightCost()) {
+                throw new IllegalStateException("Cannot pay twilight for event " + botCard.getSelf().getBlueprint().getFullName());
             }
+            twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
         }
+
+        botCard.getEventAbility().resolveAbility(botCard, this);
+
+        discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
     public void useActivatedAbility(BotCard botCard, ActivatedAbility activatedAbility) {
         resolveAbilityProperty(botCard, activatedAbility.getEffect());
         for (AbilityProperty cost : activatedAbility.getCosts()) {
             resolveAbilityProperty(botCard, cost);
-        }
-    }
-
-    private void resolveTriggeredAbility(TriggeredAbility triggeredAbility, BotCard source) {
-        resolveAbilityProperty(source, triggeredAbility.getEffect());
-        for (AbilityProperty cost : triggeredAbility.getCosts()) {
-            resolveAbilityProperty(source, cost);
         }
     }
 
@@ -280,6 +342,18 @@ public class PlannedBoardState {
     /*
         GET INFO
      */
+    public String getCurrentFpPlayer() {
+        return currentPlayer;
+    }
+
+    public Phase getCurrentPhase() {
+        return phase;
+    }
+
+    public int getCurrentPlayerPosition() {
+        return playerPosition.get(currentPlayer);
+    }
+
     public int ruleOfNineRemainder(String player) {
         int companionsInPlay = Math.toIntExact(inPlayFpCards.get(player).stream().filter(botCard -> CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
         int companionsDead = Math.toIntExact(deadPiles.get(player).stream().filter(botCard -> CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
@@ -316,6 +390,10 @@ public class PlannedBoardState {
         return inPlayFpCards.get(owner);
     }
 
+    public int getBurdens() {
+        return getTokenCount(ringBearers.get(currentPlayer), Token.BURDEN);
+    }
+
     public List<BotCard> getRingBearers() {
         return new ArrayList<>(ringBearers.values());
     }
@@ -347,6 +425,22 @@ public class PlannedBoardState {
                     .filter(botCard -> targetingPredicate.test(botCard.getSelf())).toList();
         }
         throw new IllegalStateException("Could not determine targets for side " + side);
+    }
+
+    public List<BotCard> getActiveCards() {
+        return new ArrayList<>(Stream.concat(inPlayFpCards.get(currentPlayer).stream(), inPlayShadowCards.get(getOpponent(currentPlayer)).stream()).toList());
+    }
+
+    public List<BotCard> getDiscard(String player) {
+        return new ArrayList<>(discards.get(player));
+    }
+
+    public List<BotCard> getSitesInPlay() {
+        return new ArrayList<>(inPlaySites);
+    }
+
+    public List<BotCard> getAdventureDeck(String player) {
+        return new ArrayList<>(adventureDecks.get(player));
     }
 
     public boolean canPayAllCosts(BotCard source, BotAbility ability) {

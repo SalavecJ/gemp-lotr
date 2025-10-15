@@ -9,7 +9,11 @@ import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
 import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
 import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectDiscardFromPlay;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectRemoveBurden;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
 import com.gempukku.lotro.common.CardType;
@@ -160,58 +164,36 @@ public class FellowshipPhasePlan {
     }
 
     private void addRemoveBurdensActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<BotCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
-                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT))
-                .filter(botCard -> botCard.getAbilities().stream()
-                        .filter(botAbility -> {
-                            if (botAbility instanceof TriggeredAbility ta) {
-                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-
-                            } else {
-                                return false;
-                            }
-                        })
-                        .filter(botAbility -> {
-                            AbilityProperty effect = botAbility.getEffect();
-                            return effect.getType().equals(AbilityProperty.Type.REMOVE_BURDEN);
-                        })
-                        .anyMatch(botAbility -> {
-                            TriggeredAbility ta = (TriggeredAbility) botAbility;
-                            return plannedBoardState.canPayAllCosts(botCard, ta);
-                        }))
+        List<BotEventCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)
+                        && botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> {
+                    if (botCard instanceof BotEventCard eventCard) {
+                        EventAbility eventAbility = eventCard.getEventAbility();
+                        return eventAbility.getEffect() instanceof EffectRemoveBurden;
+                    } else {
+                        throw new IllegalStateException("Event " + botCard.getSelf().getBlueprint().getFullName() + " is not implemented as BotEventCard");
+                    }
+                })
+                .map(botCard -> (BotEventCard) botCard)
                 .toList());
 
         while (!fellowshipEvents.isEmpty()) {
             fellowshipEvents.sort((o1, o2) -> Double.compare(getValueOfFellowshipEvent(o1), getValueOfFellowshipEvent(o2)));
-            BotCard topEvent = fellowshipEvents.getFirst();
+            BotEventCard topEvent = fellowshipEvents.getFirst();
             if (getValueOfFellowshipEvent(topEvent) <= 0.0) {
                 break;
             } else {
-                AtomicInteger numberOfBurdens = new AtomicInteger();
-                topEvent.getAbilities().stream()
-                        .filter(botAbility -> {
-                            if (botAbility instanceof TriggeredAbility ta) {
-                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-                            } else {
-                                return false;
-                            }
-                        })
-                        .filter(botAbility -> {
-                            AbilityProperty effect = botAbility.getEffect();
-                            return effect.getType().equals(AbilityProperty.Type.REMOVE_BURDEN);
-                        })
-                        .forEach(ability -> {
-                            AbilityProperty effect = ability.getEffect();
-                            numberOfBurdens.set(effect.getParam("amount", Integer.class));
-                        });
-
-
-                if (printDebugMessages) {
-                    System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to remove burdens: " + numberOfBurdens.get());
+                if (topEvent.getEventAbility().getEffect() instanceof EffectRemoveBurden removeBurdenEffect) {
+                    if (printDebugMessages) {
+                        System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to remove burdens: " + removeBurdenEffect.getAmount());
+                    }
+                    actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
+                    plannedBoardState.playEvent(topEvent);
+                    fellowshipEvents.remove(topEvent);
+                } else {
+                    throw new IllegalStateException("Event " + topEvent.getSelf().getBlueprint().getFullName() + " does not have RemoveBurden effect");
                 }
-                actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
-                plannedBoardState.playEvent(topEvent);
-                fellowshipEvents.remove(topEvent);
             }
         }
 
@@ -270,28 +252,22 @@ public class FellowshipPhasePlan {
     }
 
     private void addDiscardShadowCardsActions(List<BotCard> inHandPlayableInFellowshipPhase) {
-        List<BotCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
-                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT))
-                .filter(botCard -> botCard.getAbilities().stream()
-                        .filter(botAbility -> {
-                            if (botAbility instanceof TriggeredAbility ta) {
-                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-
-                            } else {
-                                return false;
-                            }
-                        })
-                        .filter(botAbility -> {
-                            AbilityProperty effect = botAbility.getEffect();
-                            if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
-                            List<BotCard> targets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
-                            if (targets.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()))) return false;
-                            return true; // can discard shadow card from play
-                        })
-                        .anyMatch(botAbility -> {
-                            TriggeredAbility ta = (TriggeredAbility) botAbility;
-                            return plannedBoardState.canPayAllCosts(botCard, ta);
-                        }))
+        List<BotEventCard> fellowshipEvents = new ArrayList<>(inHandPlayableInFellowshipPhase.stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)
+                        && botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> {
+                    if (botCard instanceof BotEventCard eventCard) {
+                        EventAbility eventAbility = eventCard.getEventAbility();
+                        if (eventAbility.getEffect() instanceof EffectDiscardFromPlay discardEffect) {
+                            return discardEffect.getPotentialTargets(plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()));
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        throw new IllegalStateException("Event " + botCard.getSelf().getBlueprint().getFullName() + " is not implemented as BotEventCard");
+                    }
+                })
+                .map(botCard -> (BotEventCard) botCard)
                 .toList());
 
         List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
@@ -309,36 +285,21 @@ public class FellowshipPhasePlan {
 
         while (!fellowshipEvents.isEmpty()) {
             fellowshipEvents.sort((o1, o2) -> Double.compare(getValueOfFellowshipEvent(o1), getValueOfFellowshipEvent(o2)));
-            BotCard topEvent = fellowshipEvents.getFirst();
+            BotEventCard topEvent = fellowshipEvents.getFirst();
             if (getValueOfFellowshipEvent(topEvent) <= 0.0) {
                 break;
             } else {
                 List<BotCard> targets = new ArrayList<>();
-                topEvent.getAbilities().stream()
-                        .filter(botAbility -> {
-                            if (botAbility instanceof TriggeredAbility ta) {
-                                return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-                            } else {
-                                return false;
-                            }
-                        })
-                        .filter(botAbility -> {
-                            AbilityProperty effect = botAbility.getEffect();
-                            if (!effect.getType().equals(AbilityProperty.Type.DISCARD_FROM_PLAY)) return false;
-                            List<BotCard> targets1 = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
-                            if (targets1.stream().noneMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()))) return false;
-                            return true; // can discard shadow card from play
-                        })
-                        .forEach(ability -> {
-                            AbilityProperty effect = ability.getEffect();
-                            int numberOfTargets = effect.getParam("numberOfTargets", Integer.class);
-                            List<BotCard> potentialTargets = plannedBoardState.getCardsEffectCanTarget(effect, playerName, Side.FREE_PEOPLE);
-                            if (numberOfTargets >= potentialTargets.size()) {
-                                targets.addAll(potentialTargets);
-                            } else {
-                                throw new IllegalStateException("Choosing targets for fellowship phase discarding not implemented for card " + topEvent.getSelf().getBlueprint().getFullName());
-                            }
-                        });
+                if (topEvent.getEventAbility().getEffect() instanceof EffectDiscardFromPlay discardEffect) {
+                    List<BotCard> potentialTargets = discardEffect.getPotentialTargets(plannedBoardState);
+                    if (discardEffect.discardsAll() || potentialTargets.size() <= 1) {
+                        targets.addAll(potentialTargets);
+                    } else {
+                        throw new IllegalStateException("Cannot resolve discard effect if number of potential targets is greater than 1 and not all should be discarded");
+                    }
+                } else {
+                    throw new IllegalStateException("Event " + topEvent.getSelf().getBlueprint().getFullName() + " does not have DiscardFromPlay effect");
+                }
 
                 if (printDebugMessages) {
                     if (targets.size() == 1) {
@@ -364,19 +325,11 @@ public class FellowshipPhasePlan {
     }
 
     private double getValueOfFellowshipEvent(BotCard fellowshipEvent) {
-        List<BotAbility> whenPlayedAbility = fellowshipEvent.getAbilities().stream()
-                .filter(botAbility -> {
-                    if (botAbility instanceof TriggeredAbility ta) {
-                        return ta.getTriggerCondition().equals(TriggerCondition.WHEN_PLAYED);
-                    } else {
-                        return false;
-                    }
-                }).toList();
-        double value = 0.0;
-        for (BotAbility ability : whenPlayedAbility) {
-            value += plannedBoardState.getValueIfUsed(fellowshipEvent, ability);
+        if (fellowshipEvent instanceof BotEventCard eventCard) {
+            return eventCard.getEventAbility().getValueIfUsed(fellowshipEvent, plannedBoardState);
+        } else {
+            throw new IllegalStateException("Not an event: " + fellowshipEvent.getSelf().getBlueprint().getFullName());
         }
-        return value;
     }
 
     private double getValueOfActivatedAbility(BotCard source, ActivatedAbility activatedAbility) {

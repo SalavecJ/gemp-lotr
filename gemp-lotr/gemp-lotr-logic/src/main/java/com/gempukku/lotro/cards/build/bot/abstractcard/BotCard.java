@@ -4,6 +4,7 @@ import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
 import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -28,9 +29,11 @@ public abstract class BotCard {
 
     public abstract boolean canBePlayed(PlannedBoardState plannedBoardState);
 
-    public abstract boolean canEverBePlayed();
-
     public abstract List<BotAbility> getAbilities();
+
+    public EventAbility getEventAbility() {
+        return null;
+    }
 
     public List<BotAbility> getActivatedAbilities(Phase phase) {
         return getAbilities().stream().filter(botAbility -> {

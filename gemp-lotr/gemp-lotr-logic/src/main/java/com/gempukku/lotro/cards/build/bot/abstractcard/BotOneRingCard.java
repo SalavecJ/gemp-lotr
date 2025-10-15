@@ -12,9 +12,4 @@ public abstract class BotOneRingCard extends BotCard {
     public boolean canBePlayed(PlannedBoardState plannedBoardState) {
         throw new IllegalStateException("The One Ring card cannot be played.");
     }
-
-    @Override
-    public boolean canEverBePlayed() {
-        throw new IllegalStateException("The One Ring card cannot be played.");
-    }
 }

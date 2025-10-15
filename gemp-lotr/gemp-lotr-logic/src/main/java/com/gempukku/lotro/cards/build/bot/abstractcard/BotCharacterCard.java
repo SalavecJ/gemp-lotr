@@ -15,12 +15,6 @@ public abstract class BotCharacterCard extends BotCard {
         if (!uniqueRequirementOk(plannedBoardState)) return false;
         return otherRequirementsNowOk(plannedBoardState);
     }
-
-    @Override
-    public boolean canEverBePlayed() {
-        if (Side.FREE_PEOPLE.equals(self.getBlueprint().getSide()) && !uniqueRequirementOk(self.getGame())) return false;
-        return otherRequirementsEverOk(self.getGame());
-    }
     private boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
         return !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
     }

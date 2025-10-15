@@ -23,13 +23,6 @@ public abstract class BotObjectCard extends BotCard {
         return otherRequirementsNowOk(plannedBoardState);
     }
 
-    @Override
-    public boolean canEverBePlayed() {
-        if (!RequirementsUtility.canSpotEver(self.getGame(), self.getOwner(), this::isValidBearer))
-            return false;
-        return otherRequirementsEverOk(self.getGame());
-    }
-
     /**
      * Hook for subclasses to implement card-specific rules for current board state
      */

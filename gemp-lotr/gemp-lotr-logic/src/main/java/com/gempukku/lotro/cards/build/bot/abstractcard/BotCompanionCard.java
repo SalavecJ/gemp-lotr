@@ -14,11 +14,6 @@ public abstract class BotCompanionCard extends BotCharacterCard {
         return super.canBePlayed(plannedBoardState) && ruleOfNineOk(plannedBoardState);
     }
 
-    @Override
-    public boolean canEverBePlayed() {
-        return super.canEverBePlayed() && ruleOfNineOk(self.getGame());
-    }
-
     private boolean ruleOfNineOk(PlannedBoardState plannedBoardState) {
         return plannedBoardState.ruleOfNineRemainder(self.getOwner()) > 0;
     }

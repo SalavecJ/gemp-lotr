@@ -547,19 +547,19 @@ public class AiController {
             System.out.println(fp);
         }
 
-        // Check for unplayable cards in hand
-        boolean handContainsAlwaysDeadCard = cardsInHand.stream().anyMatch((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed());
-
-        if (handContainsAlwaysDeadCard) {
-            List<? extends PhysicalCard> toDiscard = cardsInHand.stream().filter((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed()).toList().subList(0, Math.max(1, min));
-            if (printDebugMessages) {
-                System.out.println("Discard unusable card: ");
-                for (PhysicalCard physicalCard : toDiscard) {
-                    System.out.println(physicalCard.getBlueprint().getFullName());
-                }
-            }
-            return (List<PhysicalCard>) toDiscard;
-        }
+//        // Check for unplayable cards in hand
+//        boolean handContainsAlwaysDeadCard = cardsInHand.stream().anyMatch((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed());
+//
+//        if (handContainsAlwaysDeadCard) {
+//            List<? extends PhysicalCard> toDiscard = cardsInHand.stream().filter((Predicate<PhysicalCard>) card -> !BotCardFactory.create(card).canEverBePlayed()).toList().subList(0, Math.max(1, min));
+//            if (printDebugMessages) {
+//                System.out.println("Discard unusable card: ");
+//                for (PhysicalCard physicalCard : toDiscard) {
+//                    System.out.println(physicalCard.getBlueprint().getFullName());
+//                }
+//            }
+//            return (List<PhysicalCard>) toDiscard;
+//        }
 
         // Not moving again, reconciling before playing shadow
         boolean fpReconcile = game.getGameState().getCurrentPlayerId().equals(aiPlayerName);
