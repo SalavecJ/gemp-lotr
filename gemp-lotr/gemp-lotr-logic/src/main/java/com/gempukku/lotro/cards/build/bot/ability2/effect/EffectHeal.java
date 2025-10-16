@@ -8,7 +8,7 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class EffectHeal extends Effect{
+public class EffectHeal extends EffectWithTarget {
     protected final Predicate<BotCard> targetPredicate;
     protected final int amount;
 
@@ -17,10 +17,17 @@ public class EffectHeal extends Effect{
         this.amount = amount;
     }
 
+    @Override
     public List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
         return plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList();
     }
 
+    @Override
+    public boolean affectsAll() {
+        return false;
+    }
+
+    @Override
     public BotCard chooseTarget(PlannedBoardState plannedBoardState) {
         if (getPotentialTargets(plannedBoardState).isEmpty()) {
             return null;

@@ -40,18 +40,6 @@ public abstract class BotCard {
         return null;
     }
 
-    public List<BotAbility> getActivatedAbilities(Phase phase) {
-        return getAbilities().stream().filter(botAbility -> {
-            if (botAbility instanceof ActivatedAbility aa) {
-                return aa.getConditions().stream().anyMatch(abilityProperty ->
-                        abilityProperty.getType().equals(AbilityProperty.Type.PHASE_IS)
-                        && abilityProperty.getParam("phase", Phase.class).equals(phase));
-            } else {
-                return false;
-            }
-        }).toList();
-    }
-
     public boolean isPlayableInPhase(Phase phase) {
       return switch (phase) {
           case PUT_RING_BEARER, PLAY_STARTING_FELLOWSHIP, BETWEEN_TURNS -> false;

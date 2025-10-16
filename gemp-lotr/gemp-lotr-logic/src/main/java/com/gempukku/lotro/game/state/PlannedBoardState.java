@@ -248,8 +248,9 @@ public class PlannedBoardState {
         inPlayFpCards.values().forEach(lists -> lists.forEach(botCard -> {
             if (discardedCard.getSelf().getBlueprint().getTitle().equals(botCard.getSelf().getBlueprint().getTitle())
                     && discardedCard.getSelf().getOwner().equals(botCard.getSelf().getOwner())) {
-                cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) - 1);
+                heal(botCard);
                 hands.get(botCard.getSelf().getOwner()).remove(discardedCard);
+                discards.get(botCard.getSelf().getOwner()).add(discardedCard);
                 healed.set(true);
             }
         }));
@@ -358,21 +359,6 @@ public class PlannedBoardState {
         return botCard.getSelf().getBlueprint().getVitality() - getWounds(botCard);
     }
 
-    public List<BotCard> getCardsEffectCanTarget(AbilityProperty effect, String player, Side side) {
-        Predicate<PhysicalCard> targetingPredicate = effect.getTargetPredicate();
-        if (targetingPredicate == null) {
-            return new ArrayList<>();
-        }
-        if (side.equals(Side.FREE_PEOPLE)) {
-            return Stream.concat(inPlayFpCards.get(player).stream(), inPlayShadowCards.get(getOpponent(player)).stream())
-                    .filter(botCard -> targetingPredicate.test(botCard.getSelf())).toList();
-        } else if (side.equals(Side.SHADOW)) {
-            return Stream.concat(inPlayShadowCards.get(player).stream(), inPlayFpCards.get(getOpponent(player)).stream())
-                    .filter(botCard -> targetingPredicate.test(botCard.getSelf())).toList();
-        }
-        throw new IllegalStateException("Could not determine targets for side " + side);
-    }
-
     public List<BotCard> getActiveCards() {
         return new ArrayList<>(Stream.concat(inPlayFpCards.get(currentPlayer).stream(), inPlayShadowCards.get(getOpponent(currentPlayer)).stream()).toList());
     }
@@ -383,6 +369,10 @@ public class PlannedBoardState {
 
     public List<BotCard> getDeadPile(String player) {
         return new ArrayList<>(deadPiles.get(player));
+    }
+
+    public List<BotCard> getHand(String player) {
+        return new ArrayList<>(hands.get(player));
     }
 
     public List<BotCard> getSitesInPlay() {

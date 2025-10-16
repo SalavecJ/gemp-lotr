@@ -1,9 +1,14 @@
 package com.gempukku.lotro.bots.forge.utils;
 
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
 import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BoardStateUtil {
@@ -34,5 +39,28 @@ public class BoardStateUtil {
     public static int getRuleOfNineRemainder(PlannedBoardState plannedBoardState) {
         return 9 - getActiveCompanionsInPlayCount(plannedBoardState) - getCompanionsInDeadPileCount(plannedBoardState);
 
+    }
+
+    public static List<BotCard> getCardInHandPlayableInPhase(PlannedBoardState plannedBoardState, String player, Phase phase) {
+        return new ArrayList<>(
+                plannedBoardState.getHand(player).stream()
+                        .filter(card -> card.isPlayableInPhase(phase))
+                        .toList());
+    }
+
+    public static List<BotEventCard> getPlayableFellowshipEventsWithEffect(PlannedBoardState plannedBoardState, String playerName, Class<? extends Effect> effectClass) {
+        return new ArrayList<>(BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)
+                        && botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> {
+                    if (botCard instanceof BotEventCard eventCard) {
+                        EventAbility eventAbility = eventCard.getEventAbility();
+                        return effectClass.isInstance(eventAbility.getEffect());
+                    } else {
+                        throw new IllegalStateException("Event " + botCard.getSelf().getBlueprint().getFullName() + " is not implemented as BotEventCard");
+                    }
+                })
+                .map(botCard -> (BotEventCard) botCard)
+                .toList());
     }
 }
