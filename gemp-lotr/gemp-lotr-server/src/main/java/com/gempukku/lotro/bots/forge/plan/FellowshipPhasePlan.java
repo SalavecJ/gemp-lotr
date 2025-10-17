@@ -54,6 +54,7 @@ public class FellowshipPhasePlan {
         addPlayCompanionFromHandActions();
         addPlayAlliesFromHandActions();
         addPlayPossessionsFromHandActions();
+        addPlayConditionsFromHandActions();
 
         addHealActions();
         addRemoveBurdensActions();
@@ -286,6 +287,37 @@ public class FellowshipPhasePlan {
                     }
                     actions.add(new UseCardAction(chosenCard.getSelf()));
                     chosenCard.getActivatedAbility(effectClass).resolveAbility(chosenCard, plannedBoardState);
+                }
+            }
+        }
+    }
+
+    private void addPlayConditionsFromHandActions() {
+        List<BotCard> conditionsInHand = new ArrayList<>(BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
+                .filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .toList());
+
+        Collections.shuffle(conditionsInHand);
+        for (BotCard condition : conditionsInHand) {
+            if (condition.canBePlayed(plannedBoardState)) {
+                if (condition instanceof BotObjectSupportAreaCard) {
+                    throw new IllegalStateException("Support Area conditions not implemented yet: " + condition.getSelf().getBlueprint().getFullName());
+                } else if (condition instanceof BotObjectAttachableCard attachableCard) {
+                    List<BotCard> potentialTargets = plannedBoardState.getActiveCards().stream()
+                            .filter(botCard -> attachableCard.isValidBearer(botCard, plannedBoardState))
+                            .toList();
+                    BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
+                    BotCard target = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
+                    if (target == null) {
+                        throw new IllegalStateException("Could not find target for " + condition.getSelf().getBlueprint().getFullName());
+                    }
+                    if (printDebugMessages) {
+                        System.out.println("Will play condition " + condition.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
+                    }
+                    actions.add(new PlayCardFromHandWithTargetAction(condition.getSelf(), target.getSelf()));
+                    plannedBoardState.playOnBearer(attachableCard, target);
+                } else {
+                    throw new IllegalStateException("Condition not instance of support area nor attachable object card: " + condition.getSelf().getBlueprint().getFullName());
                 }
             }
         }
