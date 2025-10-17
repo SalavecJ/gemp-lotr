@@ -19,7 +19,7 @@ public class Target {
     }
 
     public static Predicate<BotCard> self(BotCard self) {
-        return card -> card.getSelf().equals(self);
+        return card -> card.getSelf().equals(self.getSelf());
     }
 
     public static Predicate<BotCard> bearer(BotCard self) {

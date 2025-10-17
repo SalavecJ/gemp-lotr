@@ -51,7 +51,7 @@ public class EffectHeal extends EffectWithTarget {
         BotCard toBeHealed = chooseTarget(plannedBoardState);
         if (toBeHealed == null) return 0.0;
 
-        double value = Math.min(this.amount, plannedBoardState.getVitality(toBeHealed) - 1);
+        double value = Math.min(this.amount, plannedBoardState.getWounds(toBeHealed));
         // healing an ally has lower impact
         if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
             value /= 2.0;

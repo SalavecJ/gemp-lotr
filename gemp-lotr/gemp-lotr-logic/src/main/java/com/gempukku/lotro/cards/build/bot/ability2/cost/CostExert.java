@@ -1,5 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.ability2.cost;
 
+import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
@@ -7,7 +8,7 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class CostExert extends Cost {
+public class CostExert extends CostWithTarget {
     protected final Predicate<BotCard> targetPredicate;
     protected final int amount;
 
@@ -16,8 +17,20 @@ public class CostExert extends Cost {
         this.amount = amount;
     }
 
-    private List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList();
+    @Override
+    public List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
+        return plannedBoardState.getActiveCards().stream()
+                .filter(targetPredicate)
+                .filter(botCard -> plannedBoardState.getVitality(botCard) > amount)
+                .toList();
+    }
+
+    @Override
+    public BotCard chooseTarget(PlannedBoardState plannedBoardState) {
+        if (getPotentialTargets(plannedBoardState).isEmpty()) {
+            return null;
+        }
+        return BotTargetingMode.EXERT_SELF.chooseTarget(plannedBoardState, getPotentialTargets(plannedBoardState), false);
     }
 
     @Override
@@ -26,19 +39,14 @@ public class CostExert extends Cost {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        List<BotCard> potentialTargets = getPotentialTargets(plannedBoardState);
-
-        if (potentialTargets.size() != 1) {
-            throw new IllegalStateException("Cannot resolve exerting cost if number of potential targets is not 1");
-        }
-
-        plannedBoardState.exert(potentialTargets.getFirst(), amount);
+        BotCard target = chooseTarget(plannedBoardState);
+        if (target == null) return;
+        plannedBoardState.exert(target, amount);
     }
 
     @Override
     public boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(plannedBoardState);
-        return potentialTargets.stream().anyMatch(botCard -> plannedBoardState.getVitality(botCard) > amount);
+        return !getPotentialTargets(plannedBoardState).isEmpty();
     }
 
     @Override
@@ -47,13 +55,7 @@ public class CostExert extends Cost {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        List<BotCard> potentialTargets = getPotentialTargets(plannedBoardState);
-
-        if (potentialTargets.size() != 1) {
-            throw new IllegalStateException("Cannot resolve exerting cost if number of potential targets is not 1");
-        }
-
-        BotCard toBeExerted = potentialTargets.getFirst();
+        BotCard toBeExerted = chooseTarget(plannedBoardState);
         double amount = Math.min(this.amount, plannedBoardState.getVitality(toBeExerted) - 1);
 
         double value = amount;

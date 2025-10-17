@@ -1247,6 +1247,23 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends Effect> effectClass) {
+                    if (effectClass.equals(EffectHeal.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exert(Target.and(Target.and(
+                                                Target.cardType(CardType.COMPANION),
+                                                Target.signet(Signet.FRODO)),
+                                                Target.not(Target.self(this))
+                                )))
+                                .effect(Effect.heal("Frodo"))
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_291
