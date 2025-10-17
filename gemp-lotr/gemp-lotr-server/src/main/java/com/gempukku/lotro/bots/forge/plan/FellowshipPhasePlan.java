@@ -45,6 +45,8 @@ public class FellowshipPhasePlan {
     }
 
     private void makePlan() {
+        addRevealOpponentsHandActions();
+
         addHealCompanionsByDiscardActions();
 
         addDiscardShadowCardsActions();
@@ -55,6 +57,7 @@ public class FellowshipPhasePlan {
 
         addHealActions();
         addRemoveBurdensActions();
+        addPlayFellowshipsNextSiteActions();
 
         //TODO add another actions to action lists
 
@@ -62,6 +65,47 @@ public class FellowshipPhasePlan {
             System.out.println("Finally, will pass");
         }
         actions.add(new PassAction());
+    }
+
+    private void addPlayFellowshipsNextSiteActions() {
+        playBestEventsWithEffect(
+                EffectPlayFellowshipsNextSite.class,
+                (eventCard, botCards) -> {
+                    BotCard nextSiteInPlay = ((EffectPlayFellowshipsNextSite) eventCard.getEventAbility().getEffect()).getNextSiteInPlay(plannedBoardState);
+                    BotCard nextSiteInAdventureDeck = ((EffectPlayFellowshipsNextSite) eventCard.getEventAbility().getEffect()).getNextSiteInAdventureDeck(eventCard, plannedBoardState);
+                    if (nextSiteInPlay == null) {
+                        System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() +
+                                " from hand to play fellowship's next site: " + nextSiteInAdventureDeck.getSelf().getBlueprint().getFullName());
+                    } else if (nextSiteInAdventureDeck != null) {
+                        System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() +
+                                " from hand to replace fellowship's next site: " + nextSiteInPlay.getSelf().getBlueprint().getFullName() +
+                                " for "+ nextSiteInAdventureDeck.getSelf().getBlueprint().getFullName());
+                    } else {
+                        System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() +
+                                " from hand to play fellowship's next site, but will have no effect");
+                    }
+                });
+
+
+        throwExceptionIfActivatedAbilityWithEffectIsFound(
+                EffectPlayFellowshipsNextSite.class,
+                botCard -> true);
+    }
+
+    private void addRevealOpponentsHandActions() {
+        playBestEventsWithEffect(
+                EffectRevealOpponentsHand.class,
+                (eventCard, botCards) -> {
+                    String cardsInOpponentsHand = plannedBoardState.getHand(plannedBoardState.getOpponent(playerName)).stream()
+                            .map(t -> t.getSelf().getBlueprint().getFullName())
+                            .collect(Collectors.joining("; "));
+                    System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() + " from hand to reveal opponent's hand: " + cardsInOpponentsHand);
+                });
+
+
+        throwExceptionIfActivatedAbilityWithEffectIsFound(
+                EffectRevealOpponentsHand.class,
+                botCard -> true);
     }
 
     private void addHealActions() {
@@ -142,7 +186,7 @@ public class FellowshipPhasePlan {
             if (fellowshipEvents.isEmpty()) break;
             fellowshipEvents.sort((o1, o2) -> Double.compare(o1.getEventAbility().getValueIfUsed(o1, plannedBoardState), o2.getEventAbility().getValueIfUsed(o2, plannedBoardState)));
             BotEventCard topEvent = fellowshipEvents.getFirst();
-            if (topEvent.getEventAbility().getValueIfUsed(topEvent, plannedBoardState) <= 0.0) {
+            if (topEvent.getEventAbility().getValueIfUsed(topEvent, plannedBoardState) < 0.0) {
                 break;
             } else {
                 List<BotCard> targets = new ArrayList<>();

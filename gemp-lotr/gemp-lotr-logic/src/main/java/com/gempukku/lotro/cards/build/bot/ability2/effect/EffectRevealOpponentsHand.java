@@ -11,12 +11,17 @@ public class EffectRevealOpponentsHand extends Effect{
 
     @Override
     public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        // TODO when bot can use the information
+        String opponent =  plannedBoardState.getOpponent(source.getSelf().getOwner());
+        plannedBoardState.revealHand(opponent);
     }
 
     @Override
     public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        // TODO when bot can use the information
+        String opponent =  plannedBoardState.getOpponent(source.getSelf().getOwner());
+        if (plannedBoardState.allCardsInHandRevealed(opponent)) {
+            return 0.0;
+        }
+
         return 0.3;
     }
 }

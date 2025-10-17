@@ -1,11 +1,6 @@
 package com.gempukku.lotro.game.state;
 
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
-import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
-import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
-import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
-import com.gempukku.lotro.cards.build.bot.ability.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCompanionCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
@@ -29,6 +24,7 @@ public class PlannedBoardState {
     private final Map<String, List<BotCard>> adventureDecks = new HashMap<>();
     private final Map<String, List<BotCard>> decks = new HashMap<>();
     private final Map<String, List<BotCard>> hands = new HashMap<>();
+    private final Map<String, List<BotCard>> revealedHands = new HashMap<>();
     private final Map<String, List<BotCard>> discards = new HashMap<>();
     private final Map<String, List<BotCard>> deadPiles = new HashMap<>();
 
@@ -61,6 +57,7 @@ public class PlannedBoardState {
             game.getGameState().getDeck(player).forEach(cardInDeck -> decks.get(player).add(BotCardFactory.create(cardInDeck)));
             hands.put(player, new ArrayList<>());
             game.getGameState().getHand(player).forEach(cardInHand -> hands.get(player).add(BotCardFactory.create(cardInHand)));
+            revealedHands.put(player, new ArrayList<>());
             discards.put(player, new ArrayList<>());
             game.getGameState().getDiscard(player).forEach(cardInDiscard -> discards.get(player).add(BotCardFactory.create(cardInDiscard)));
             deadPiles.put(player, new ArrayList<>());
@@ -186,14 +183,16 @@ public class PlannedBoardState {
 
         if (nextSiteInAdventureDeck != null) {
             inPlaySites.remove(nextSite);
+            adventureDecks.get(getOpponent(ownerOfEffect)).add(nextSite);
             inPlaySites.add(nextSiteInAdventureDeck);
-            adventureDecks.get(nextSite.getSelf().getOwner()).add(nextSite);
+            adventureDecks.get(ownerOfEffect).remove(nextSiteInAdventureDeck);
         }
     }
 
     private void playFpCard(BotCard botCard) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight += botCard.getSelf().getBlueprint().getTwilightCost();
         cardTokens.put(botCard, new HashMap<>());
     }
@@ -204,6 +203,7 @@ public class PlannedBoardState {
         }
         inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
         twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
         cardTokens.put(botCard, new HashMap<>());
     }
@@ -240,6 +240,7 @@ public class PlannedBoardState {
         botCard.getEventAbility().resolveAbility(botCard, this);
 
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
         discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
@@ -251,6 +252,7 @@ public class PlannedBoardState {
                 heal(botCard);
                 hands.get(botCard.getSelf().getOwner()).remove(discardedCard);
                 discards.get(botCard.getSelf().getOwner()).add(discardedCard);
+                revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
                 healed.set(true);
             }
         }));
@@ -259,9 +261,24 @@ public class PlannedBoardState {
         }
     }
 
+    public void revealHand(String player) {
+        for (BotCard botCard : hands.get(player)) {
+            if (!revealedHands.get(player).contains(botCard))
+                revealedHands.get(player).add(botCard);
+        }
+    }
+
     /*
         GET INFO
      */
+    public boolean allCardsInHandRevealed(String player) {
+        return new HashSet<>(revealedHands.get(player)).containsAll(hands.get(player));
+    }
+
+    public List<BotCard> getRevealedCardsFromHand(String player) {
+        return revealedHands.get(player);
+    }
+
     public String getCurrentFpPlayer() {
         return currentPlayer;
     }
@@ -438,7 +455,7 @@ public class PlannedBoardState {
 
 
 
-    private String getOpponent(String player) {
+    public String getOpponent(String player) {
         for (String s : players) {
             if (!s.equals(player)) {
                 return s;

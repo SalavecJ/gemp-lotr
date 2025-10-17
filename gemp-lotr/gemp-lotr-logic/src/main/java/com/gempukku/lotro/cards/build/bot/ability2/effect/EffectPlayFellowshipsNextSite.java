@@ -9,6 +9,18 @@ public class EffectPlayFellowshipsNextSite extends Effect{
 
     }
 
+    public BotCard getNextSiteInPlay(PlannedBoardState plannedBoardState) {
+        int current = plannedBoardState.getCurrentPlayerPosition();
+        int next = current + 1;
+        return plannedBoardState.getSitesInPlay().stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+    }
+
+    public BotCard getNextSiteInAdventureDeck(BotCard source, PlannedBoardState plannedBoardState) {
+        int current = plannedBoardState.getCurrentPlayerPosition();
+        int next = current + 1;
+        return plannedBoardState.getAdventureDeck(source.getSelf().getOwner()).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+    }
+
     @Override
     public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
         plannedBoardState.playFellowshipsNextSite(source.getSelf().getOwner());
