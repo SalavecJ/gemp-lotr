@@ -6,7 +6,7 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.List;
 
 public abstract class EffectWithTarget extends Effect{
-    public abstract List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState);
+    public abstract List<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState);
     public abstract boolean affectsAll();
-    public abstract BotCard chooseTarget(PlannedBoardState plannedBoardState);
+    public abstract BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState);
 }

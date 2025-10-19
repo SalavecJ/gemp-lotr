@@ -18,7 +18,7 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
+    public List<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
         return plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList();
     }
 
@@ -28,11 +28,11 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public BotCard chooseTarget(PlannedBoardState plannedBoardState) {
-        if (getPotentialTargets(plannedBoardState).isEmpty()) {
+    public BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState) {
+        if (getPotentialTargets(source, plannedBoardState).isEmpty()) {
             return null;
         }
-        return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(plannedBoardState), false);
+        return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(source, plannedBoardState), false);
     }
 
     public int getAmount() {
@@ -41,14 +41,14 @@ public class EffectHeal extends EffectWithTarget {
 
     @Override
     public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(plannedBoardState);
+        BotCard target = chooseTarget(source, plannedBoardState);
         if (target == null) return;
         plannedBoardState.heal(target, amount);
     }
 
     @Override
     public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard toBeHealed = chooseTarget(plannedBoardState);
+        BotCard toBeHealed = chooseTarget(source, plannedBoardState);
         if (toBeHealed == null) return 0.0;
 
         double value = Math.min(this.amount, plannedBoardState.getWounds(toBeHealed));

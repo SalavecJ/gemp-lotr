@@ -11,6 +11,11 @@ public abstract class Effect {
     public abstract void resolve(BotCard source, PlannedBoardState plannedBoardState);
     public abstract double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState);
 
+
+    public static EffectTakeIntoHandFromDiscard takeIntoHandFromDiscard(Predicate<BotCard> target) {
+        return new EffectTakeIntoHandFromDiscard(target);
+    }
+
     public static EffectRemoveBurden removeBurden() {
         return removeBurden(1);
     }
@@ -22,6 +27,7 @@ public abstract class Effect {
     public static EffectDiscardFromPlay discardFromPlayAll(Predicate<BotCard> target) {
         return discardFromPlay(target, true);
     }
+
     public static EffectDiscardFromPlay discardFromPlay(Predicate<BotCard> target) {
         return discardFromPlay(target, false);
     }

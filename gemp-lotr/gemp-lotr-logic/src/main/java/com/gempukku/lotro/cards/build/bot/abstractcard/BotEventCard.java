@@ -13,9 +13,13 @@ public abstract class BotEventCard extends BotCard {
 
     @Override
     public boolean canBePlayed(PlannedBoardState plannedBoardState) {
-        return (getCondition() == null || getCondition().isOk(this, plannedBoardState))
-                && getEventAbility().canPayCost(this, plannedBoardState)
+        return canBePlayedNoMatterThePhase(plannedBoardState)
                 && isPlayableInPhase(plannedBoardState.getCurrentPhase());
+    }
+
+    public boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState) {
+        return (getCondition() == null || getCondition().isOk(this, plannedBoardState))
+                && getEventAbility().canPayCost(this, plannedBoardState);
     }
 
     public boolean isResponseEvent() {

@@ -118,6 +118,11 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
+    public void moveFromDiscardIntoHand(BotCard botCard) {
+        discards.get(botCard.getSelf().getOwner()).remove(botCard);
+        hands.get(botCard.getSelf().getOwner()).add(botCard);
+    }
+
     public void removeBurden(int amount) {
         BotCard ringBearer = ringBearers.get(currentPlayer);
         int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);

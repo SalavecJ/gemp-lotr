@@ -6,10 +6,8 @@ import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.Target;
 import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.*;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectDiscardFromPlay;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectHeal;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectRemoveBurden;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -240,6 +238,22 @@ public class BotCardFactory {
                                             cardType(CardType.EVENT)))
                                     .build()
                     );
+                }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectTakeIntoHandFromDiscard.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exertSelf())
+                                .effect(Effect.takeIntoHandFromDiscard(Target.and(
+                                        Target.culture(Culture.GANDALF),
+                                        Target.cardType(CardType.EVENT)
+                                )))
+                                .build();
+                    } else {
+                        return null;
+                    }
                 }
             };
         }

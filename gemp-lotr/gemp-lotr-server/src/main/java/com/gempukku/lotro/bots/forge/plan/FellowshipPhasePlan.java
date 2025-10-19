@@ -60,12 +60,36 @@ public class FellowshipPhasePlan {
         addRemoveBurdensActions();
         addPlayFellowshipsNextSiteActions();
 
+        addTakeIntoHandFromDiscardAction();
+
         //TODO add another actions to action lists
 
         if (printDebugMessages) {
             System.out.println("Finally, will pass");
         }
         actions.add(new PassAction());
+    }
+
+    private void addTakeIntoHandFromDiscardAction() {
+        throwExceptionIfEventWithEffectIsFound(
+                EffectTakeIntoHandFromDiscard.class,
+                eventCard -> true);
+
+        activateAbilitiesWithEffect(
+                EffectTakeIntoHandFromDiscard.class,
+                (botCard, targets) -> {
+                    if (targets.isEmpty()) {
+                        System.out.println("Will use ability of " + botCard.getSelf().getBlueprint().getFullName()
+                                + " but there are no cards to take");
+                    } else {
+                        String joined = targets.stream()
+                                .map(t -> t.getSelf().getBlueprint().getFullName())
+                                .collect(Collectors.joining("; "));
+                        System.out.println("Will use ability of " + botCard.getSelf().getBlueprint().getFullName()
+                                + " to take into hand from discard: "
+                                + joined);
+                    }
+                });
     }
 
     private void addPlayFellowshipsNextSiteActions() {
@@ -146,11 +170,10 @@ public class FellowshipPhasePlan {
     }
 
     private void addDiscardShadowCardsActions() {
-        Predicate<EffectDiscardFromPlay> canDiscardShadowCard = discard -> discard.getPotentialTargets(plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide()));
 
         playBestEventsWithEffect(
                 EffectDiscardFromPlay.class,
-                botCard -> canDiscardShadowCard.test((EffectDiscardFromPlay) botCard.getEventAbility().getEffect()),
+                botCard -> ((EffectDiscardFromPlay) botCard.getEventAbility().getEffect()).getPotentialTargets(botCard, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())),
                 (eventCard, targets) -> {
                     if (targets.isEmpty()) {
                         System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() + " from hand to discard nothing");
@@ -164,11 +187,11 @@ public class FellowshipPhasePlan {
 
         throwExceptionIfActivatedAbilityWithEffectIsFound(
                 EffectDiscardFromPlay.class,
-                botCard -> canDiscardShadowCard.test(((EffectDiscardFromPlay) botCard.getActivatedAbility(EffectDiscardFromPlay.class).getEffect())));
+                botCard -> ((EffectDiscardFromPlay) botCard.getActivatedAbility(EffectDiscardFromPlay.class).getEffect()).getPotentialTargets(botCard, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())));
     }
 
     private void throwExceptionIfEventWithEffectIsFound(Class<? extends Effect> effectClass, Predicate<BotEventCard> extraFilter) {
-        List<BotEventCard> events = BoardStateUtil.getPlayableFellowshipEventsWithEffect(plannedBoardState, playerName, effectClass);
+        List<BotEventCard> events = BoardStateUtil.getPlayableFellowshipEventsWithEffect(plannedBoardState, playerName, effectClass).stream().filter(extraFilter).toList();
         if (!events.isEmpty()) {
             String names = events.stream()
                     .map(e -> e.getSelf().getBlueprint().getFullName())
@@ -192,7 +215,7 @@ public class FellowshipPhasePlan {
             } else {
                 List<BotCard> targets = new ArrayList<>();
                 if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
-                    List<BotCard> potentialTargets = ((EffectWithTarget) topEvent.getEventAbility().getEffect()).getPotentialTargets(plannedBoardState);
+                    List<BotCard> potentialTargets = ((EffectWithTarget) topEvent.getEventAbility().getEffect()).getPotentialTargets(topEvent, plannedBoardState);
                     if (((EffectWithTarget) topEvent.getEventAbility().getEffect()).affectsAll() || potentialTargets.size() <= 1) {
                         targets.addAll(potentialTargets);
                     } else {
@@ -261,11 +284,11 @@ public class FellowshipPhasePlan {
             } else {
                 if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
                     List<BotCard> targets = new ArrayList<>();
-                    List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).getPotentialTargets(plannedBoardState);
+                    List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).getPotentialTargets(chosenCard, plannedBoardState);
                     if (((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).affectsAll() || potentialTargets.size() <= 1) {
                         targets.addAll(potentialTargets);
                     } else {
-                       targets.add(((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).chooseTarget(plannedBoardState));
+                       targets.add(((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).chooseTarget(chosenCard, plannedBoardState));
                     }
 
                     if (printDebugMessages) {

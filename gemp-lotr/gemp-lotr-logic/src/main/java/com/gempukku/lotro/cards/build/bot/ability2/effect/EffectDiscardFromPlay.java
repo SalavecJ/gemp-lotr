@@ -16,7 +16,7 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
+    public List<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
         return plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList();
     }
 
@@ -26,13 +26,13 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public BotCard chooseTarget(PlannedBoardState plannedBoardState) {
+    public BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState) {
         throw new IllegalStateException("Choosing targets for Discard from Play effect not implemented");
     }
 
     @Override
     public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(plannedBoardState);
+        List<BotCard> potentialTargets = getPotentialTargets(source, plannedBoardState);
         if (potentialTargets.isEmpty()) {
             return;
         } else if (potentialTargets.size() == 1) {
@@ -48,7 +48,7 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
 
     @Override
     public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(plannedBoardState);
+        List<BotCard> potentialTargets = getPotentialTargets(source, plannedBoardState);
         if (discardAll) {
             double value = 0.0;
             for (BotCard potentialTarget : potentialTargets) {
