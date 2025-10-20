@@ -8,16 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
+public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget{
     protected final Predicate<BotCard> targetPredicate;
 
-    public EffectTakeIntoHandFromDiscard(Predicate<BotCard> targetPredicate) {
+    public EffectPutFromHandToBottomOfDeck(Predicate<BotCard> targetPredicate) {
         this.targetPredicate = targetPredicate;
     }
 
     @Override
     public ArrayList<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getDiscard(source.getSelf().getOwner()).stream().filter(targetPredicate).toList());
+        return new ArrayList<>(plannedBoardState.getHand(source.getSelf().getOwner()).stream().filter(targetPredicate).toList());
     }
 
     @Override
@@ -31,7 +31,7 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
         if (potentialTargets.isEmpty()) {
             return null;
         } else {
-            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(o2, plannedBoardState), getValueOfTarget(o1, plannedBoardState)));
+            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(source, o2, plannedBoardState), getValueOfTarget(source, o1, plannedBoardState)));
             return potentialTargets.getFirst();
         }
     }
@@ -40,19 +40,32 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
     public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(source, plannedBoardState);
         if (target == null) return;
-        plannedBoardState.moveFromDiscardIntoHand(target);
+        plannedBoardState.moveFromHandToBottomOfDeck(target);
     }
 
     @Override
     public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(source, plannedBoardState);
-        return getValueOfTarget(target, plannedBoardState);
+        return getValueOfTarget(source, target, plannedBoardState);
     }
 
-    public double getValueOfTarget(BotCard target, PlannedBoardState plannedBoardState) {
+    public double getValueOfTarget(BotCard source, BotCard target, PlannedBoardState plannedBoardState) {
         if (target == null) {
             return 0;
         }
-        return HandValueUtil.cardValueInHand(target, plannedBoardState);
+        double targetValue = HandValueUtil.cardValueInHand(target, plannedBoardState);
+        if (source.getSelf().getOwner().equals(target.getSelf().getOwner())){
+            if (targetValue > 0) {
+                return -targetValue;
+            } else {
+                return 0.5;
+            }
+        } else {
+            if (targetValue > 0) {
+                return targetValue;
+            } else {
+                return -0.5;
+            }
+        }
     }
 }

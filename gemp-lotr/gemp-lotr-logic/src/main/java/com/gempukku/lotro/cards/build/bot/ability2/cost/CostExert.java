@@ -5,7 +5,7 @@ import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Predicate;
 
 public class CostExert extends CostWithTarget {
@@ -18,11 +18,11 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public List<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getActiveCards().stream()
+    public ArrayList<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getActiveCards().stream()
                 .filter(targetPredicate)
                 .filter(botCard -> plannedBoardState.getVitality(botCard) > amount)
-                .toList();
+                .toList());
     }
 
     @Override

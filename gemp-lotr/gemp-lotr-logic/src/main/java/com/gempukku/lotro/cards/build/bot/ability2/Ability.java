@@ -7,4 +7,5 @@ public interface Ability {
     void resolveAbility(BotCard source, PlannedBoardState plannedBoardState);
     boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState);
     double getValueIfUsed(BotCard source, PlannedBoardState plannedBoardState);
+    boolean conditionOk(BotCard source, PlannedBoardState plannedBoardState);
 }

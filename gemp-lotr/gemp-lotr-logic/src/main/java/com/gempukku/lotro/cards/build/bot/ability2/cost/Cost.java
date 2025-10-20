@@ -39,4 +39,8 @@ public abstract class Cost {
     public static CostDiscardSelf discardSelf() {
         return new CostDiscardSelf();
     }
+
+    public static CostAddTwilight addTwilight(int amount) {
+        return new CostAddTwilight(amount);
+    }
 }

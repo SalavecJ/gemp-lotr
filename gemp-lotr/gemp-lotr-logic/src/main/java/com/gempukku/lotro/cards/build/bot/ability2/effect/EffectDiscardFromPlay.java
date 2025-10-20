@@ -3,6 +3,7 @@ package com.gempukku.lotro.cards.build.bot.ability2.effect;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -16,8 +17,8 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public List<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList();
+    public ArrayList<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList());
     }
 
     @Override

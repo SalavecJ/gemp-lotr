@@ -40,4 +40,9 @@ public class EventAbility implements Ability {
         double costValue = cost != null ? cost.getValueIfPayed(source, plannedBoardState) : 0.0;
         return effect.getValueIfResolved(source, plannedBoardState) + costValue;
     }
+
+    @Override
+    public boolean conditionOk(BotCard source, PlannedBoardState plannedBoardState) {
+        return true;
+    }
 }

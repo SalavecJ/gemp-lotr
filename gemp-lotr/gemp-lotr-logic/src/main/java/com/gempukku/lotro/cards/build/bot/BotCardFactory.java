@@ -98,6 +98,20 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectPutFromHandToBottomOfDeck.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .condition(Condition.twilightLessThan(2))
+                                .cost(Cost.addTwilight(2))
+                                .effect(Effect.putFromHandToBottomOfDeck())
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_13

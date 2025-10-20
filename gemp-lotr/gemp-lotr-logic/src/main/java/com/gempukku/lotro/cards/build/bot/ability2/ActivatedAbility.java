@@ -1,5 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.ability2;
 
+import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
@@ -9,11 +10,13 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 public class ActivatedAbility implements Ability {
     protected final Phase phase;
 
+    protected final Condition condition;
     protected final Effect effect;
     protected final Cost cost;
 
-    public ActivatedAbility(Phase phase, Effect effect, Cost cost) {
+    public ActivatedAbility(Phase phase, Condition condition, Effect effect, Cost cost) {
         this.phase = phase;
+        this.condition = condition;
         this.effect = effect;
         this.cost = cost;
     }
@@ -35,6 +38,12 @@ public class ActivatedAbility implements Ability {
         if (cost != null)
             cost.pay(source, plannedBoardState);
         effect.resolve(source, plannedBoardState);
+    }
+
+    @Override
+    public boolean conditionOk(BotCard source, PlannedBoardState plannedBoardState) {
+        if (condition == null) return true;
+        return condition.isOk(source, plannedBoardState);
     }
 
     @Override

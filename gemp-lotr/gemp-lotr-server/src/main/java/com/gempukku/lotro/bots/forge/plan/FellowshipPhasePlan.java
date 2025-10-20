@@ -60,7 +60,8 @@ public class FellowshipPhasePlan {
         addRemoveBurdensActions();
         addPlayFellowshipsNextSiteActions();
 
-        addTakeIntoHandFromDiscardAction();
+        addTakeIntoHandFromDiscardActions();
+        addUnclogHandActions();
 
         //TODO add another actions to action lists
 
@@ -70,7 +71,29 @@ public class FellowshipPhasePlan {
         actions.add(new PassAction());
     }
 
-    private void addTakeIntoHandFromDiscardAction() {
+    private void addUnclogHandActions() {
+        throwExceptionIfEventWithEffectIsFound(
+                EffectPutFromHandToBottomOfDeck.class,
+                eventCard -> true);
+
+        activateAbilitiesWithEffect(
+                EffectPutFromHandToBottomOfDeck.class,
+                (botCard, targets) -> {
+                    if (targets.isEmpty()) {
+                        System.out.println("Will use ability of " + botCard.getSelf().getBlueprint().getFullName()
+                                + " but there are no cards to put on the bottom of the deck");
+                    } else {
+                        String joined = targets.stream()
+                                .map(t -> t.getSelf().getBlueprint().getFullName())
+                                .collect(Collectors.joining("; "));
+                        System.out.println("Will use ability of " + botCard.getSelf().getBlueprint().getFullName()
+                                + " to put cards on the bottom of the deck from hand: "
+                                + joined);
+                    }
+                });
+    }
+
+    private void addTakeIntoHandFromDiscardActions() {
         throwExceptionIfEventWithEffectIsFound(
                 EffectTakeIntoHandFromDiscard.class,
                 eventCard -> true);
@@ -238,6 +261,7 @@ public class FellowshipPhasePlan {
                     ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                     if (activatedAbility == null) return false;
                     if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                    if (!activatedAbility.conditionOk(botCard, plannedBoardState)) return false;
                     if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
                     return true;
                 })
@@ -262,6 +286,7 @@ public class FellowshipPhasePlan {
                         ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                         if (activatedAbility == null) return false;
                         if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                        if (!activatedAbility.conditionOk(botCard, plannedBoardState)) return false;
                         if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
                         return true;
                     })

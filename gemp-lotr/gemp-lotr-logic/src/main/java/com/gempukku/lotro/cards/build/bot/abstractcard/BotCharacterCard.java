@@ -10,14 +10,9 @@ public abstract class BotCharacterCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+    public boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState) {
         if (!uniqueRequirementOk(plannedBoardState)) return false;
-        if (!isPlayableInPhase(plannedBoardState.getCurrentPhase())) return false;
         return (getCondition() == null || getCondition().isOk(this, plannedBoardState));
-    }
-
-    private boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
-        return !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
     }
 
     /**

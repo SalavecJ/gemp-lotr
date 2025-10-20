@@ -16,6 +16,14 @@ public abstract class Effect {
         return new EffectTakeIntoHandFromDiscard(target);
     }
 
+    public static EffectPutFromHandToBottomOfDeck putFromHandToBottomOfDeck(Predicate<BotCard> target) {
+        return new EffectPutFromHandToBottomOfDeck(target);
+    }
+
+    public static EffectPutFromHandToBottomOfDeck putFromHandToBottomOfDeck() {
+        return putFromHandToBottomOfDeck(botCard -> true);
+    }
+
     public static EffectRemoveBurden removeBurden() {
         return removeBurden(1);
     }

@@ -118,9 +118,17 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
+    public void addTwilight(int amount) {
+        twilight += amount;
+    }
+
     public void moveFromDiscardIntoHand(BotCard botCard) {
         discards.get(botCard.getSelf().getOwner()).remove(botCard);
         hands.get(botCard.getSelf().getOwner()).add(botCard);
+    }
+    public void moveFromHandToBottomOfDeck(BotCard botCard) {
+        hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        decks.get(botCard.getSelf().getOwner()).addLast(botCard);
     }
 
     public void removeBurden(int amount) {
@@ -294,6 +302,10 @@ public class PlannedBoardState {
 
     public int getCurrentPlayerPosition() {
         return playerPosition.get(currentPlayer);
+    }
+
+    public int getTwilight() {
+        return twilight;
     }
 
     public int ruleOfNineRemainder(String player) {

@@ -14,10 +14,11 @@ public abstract class BotObjectCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+    public boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState) {
         if (!uniqueRequirementOk(plannedBoardState)) return false;
         if (!playsToSupportArea()
-                && !plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState)))
+                && !plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState))
+                && !isValidPlayableBearerInHand(plannedBoardState))
             return false;
         return (getCondition() == null || getCondition().isOk(this, plannedBoardState));
     }
@@ -36,8 +37,8 @@ public abstract class BotObjectCard extends BotCard {
 
     protected abstract boolean playsToSupportArea();
 
-    private boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
-        return !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
+    private boolean isValidPlayableBearerInHand(PlannedBoardState plannedBoardState) {
+        return plannedBoardState.getHand(self.getOwner()).stream().filter(botCard -> isValidBearer(botCard, plannedBoardState)).anyMatch(botCard -> botCard.canBePlayedNoMatterThePhase(plannedBoardState));
     }
 
     public boolean isValidBearer(BotCard target, PlannedBoardState plannedBoardState) {

@@ -1,8 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.abstractcard;
 
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.ability.AbilityProperty;
-import com.gempukku.lotro.cards.build.bot.ability.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability.BotAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
@@ -28,7 +26,16 @@ public abstract class BotCard {
         return self;
     }
 
-    public abstract boolean canBePlayed(PlannedBoardState plannedBoardState);
+    public final boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        return canBePlayedNoMatterThePhase(plannedBoardState)
+                && isPlayableInPhase(plannedBoardState.getCurrentPhase());
+    }
+
+    public abstract boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState);
+
+    protected final boolean uniqueRequirementOk(PlannedBoardState plannedBoardState) {
+        return !self.getBlueprint().isUnique() || !plannedBoardState.sameTitleInPlayOrInDeadPile(self.getBlueprint().getTitle(), self.getOwner());
+    }
 
     public abstract List<BotAbility> getAbilities();
 

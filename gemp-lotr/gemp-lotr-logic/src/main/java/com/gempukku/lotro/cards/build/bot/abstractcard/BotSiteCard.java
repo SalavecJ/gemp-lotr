@@ -9,7 +9,7 @@ public abstract class BotSiteCard extends BotCard {
     }
 
     @Override
-    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+    public boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState) {
         throw new IllegalStateException("The bot should not ask if site card can be played.");
     }
 }

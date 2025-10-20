@@ -31,4 +31,12 @@ public abstract class Condition {
     public static ConditionSpot spot(String title) {
         return spot(Target.title(title));
     }
+
+    public static ConditionTwilight twilightLessThan(int amount) {
+        return new ConditionTwilight(ConditionTwilight.TwilightState.LESS_THAN, amount);
+    }
+
+    public static ConditionTwilight twilightGreaterThan(int amount) {
+        return new ConditionTwilight(ConditionTwilight.TwilightState.GREATER_THAN, amount);
+    }
 }
