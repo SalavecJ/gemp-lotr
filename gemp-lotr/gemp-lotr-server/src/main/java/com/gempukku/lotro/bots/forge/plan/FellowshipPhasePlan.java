@@ -45,25 +45,32 @@ public class FellowshipPhasePlan {
     }
 
     private void makePlan() {
-        addRevealOpponentsHandActions();
+        int numberOfActionsToTakeAtStart;
+        do {
+            numberOfActionsToTakeAtStart = actions.size();
 
-        addHealCompanionsByDiscardActions();
+            addRevealOpponentsHandActions();
 
-        addDiscardShadowCardsActions();
+            addHealCompanionsByDiscardActions();
 
-        addPlayCompanionFromHandActions();
-        addPlayAlliesFromHandActions();
-        addPlayPossessionsFromHandActions();
-        addPlayConditionsFromHandActions();
+            addDiscardShadowCardsActions();
 
-        addHealActions();
-        addRemoveBurdensActions();
-        addPlayFellowshipsNextSiteActions();
+            addPlayCompanionFromHandActions();
+            addPlayAlliesFromHandActions();
+            addPlayPossessionsFromHandActions();
+            addPlayConditionsFromHandActions();
 
-        addTakeIntoHandFromDiscardActions();
-        addUnclogHandActions();
+            addHealActions();
+            addRemoveBurdensActions();
+            addPlayFellowshipsNextSiteActions();
 
-        //TODO add another actions to action lists
+            addTakeIntoHandFromDiscardActions();
+            addUnclogHandActions();
+
+            //TODO add another actions to action lists
+
+        } while (numberOfActionsToTakeAtStart != actions.size());
+
 
         if (printDebugMessages) {
             System.out.println("Finally, will pass");
