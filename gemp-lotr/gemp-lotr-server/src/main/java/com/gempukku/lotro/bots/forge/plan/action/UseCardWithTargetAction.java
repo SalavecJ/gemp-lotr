@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class UseCardWithTargetAction extends ChooseCardAction {
+public class UseCardWithTargetAction extends UseCardAction {
     private final List<Targeting> targetings;
 
     public UseCardWithTargetAction(PhysicalCard toUse, List<Targeting> targetings) {

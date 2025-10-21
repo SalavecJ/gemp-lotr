@@ -9,6 +9,11 @@ public class PlayCardFromHandAction extends ChooseCardAction {
     }
 
     @Override
+    protected String actionPrefix() {
+        return "Play";
+    }
+
+    @Override
     public String toString() {
         return "Action: Play " + getCard().getBlueprint().getFullName() + " from hand";
     }

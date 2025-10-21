@@ -9,6 +9,11 @@ public class DiscardCompanionToHealAction extends ChooseCardAction {
     }
 
     @Override
+    protected String actionPrefix() {
+        return "Heal";
+    }
+
+    @Override
     public String toString() {
         return "Action: Discard " + getCard().getBlueprint().getFullName() + " from hand to heal companion in play";
     }

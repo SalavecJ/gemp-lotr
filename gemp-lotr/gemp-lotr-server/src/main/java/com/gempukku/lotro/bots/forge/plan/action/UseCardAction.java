@@ -9,6 +9,11 @@ public class UseCardAction extends ChooseCardAction {
     }
 
     @Override
+    protected String actionPrefix() {
+        return "Use";
+    }
+
+    @Override
     public String toString() {
         return "Action: Use " + getCard().getBlueprint().getFullName();
     }
