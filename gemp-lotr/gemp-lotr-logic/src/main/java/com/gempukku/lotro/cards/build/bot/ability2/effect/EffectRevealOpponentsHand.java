@@ -2,6 +2,8 @@ package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
+import java.util.stream.Collectors;
+
 public class EffectRevealOpponentsHand extends Effect{
 
     public EffectRevealOpponentsHand() {
@@ -22,5 +24,13 @@ public class EffectRevealOpponentsHand extends Effect{
         }
 
         return 0.6;
+    }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        String cardsInOpponentsHand = plannedBoardState.getHand(plannedBoardState.getOpponent(player)).stream()
+                .map(t -> t.getSelf().getBlueprint().getFullName())
+                .collect(Collectors.joining("; "));
+        return "reveal cards from opponent's hand: " + cardsInOpponentsHand;
     }
 }

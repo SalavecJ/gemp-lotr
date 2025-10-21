@@ -6,7 +6,9 @@ import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class EffectHeal extends EffectWithTarget {
     protected final Predicate<BotCard> targetPredicate;
@@ -40,6 +42,22 @@ public class EffectHeal extends EffectWithTarget {
 
     public int getAmount() {
         return amount;
+    }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+        if (targets.isEmpty()) {
+            return "attempt to heal a character, but none can be chosen";
+        } else {
+            String joined = targets.stream()
+                    .map(t -> t.getSelf().getBlueprint().getFullName())
+                    .collect(Collectors.joining("; "));
+            if (amount == 1) {
+                return "remove a wound from " + joined;
+            } else {
+                return "remove " + amount + "wounds from " + joined;
+            }
+        }
     }
 
     @Override

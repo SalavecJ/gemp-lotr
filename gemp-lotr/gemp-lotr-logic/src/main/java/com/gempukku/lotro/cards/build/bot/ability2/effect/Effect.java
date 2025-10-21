@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 public abstract class Effect {
     public abstract void resolve(String player, PlannedBoardState plannedBoardState);
     public abstract double getValueIfResolved(String player, PlannedBoardState plannedBoardState);
-
+    public abstract String toString(String player, PlannedBoardState plannedBoardState);
 
     public static EffectTakeIntoHandFromDiscard takeIntoHandFromDiscard(Predicate<BotCard> target) {
         return new EffectTakeIntoHandFromDiscard(target);

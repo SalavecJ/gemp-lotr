@@ -6,6 +6,7 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class EffectDiscardFromPlay extends EffectWithTarget{
     protected final Predicate<BotCard> targetPredicate;
@@ -29,6 +30,18 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     @Override
     public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
         throw new IllegalStateException("Choosing targets for Discard from Play effect not implemented");
+    }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+        if (targets.isEmpty()) {
+            return "discard cards from play, but none will be affected";
+        } else {
+            String joined = targets.stream()
+                    .map(t -> t.getSelf().getBlueprint().getFullName())
+                    .collect(Collectors.joining("; "));
+           return  "discard from play: " + joined;
+        }
     }
 
     @Override

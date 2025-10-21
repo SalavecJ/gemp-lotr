@@ -27,4 +27,14 @@ public class EffectRemoveBurden extends Effect{
         // removing my burdens good, removing opponent's burdens bad
         return player.equals(plannedBoardState.getCurrentFpPlayer()) ? totalValue : -totalValue;
     }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        int burdensPlaced = plannedBoardState.getBurdens();
+        int toBeRemoved = Math.min(amount, burdensPlaced);
+        if (toBeRemoved == 1) {
+            return "remove a burden";
+        }
+        return "remove " + toBeRemoved + " burdens";
+    }
 }

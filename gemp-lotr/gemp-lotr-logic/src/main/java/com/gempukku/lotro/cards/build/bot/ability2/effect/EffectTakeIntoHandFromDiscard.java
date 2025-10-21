@@ -7,6 +7,7 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
     protected final Predicate<BotCard> targetPredicate;
@@ -33,6 +34,18 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
         } else {
             potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(o2, plannedBoardState), getValueOfTarget(o1, plannedBoardState)));
             return potentialTargets.getFirst();
+        }
+    }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+        if (targets.isEmpty()) {
+            return "attempt to take card from discard, but none can be chosen";
+        } else {
+            String joined = targets.stream()
+                    .map(t -> t.getSelf().getBlueprint().getFullName())
+                    .collect(Collectors.joining("; "));
+            return  "take into hand card(s) from discard: " + joined;
         }
     }
 

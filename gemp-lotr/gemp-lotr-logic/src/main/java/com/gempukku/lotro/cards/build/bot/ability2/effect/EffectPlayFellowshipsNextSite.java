@@ -3,7 +3,7 @@ package com.gempukku.lotro.cards.build.bot.ability2.effect;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
-public class EffectPlayFellowshipsNextSite extends Effect{
+public class EffectPlayFellowshipsNextSite extends Effect {
 
     public EffectPlayFellowshipsNextSite() {
 
@@ -51,6 +51,22 @@ public class EffectPlayFellowshipsNextSite extends Effect{
         } else {
             // next site not in play yet, or it's opponent's site
             return 2.0;
+        }
+    }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        BotCard nextSiteInPlay = getNextSiteInPlay(plannedBoardState);
+        BotCard nextSiteInAdventureDeck = getNextSiteInAdventureDeck(player, plannedBoardState);
+        if (plannedBoardState.getCurrentPlayerPosition() == 9) {
+            return "play fellowship's next site, but will have no effect";
+        } else if (nextSiteInPlay == null) {
+            return "play fellowship's next site: " + nextSiteInAdventureDeck.getSelf().getBlueprint().getFullName();
+        } else if (nextSiteInAdventureDeck != null) {
+            return "replace fellowship's next site, " + nextSiteInPlay.getSelf().getBlueprint().getFullName() +
+                    ", for "+ nextSiteInAdventureDeck.getSelf().getBlueprint().getFullName();
+        } else {
+            return "play fellowship's next site, but will have no effect";
         }
     }
 }
