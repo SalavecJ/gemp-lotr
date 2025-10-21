@@ -15,19 +15,19 @@ public class EffectPlayFellowshipsNextSite extends Effect{
         return plannedBoardState.getSitesInPlay().stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
     }
 
-    public BotCard getNextSiteInAdventureDeck(BotCard source, PlannedBoardState plannedBoardState) {
+    public BotCard getNextSiteInAdventureDeck(String player, PlannedBoardState plannedBoardState) {
         int current = plannedBoardState.getCurrentPlayerPosition();
         int next = current + 1;
-        return plannedBoardState.getAdventureDeck(source.getSelf().getOwner()).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+        return plannedBoardState.getAdventureDeck(player).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        plannedBoardState.playFellowshipsNextSite(source.getSelf().getOwner());
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
+        plannedBoardState.playFellowshipsNextSite(player);
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
         int current = plannedBoardState.getCurrentPlayerPosition();
         int next = current + 1;
 
@@ -37,9 +37,9 @@ public class EffectPlayFellowshipsNextSite extends Effect{
         }
 
         BotCard nextSite = plannedBoardState.getSitesInPlay().stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
-        BotCard nextSiteInAdventureDeck = plannedBoardState.getAdventureDeck(source.getSelf().getOwner()).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
+        BotCard nextSiteInAdventureDeck = plannedBoardState.getAdventureDeck(player).stream().filter(botCard -> botCard.getSelf().getBlueprint().getSiteNumber() == next).findFirst().orElse(null);
 
-        if (nextSite != null && nextSite.getSelf().getOwner().equals(source.getSelf().getOwner())) {
+        if (nextSite != null && nextSite.getSelf().getOwner().equals(player)) {
             // next site already mine
             return 0.0;
         } else if (nextSite != null && nextSiteInAdventureDeck != null && nextSite.getSelf().getBlueprint().getTitle().equals(nextSiteInAdventureDeck.getSelf().getBlueprint().getTitle())) {

@@ -18,8 +18,11 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList());
+    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getActiveCards().stream()
+                .filter(targetPredicate)
+                .filter(botCard -> plannedBoardState.getWounds(botCard) > 0)
+                .toList());
     }
 
     @Override
@@ -28,11 +31,11 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState) {
-        if (getPotentialTargets(source, plannedBoardState).isEmpty()) {
+    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
+        if (getPotentialTargets(player, plannedBoardState).isEmpty()) {
             return null;
         }
-        return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(source, plannedBoardState), false);
+        return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(player, plannedBoardState), false);
     }
 
     public int getAmount() {
@@ -40,15 +43,15 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(source, plannedBoardState);
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
+        BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
         plannedBoardState.heal(target, amount);
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard toBeHealed = chooseTarget(source, plannedBoardState);
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+        BotCard toBeHealed = chooseTarget(player, plannedBoardState);
         if (toBeHealed == null) return 0.0;
 
         double value = Math.min(this.amount, plannedBoardState.getWounds(toBeHealed));
@@ -62,6 +65,6 @@ public class EffectHeal extends EffectWithTarget {
             value += 0.5;
         }
         // healing my own cards is positive value, opposite for opponent's cards
-        return toBeHealed.getSelf().getOwner().equals(source.getSelf().getOwner()) ? value : -value;
+        return toBeHealed.getSelf().getOwner().equals(player) ? value : -value;
     }
 }

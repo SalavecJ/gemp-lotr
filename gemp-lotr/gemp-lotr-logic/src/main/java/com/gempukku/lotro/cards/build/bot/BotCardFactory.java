@@ -259,7 +259,7 @@ public class BotCardFactory {
                     if (effectClass.equals(EffectTakeIntoHandFromDiscard.class)) {
                         return new ActivatedAbilityBuilder()
                                 .phase(Phase.FELLOWSHIP)
-                                .cost(Cost.exertSelf())
+                                .cost(Cost.exertSelf(this))
                                 .effect(Effect.takeIntoHandFromDiscard(Target.and(
                                         Target.culture(Culture.GANDALF),
                                         Target.cardType(CardType.EVENT)
@@ -451,13 +451,13 @@ public class BotCardFactory {
                     if (effectClass.equals(EffectHeal.class)) {
                         return new ActivatedAbilityBuilder()
                                 .phase(Phase.FELLOWSHIP)
-                                .cost(Cost.discardSelf())
+                                .cost(Cost.discardSelf(this))
                                 .effect(Effect.heal(CardType.COMPANION))
                                 .build();
                     } else if (effectClass.equals(EffectDiscardFromPlay.class)) {
                         return new ActivatedAbilityBuilder()
                                 .phase(Phase.FELLOWSHIP)
-                                .cost(Cost.discardSelf())
+                                .cost(Cost.discardSelf(this))
                                 .effect(Effect.discardFromPlay(Target.and(Target.and(
                                         Target.side(Side.SHADOW),
                                         Target.cardType(CardType.CONDITION)),
@@ -1095,7 +1095,7 @@ public class BotCardFactory {
 
                 @Override
                 public Condition getCondition() {
-                    return Condition.spotInDiscard(Culture.MORIA, Race.ORC, self.getOwner());
+                    return Condition.spotInDiscard(Culture.MORIA, Race.ORC);
                 }
 
                 @Override
@@ -1404,7 +1404,7 @@ public class BotCardFactory {
                     if (effectClass.equals(EffectHeal.class)) {
                         return new ActivatedAbilityBuilder()
                                 .phase(Phase.FELLOWSHIP)
-                                .cost(Cost.exertSelf())
+                                .cost(Cost.exertSelf(this))
                                 .effect(Effect.heal("Sam"))
                                 .build();
                     } else {
@@ -1439,7 +1439,7 @@ public class BotCardFactory {
                     if (effectClass.equals(EffectRemoveBurden.class)) {
                         return new ActivatedAbilityBuilder()
                                 .phase(Phase.FELLOWSHIP)
-                                .cost(Cost.exertSelf())
+                                .cost(Cost.exertSelf(this))
                                 .effect(Effect.removeBurden())
                                 .build();
                     } else {
@@ -1703,6 +1703,19 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends Effect> effectClass) {
+                    if (effectClass.equals(EffectRevealOpponentsHand.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exert(Race.ELF))
+                                .effect(Effect.revealOpponentsHand())
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_352
@@ -1758,6 +1771,19 @@ public class BotCardFactory {
                                     ))
                                     .build()
                     );
+                }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends Effect> effectClass) {
+                    if (effectClass.equals(EffectHeal.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.discardFromHand(Target.culture(Culture.GONDOR)))
+                                .effect(Effect.heal(Target.culture(Culture.GONDOR).and(Target.cardType(CardType.COMPANION))))
+                                .build();
+                    } else {
+                        return null;
+                    }
                 }
             };
         }

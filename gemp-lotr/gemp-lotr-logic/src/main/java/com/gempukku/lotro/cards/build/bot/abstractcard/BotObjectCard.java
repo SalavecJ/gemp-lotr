@@ -20,7 +20,7 @@ public abstract class BotObjectCard extends BotCard {
                 && !plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState))
                 && !isValidPlayableBearerInHand(plannedBoardState))
             return false;
-        return (getCondition() == null || getCondition().isOk(this, plannedBoardState));
+        return (getCondition() == null || getCondition().isOk(this.getSelf().getOwner(), plannedBoardState));
     }
 
     /**

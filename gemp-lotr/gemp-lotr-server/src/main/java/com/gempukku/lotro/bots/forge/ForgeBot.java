@@ -201,6 +201,28 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
             throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
         }
 
+        if (DecisionClassifier.isArbitraryCardTargetingDecision(awaitingDecision)) {
+            List<PhysicalCard> options = new ArrayList<>();
+            int sourceId = Integer.parseInt(awaitingDecision.getDecisionParameters().get("source")[0]);
+            PhysicalCard source = game.getGameState().getPhysicalCard(sourceId);
+            List<String> cardIds = Arrays.stream(awaitingDecision.getDecisionParameters().get("physicalId")).toList();
+            for (String cardId : cardIds) {
+                options.add(game.getGameState().getPhysicalCard(Integer.parseInt(cardId)));
+            }
+
+            List<PhysicalCard> target = brains.chooseTargetForEffect(game, options, source, awaitingDecision);
+
+            return String.join(",", target.stream().map(card -> {
+                List<String> tempIds = Arrays.stream(awaitingDecision.getDecisionParameters().get("cardId")).toList();
+                for (int i = 0; i < cardIds.size(); i++) {
+                    if (Integer.parseInt(cardIds.get(i)) == card.getCardId()) {
+                       return tempIds.get(i);
+                    }
+                }
+                throw new IllegalStateException("Cannot find chosen card " + card.getCardId() + " in decision options: " + awaitingDecision.toJson().toString());
+            }).toList());
+        }
+
         throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
     }
 

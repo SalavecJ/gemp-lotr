@@ -7,15 +7,13 @@ import java.util.function.Predicate;
 
 public class ConditionSpotInDiscard extends Condition {
     protected final Predicate<BotCard> targetPredicate;
-    protected final String player;
 
-    public ConditionSpotInDiscard(Predicate<BotCard> targetPredicate, String player) {
+    public ConditionSpotInDiscard(Predicate<BotCard> targetPredicate) {
         this.targetPredicate = targetPredicate;
-        this.player = player;
     }
 
     @Override
-    public boolean isOk(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean isOk(String player, PlannedBoardState plannedBoardState) {
         return plannedBoardState.getDiscard(player).stream().anyMatch(targetPredicate);
     }
 }

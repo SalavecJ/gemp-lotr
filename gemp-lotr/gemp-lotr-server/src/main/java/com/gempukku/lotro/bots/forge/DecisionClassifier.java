@@ -114,6 +114,11 @@ public class DecisionClassifier {
                 && Integer.parseInt(awaitingDecision.getDecisionParameters().get(("source"))[0]) != -1;
     }
 
+    public static boolean isArbitraryCardTargetingDecision(AwaitingDecision awaitingDecision) {
+        return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.ARBITRARY_CARDS)
+                && Integer.parseInt(awaitingDecision.getDecisionParameters().get(("source"))[0]) != -1;
+    }
+
     public static boolean isCardMultipleChoiceDecision(AwaitingDecision awaitingDecision) {
         return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.MULTIPLE_CHOICE)
                 && Integer.parseInt(awaitingDecision.getDecisionParameters().get(("source"))[0]) != -1;
@@ -123,4 +128,5 @@ public class DecisionClassifier {
         return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.INTEGER)
                 && Integer.parseInt(awaitingDecision.getDecisionParameters().get(("source"))[0]) != -1;
     }
+
 }

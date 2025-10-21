@@ -12,7 +12,7 @@ public abstract class BotCharacterCard extends BotCard {
     @Override
     public boolean canBePlayedNoMatterThePhase(PlannedBoardState plannedBoardState) {
         if (!uniqueRequirementOk(plannedBoardState)) return false;
-        return (getCondition() == null || getCondition().isOk(this, plannedBoardState));
+        return (getCondition() == null || getCondition().isOk(this.getSelf().getOwner(), plannedBoardState));
     }
 
     /**

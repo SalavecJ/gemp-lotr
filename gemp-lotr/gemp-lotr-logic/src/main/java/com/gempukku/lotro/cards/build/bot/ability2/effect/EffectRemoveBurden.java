@@ -1,6 +1,5 @@
 package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class EffectRemoveBurden extends Effect{
@@ -15,17 +14,17 @@ public class EffectRemoveBurden extends Effect{
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
         plannedBoardState.removeBurden(amount);
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
         int burdensPlaced = plannedBoardState.getBurdens();
         int toBeRemoved = Math.min(amount, burdensPlaced);
         double valueOfOneRemovedBurden = 0.9 + ((double) burdensPlaced / 10); // more burdens placed, better to remove
         double totalValue = toBeRemoved * valueOfOneRemovedBurden;
         // removing my burdens good, removing opponent's burdens bad
-        return source.getSelf().getOwner().equals(plannedBoardState.getCurrentFpPlayer()) ? totalValue : -totalValue;
+        return player.equals(plannedBoardState.getCurrentFpPlayer()) ? totalValue : -totalValue;
     }
 }

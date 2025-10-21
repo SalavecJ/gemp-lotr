@@ -17,7 +17,7 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
+    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
         return new ArrayList<>(plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList());
     }
 
@@ -27,13 +27,13 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState) {
+    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
         throw new IllegalStateException("Choosing targets for Discard from Play effect not implemented");
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(source, plannedBoardState);
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
+        List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
         if (potentialTargets.isEmpty()) {
             return;
         } else if (potentialTargets.size() == 1) {
@@ -48,20 +48,20 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(source, plannedBoardState);
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+        List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
         if (discardAll) {
             double value = 0.0;
             for (BotCard potentialTarget : potentialTargets) {
                 // discarding enemy cards good, discarding own cards bad
-                value += potentialTarget.getSelf().getOwner().equals(source.getSelf().getOwner()) ? -1.1: 1.1;
+                value += potentialTarget.getSelf().getOwner().equals(player) ? -1.1: 1.1;
             }
             return value;
         } else {
             if (potentialTargets.isEmpty()) {
                 return 0;
             } else if (potentialTargets.size() == 1) {
-                return potentialTargets.getFirst().getSelf().getOwner().equals(source.getSelf().getOwner()) ? -1.1: 1.1;
+                return potentialTargets.getFirst().getSelf().getOwner().equals(player) ? -1.1: 1.1;
             } else {
                 throw new IllegalStateException("Cannot resolve discard value if number of potential targets is greater than 1");
             }

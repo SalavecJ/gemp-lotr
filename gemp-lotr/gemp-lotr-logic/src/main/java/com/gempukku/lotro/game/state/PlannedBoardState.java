@@ -126,9 +126,15 @@ public class PlannedBoardState {
         discards.get(botCard.getSelf().getOwner()).remove(botCard);
         hands.get(botCard.getSelf().getOwner()).add(botCard);
     }
+
     public void moveFromHandToBottomOfDeck(BotCard botCard) {
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         decks.get(botCard.getSelf().getOwner()).addLast(botCard);
+    }
+
+    public void discardFromHand(BotCard botCard) {
+        hands.get(botCard.getSelf().getOwner()).remove(botCard);
+        discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
     public void removeBurden(int amount) {
@@ -250,7 +256,7 @@ public class PlannedBoardState {
             twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
         }
 
-        botCard.getEventAbility().resolveAbility(botCard, this);
+        botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
 
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
@@ -302,6 +308,15 @@ public class PlannedBoardState {
 
     public int getCurrentPlayerPosition() {
         return playerPosition.get(currentPlayer);
+    }
+
+    public BotCard getCurrentSite() {
+        for (BotCard inPlaySite : inPlaySites) {
+            if (inPlaySite.getSelf().getBlueprint().getSiteNumber() == getCurrentPlayerPosition()) {
+                return inPlaySite;
+            }
+        }
+        throw new IllegalStateException("Current site could not be found");
     }
 
     public int getTwilight() {

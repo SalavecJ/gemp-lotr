@@ -3,7 +3,6 @@ package com.gempukku.lotro.cards.build.bot.ability2;
 import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
@@ -34,27 +33,27 @@ public class ActivatedAbility implements Ability {
     }
 
     @Override
-    public void resolveAbility(BotCard source, PlannedBoardState plannedBoardState) {
+    public void resolveAbility(String player, PlannedBoardState plannedBoardState) {
         if (cost != null)
-            cost.pay(source, plannedBoardState);
-        effect.resolve(source, plannedBoardState);
+            cost.pay(player, plannedBoardState);
+        effect.resolve(player, plannedBoardState);
     }
 
     @Override
-    public boolean conditionOk(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean conditionOk(String player, PlannedBoardState plannedBoardState) {
         if (condition == null) return true;
-        return condition.isOk(source, plannedBoardState);
+        return condition.isOk(player, plannedBoardState);
     }
 
     @Override
-    public boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
         if (cost == null) return true;
-        return cost.canPayCost(source, plannedBoardState);
+        return cost.canPayCost(player, plannedBoardState);
     }
 
     @Override
-    public double getValueIfUsed(BotCard source, PlannedBoardState plannedBoardState) {
-        double costValue = cost != null ? cost.getValueIfPayed(source, plannedBoardState) : 0.0;
-        return effect.getValueIfResolved(source, plannedBoardState) + costValue;
+    public double getValueIfUsed(String player, PlannedBoardState plannedBoardState) {
+        double costValue = cost != null ? cost.getValueIfPayed(player, plannedBoardState) : 0.0;
+        return effect.getValueIfResolved(player, plannedBoardState) + costValue;
     }
 }

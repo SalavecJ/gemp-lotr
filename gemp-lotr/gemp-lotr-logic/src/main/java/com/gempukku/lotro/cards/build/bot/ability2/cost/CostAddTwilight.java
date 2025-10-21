@@ -1,7 +1,5 @@
 package com.gempukku.lotro.cards.build.bot.ability2.cost;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class CostAddTwilight extends Cost {
@@ -12,19 +10,19 @@ public class CostAddTwilight extends Cost {
     }
 
     @Override
-    public void pay(BotCard source, PlannedBoardState plannedBoardState) {
+    public void pay(String player, PlannedBoardState plannedBoardState) {
         plannedBoardState.addTwilight(amount);
     }
 
     @Override
-    public boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
         return true;
     }
 
     @Override
-    public double getValueIfPayed(BotCard source, PlannedBoardState plannedBoardState) {
+    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
         double returnValue = (double) amount / 10;
-        if (Side.FREE_PEOPLE.equals(source.getSelf().getBlueprint().getSide())) {
+        if (player.equals(plannedBoardState.getCurrentFpPlayer())) {
             returnValue *= -1;
         }
 

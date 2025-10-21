@@ -31,7 +31,8 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
         _source = source;
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
-        setParam("cardId", getCardIds(physicalCards));
+        setParam("cardId", getTempCardIds(physicalCards));
+        setParam("physicalId", getPhysicalCardIds(physicalCards));
         setParam("blueprintId", getBlueprintIds(physicalCards));
         setParam("selectable", getSelectable(physicalCards, selectable));
         setParam("source", String.valueOf(source));
@@ -63,10 +64,20 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
         return result;
     }
 
-    private String[] getCardIds(Collection<? extends PhysicalCard> physicalCards) {
+    private String[] getTempCardIds(Collection<? extends PhysicalCard> physicalCards) {
         String[] result = new String[physicalCards.size()];
         for (int i = 0; i < physicalCards.size(); i++)
             result[i] = "temp" + i;
+        return result;
+    }
+
+    private String[] getPhysicalCardIds(Collection<? extends PhysicalCard> physicalCards) {
+        String[] result = new String[physicalCards.size()];
+        int i = 0;
+        for (PhysicalCard physicalCard : physicalCards) {
+            result[i] = String.valueOf(physicalCard.getCardId());
+            i++;
+        }
         return result;
     }
 
@@ -123,7 +134,8 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
         obj.put("text", getText());
         obj.put("min", _minimum);
         obj.put("max", _maximum);
-        obj.put("physicalCards", getDecisionParameters().get("cardId"));
+        obj.put("tempCards", getDecisionParameters().get("cardId"));
+        obj.put("physicalCards", getDecisionParameters().get("physicalId"));
         obj.put("blueprintIds", getDecisionParameters().get("blueprintId"));
         obj.put("selectable", getDecisionParameters().get("selectable"));
         obj.put("source", _source);
@@ -131,7 +143,7 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
     }
 
     public static ArbitraryCardsSelectionDecision fromJson(JSONObject obj) {
-        return new ArbitraryCardsSelectionDecision(obj.getInteger("id"), obj.getString("text"), Arrays.asList(obj.getObject("physicalCards", String[].class)),
+        return new ArbitraryCardsSelectionDecision(obj.getInteger("id"), obj.getString("text"), Arrays.asList(obj.getObject("tempCards", String[].class)),
                 Arrays.asList(obj.getObject("blueprintIds", String[].class)), Arrays.asList(obj.getObject("selectable", String[].class)),
                 obj.getInteger("min"), obj.getInteger("max"), obj.getInteger("source")) {
             @Override

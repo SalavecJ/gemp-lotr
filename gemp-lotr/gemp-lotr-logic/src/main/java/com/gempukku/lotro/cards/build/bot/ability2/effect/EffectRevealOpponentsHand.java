@@ -1,6 +1,5 @@
 package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class EffectRevealOpponentsHand extends Effect{
@@ -10,18 +9,18 @@ public class EffectRevealOpponentsHand extends Effect{
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        String opponent =  plannedBoardState.getOpponent(source.getSelf().getOwner());
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
+        String opponent =  plannedBoardState.getOpponent(player);
         plannedBoardState.revealHand(opponent);
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        String opponent =  plannedBoardState.getOpponent(source.getSelf().getOwner());
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+        String opponent =  plannedBoardState.getOpponent(player);
         if (plannedBoardState.allCardsInHandRevealed(opponent)) {
             return 0.0;
         }
 
-        return 0.3;
+        return 0.6;
     }
 }

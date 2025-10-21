@@ -8,8 +8,8 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.function.Predicate;
 
 public abstract class Effect {
-    public abstract void resolve(BotCard source, PlannedBoardState plannedBoardState);
-    public abstract double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState);
+    public abstract void resolve(String player, PlannedBoardState plannedBoardState);
+    public abstract double getValueIfResolved(String player, PlannedBoardState plannedBoardState);
 
 
     public static EffectTakeIntoHandFromDiscard takeIntoHandFromDiscard(Predicate<BotCard> target) {

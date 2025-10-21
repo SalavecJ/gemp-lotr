@@ -4,28 +4,29 @@ import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class CostDiscardSelf extends Cost {
+    private final BotCard self;
 
-    public CostDiscardSelf() {
-
+    public CostDiscardSelf(BotCard self) {
+        this.self = self;
     }
 
     @Override
-    public void pay(BotCard source, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(source, plannedBoardState)) {
+    public void pay(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        plannedBoardState.discardFromPlay(source);
+        plannedBoardState.discardFromPlay(self);
     }
 
     @Override
-    public boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getActiveCards().contains(source);
+    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
+        return plannedBoardState.getActiveCards().contains(self);
     }
 
     @Override
-    public double getValueIfPayed(BotCard source, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(source, plannedBoardState)) {
+    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 

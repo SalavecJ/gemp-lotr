@@ -6,6 +6,6 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.ArrayList;
 
 public abstract class CostWithTarget extends Cost {
-    public abstract ArrayList<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState);
-    public abstract BotCard chooseTarget(PlannedBoardState plannedBoardState);
+    public abstract ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState);
+    public abstract BotCard chooseTarget(String player, PlannedBoardState plannedBoardState);
 }

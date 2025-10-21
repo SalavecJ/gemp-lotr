@@ -1,6 +1,5 @@
 package com.gempukku.lotro.cards.build.bot.ability2.condition;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class ConditionTwilight extends Condition {
@@ -17,7 +16,7 @@ public class ConditionTwilight extends Condition {
     }
 
     @Override
-    public boolean isOk(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean isOk(String player, PlannedBoardState plannedBoardState) {
         if (twilightState.equals(TwilightState.LESS_THAN)) {
             return plannedBoardState.getTwilight() < amount;
         } else if (twilightState.equals(TwilightState.GREATER_THAN)) {

@@ -13,7 +13,7 @@ public class ConditionSpot extends Condition {
     }
 
     @Override
-    public boolean isOk(BotCard source, PlannedBoardState plannedBoardState) {
+    public boolean isOk(String player, PlannedBoardState plannedBoardState) {
         return plannedBoardState.getActiveCards().stream().anyMatch(targetPredicate);
     }
 }

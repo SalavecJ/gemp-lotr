@@ -10,14 +10,14 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 import java.util.function.Predicate;
 
 public abstract class Condition {
-    public abstract boolean isOk(BotCard source, PlannedBoardState plannedBoardState);
+    public abstract boolean isOk(String player, PlannedBoardState plannedBoardState);
 
-    public static ConditionSpotInDiscard spotInDiscard(Predicate<BotCard> target, String player) {
-        return new ConditionSpotInDiscard(target, player);
+    public static ConditionSpotInDiscard spotInDiscard(Predicate<BotCard> target) {
+        return new ConditionSpotInDiscard(target);
     }
 
-    public static ConditionSpotInDiscard spotInDiscard(Culture culture, Race race, String player) {
-        return spotInDiscard(Target.and(Target.culture(culture), Target.race(race)), player);
+    public static ConditionSpotInDiscard spotInDiscard(Culture culture, Race race) {
+        return spotInDiscard(Target.and(Target.culture(culture), Target.race(race)));
     }
 
     public static ConditionSpot spot(Predicate<BotCard> target) {

@@ -1,4 +1,4 @@
-package com.gempukku.lotro.cards.build.bot.ability2.effect;
+package com.gempukku.lotro.cards.build.bot.ability2.cost;
 
 import com.gempukku.lotro.cards.build.bot.ability2.util.HandValueUtil;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
@@ -8,21 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
+public class CostDiscardCardFromHand extends CostWithTarget {
     protected final Predicate<BotCard> targetPredicate;
 
-    public EffectTakeIntoHandFromDiscard(Predicate<BotCard> targetPredicate) {
+    public CostDiscardCardFromHand(Predicate<BotCard> targetPredicate) {
         this.targetPredicate = targetPredicate;
     }
 
     @Override
     public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getDiscard(player).stream().filter(targetPredicate).toList());
-    }
-
-    @Override
-    public boolean affectsAll() {
-        return false;
+        return new ArrayList<>(plannedBoardState.getHand(player).stream().filter(targetPredicate).toList());
     }
 
     @Override
@@ -37,14 +32,22 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
     }
 
     @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
+    public void pay(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
         BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
-        plannedBoardState.moveFromDiscardIntoHand(target);
+        plannedBoardState.discardFromHand(target);
     }
 
     @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
+        return !getPotentialTargets(player, plannedBoardState).isEmpty();
+    }
+
+    @Override
+    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
         return getValueOfTarget(target, plannedBoardState);
     }
@@ -53,6 +56,11 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
         if (target == null) {
             return 0;
         }
-        return HandValueUtil.cardValueInHand(target, plannedBoardState);
+        double targetValue = HandValueUtil.cardValueInHand(target, plannedBoardState);
+        if (targetValue > 0) {
+            return -targetValue;
+        } else {
+            return 0.5;
+        }
     }
 }

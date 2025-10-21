@@ -4,6 +4,8 @@ import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
+import com.gempukku.lotro.cards.build.bot.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.*;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.CardType;
@@ -13,12 +15,14 @@ import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FellowshipPhasePlan {
     private final int siteNumber;
@@ -60,9 +64,9 @@ public class FellowshipPhasePlan {
             addPlayPossessionsFromHandActions();
             addPlayConditionsFromHandActions();
 
-            addHealActions();
             addRemoveBurdensActions();
             addPlayFellowshipsNextSiteActions();
+            addHealActions();
 
             addTakeIntoHandFromDiscardActions();
             addUnclogHandActions();
@@ -127,7 +131,7 @@ public class FellowshipPhasePlan {
                 EffectPlayFellowshipsNextSite.class,
                 (eventCard, botCards) -> {
                     BotCard nextSiteInPlay = ((EffectPlayFellowshipsNextSite) eventCard.getEventAbility().getEffect()).getNextSiteInPlay(plannedBoardState);
-                    BotCard nextSiteInAdventureDeck = ((EffectPlayFellowshipsNextSite) eventCard.getEventAbility().getEffect()).getNextSiteInAdventureDeck(eventCard, plannedBoardState);
+                    BotCard nextSiteInAdventureDeck = ((EffectPlayFellowshipsNextSite) eventCard.getEventAbility().getEffect()).getNextSiteInAdventureDeck(playerName, plannedBoardState);
                     if (nextSiteInPlay == null) {
                         System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() +
                                 " from hand to play fellowship's next site: " + nextSiteInAdventureDeck.getSelf().getBlueprint().getFullName());
@@ -158,9 +162,13 @@ public class FellowshipPhasePlan {
                 });
 
 
-        throwExceptionIfActivatedAbilityWithEffectIsFound(
-                EffectRevealOpponentsHand.class,
-                botCard -> true);
+        activateAbilitiesWithEffect(EffectRevealOpponentsHand.class,
+                (botCard, botCards) -> {
+                    String cardsInOpponentsHand = plannedBoardState.getHand(plannedBoardState.getOpponent(playerName)).stream()
+                            .map(t -> t.getSelf().getBlueprint().getFullName())
+                            .collect(Collectors.joining("; "));
+                    System.out.println("Will use ability of " + botCard.getSelf().getBlueprint().getFullName() + " to reveal opponent's hand: " + cardsInOpponentsHand);
+                });
     }
 
     private void addHealActions() {
@@ -203,7 +211,7 @@ public class FellowshipPhasePlan {
 
         playBestEventsWithEffect(
                 EffectDiscardFromPlay.class,
-                botCard -> ((EffectDiscardFromPlay) botCard.getEventAbility().getEffect()).getPotentialTargets(botCard, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())),
+                botCard -> ((EffectDiscardFromPlay) botCard.getEventAbility().getEffect()).getPotentialTargets(playerName, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())),
                 (eventCard, targets) -> {
                     if (targets.isEmpty()) {
                         System.out.println("Will play event " + eventCard.getSelf().getBlueprint().getFullName() + " from hand to discard nothing");
@@ -217,7 +225,7 @@ public class FellowshipPhasePlan {
 
         throwExceptionIfActivatedAbilityWithEffectIsFound(
                 EffectDiscardFromPlay.class,
-                botCard -> ((EffectDiscardFromPlay) botCard.getActivatedAbility(EffectDiscardFromPlay.class).getEffect()).getPotentialTargets(botCard, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())));
+                botCard -> ((EffectDiscardFromPlay) botCard.getActivatedAbility(EffectDiscardFromPlay.class).getEffect()).getPotentialTargets(playerName, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())));
     }
 
     private void throwExceptionIfEventWithEffectIsFound(Class<? extends Effect> effectClass, Predicate<BotEventCard> extraFilter) {
@@ -238,14 +246,14 @@ public class FellowshipPhasePlan {
         while (true) {
             List<BotEventCard> fellowshipEvents = new ArrayList<>(BoardStateUtil.getPlayableFellowshipEventsWithEffect(plannedBoardState, playerName, effectClass).stream().filter(extraFilter).toList());
             if (fellowshipEvents.isEmpty()) break;
-            fellowshipEvents.sort((o1, o2) -> Double.compare(o1.getEventAbility().getValueIfUsed(o1, plannedBoardState), o2.getEventAbility().getValueIfUsed(o2, plannedBoardState)));
+            fellowshipEvents.sort((o1, o2) -> Double.compare(o1.getEventAbility().getValueIfUsed(playerName, plannedBoardState), o2.getEventAbility().getValueIfUsed(playerName, plannedBoardState)));
             BotEventCard topEvent = fellowshipEvents.getFirst();
-            if (topEvent.getEventAbility().getValueIfUsed(topEvent, plannedBoardState) < 0.0) {
+            if (topEvent.getEventAbility().getValueIfUsed(playerName, plannedBoardState) < 0.0) {
                 break;
             } else {
                 List<BotCard> targets = new ArrayList<>();
                 if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
-                    List<BotCard> potentialTargets = ((EffectWithTarget) topEvent.getEventAbility().getEffect()).getPotentialTargets(topEvent, plannedBoardState);
+                    List<BotCard> potentialTargets = ((EffectWithTarget) topEvent.getEventAbility().getEffect()).getPotentialTargets(playerName, plannedBoardState);
                     if (((EffectWithTarget) topEvent.getEventAbility().getEffect()).affectsAll() || potentialTargets.size() <= 1) {
                         targets.addAll(potentialTargets);
                     } else {
@@ -263,13 +271,13 @@ public class FellowshipPhasePlan {
     }
 
     private void throwExceptionIfActivatedAbilityWithEffectIsFound(Class<? extends Effect> effectClass, Predicate<BotCard> extraFilter) {
-        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
+        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
                 .filter(botCard -> {
                     ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                     if (activatedAbility == null) return false;
                     if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
-                    if (!activatedAbility.conditionOk(botCard, plannedBoardState)) return false;
-                    if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
+                    if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
+                    if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
                     return true;
                 })
                 .filter(extraFilter)
@@ -288,13 +296,13 @@ public class FellowshipPhasePlan {
 
     private void activateAbilitiesWithEffect(Class<? extends Effect> effectClass, Predicate<BotCard> extraFilter, BiConsumer<BotCard, List<BotCard>> printer) {
         while (true) {
-            List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(plannedBoardState.getFpCardsInPlay(playerName).stream()
+            List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
                     .filter(botCard -> {
                         ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                         if (activatedAbility == null) return false;
                         if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
-                        if (!activatedAbility.conditionOk(botCard, plannedBoardState)) return false;
-                        if (!activatedAbility.canPayCost(botCard, plannedBoardState)) return false;
+                        if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
+                        if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
                         return true;
                     })
                     .filter(extraFilter)
@@ -304,7 +312,7 @@ public class FellowshipPhasePlan {
             BotCard chosenCard = null;
 
             for (BotCard botCard : inPlayWithActivatedAbility) {
-                double value = botCard.getActivatedAbility(effectClass).getValueIfUsed(botCard, plannedBoardState);
+                double value = botCard.getActivatedAbility(effectClass).getValueIfUsed(playerName, plannedBoardState);
                 if (value > maxValue) {
                     maxValue = value;
                     chosenCard = botCard;
@@ -314,35 +322,56 @@ public class FellowshipPhasePlan {
             if (chosenCard == null) {
                 break;
             } else {
+                UseCardWithTargetAction.Targeting effectTargeting = null;
+                UseCardWithTargetAction.Targeting costTargeting = null;
                 if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
                     List<BotCard> targets = new ArrayList<>();
-                    List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).getPotentialTargets(chosenCard, plannedBoardState);
+                    List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).getPotentialTargets(playerName, plannedBoardState);
                     if (((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).affectsAll() || potentialTargets.size() <= 1) {
                         targets.addAll(potentialTargets);
                     } else {
-                       targets.add(((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).chooseTarget(chosenCard, plannedBoardState));
+                       targets.add(((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).chooseTarget(playerName, plannedBoardState));
                     }
 
                     if (printDebugMessages) {
                         printer.accept(chosenCard, targets);
                     }
                     if (targets.isEmpty()) {
-                        actions.add(new UseCardAction(chosenCard.getSelf()));
+
                     } else if (targets.size() == 1) {
-                        actions.add(new UseCardWithTargetAction(
-                                chosenCard.getSelf(),
-                                targets.getFirst().getSelf()));
+                        effectTargeting = new UseCardWithTargetAction.Targeting(targets.getFirst(), potentialTargets);
                     } else {
                         throw new IllegalStateException("Cannot resolve activated ability effect if number of targets greater than 1");
                     }
-                    chosenCard.getActivatedAbility(effectClass).resolveAbility(chosenCard, plannedBoardState);
                 } else {
                     if (printDebugMessages) {
                         printer.accept(chosenCard, List.of());
                     }
-                    actions.add(new UseCardAction(chosenCard.getSelf()));
-                    chosenCard.getActivatedAbility(effectClass).resolveAbility(chosenCard, plannedBoardState);
                 }
+
+                Cost cost = chosenCard.getActivatedAbility(effectClass).getCost();
+                if (cost instanceof CostWithTarget costWithTarget) {
+                    List<BotCard> potentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
+                    BotCard target = costWithTarget.chooseTarget(playerName, plannedBoardState);
+                    costTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
+                }
+
+                List<UseCardWithTargetAction.Targeting> targetings = new ArrayList<>();
+                if (effectTargeting != null) {
+                    targetings.add(effectTargeting);
+                }
+                if (costTargeting != null) {
+                    targetings.add(costTargeting);
+                }
+
+                if (effectTargeting == null && costTargeting == null) {
+                    actions.add(new UseCardAction(chosenCard.getSelf()));
+                } else {
+                    actions.add(new UseCardWithTargetAction(
+                            chosenCard.getSelf(),
+                            targetings));
+                }
+                chosenCard.getActivatedAbility(effectClass).resolveAbility(playerName, plannedBoardState);
             }
         }
     }
@@ -585,10 +614,21 @@ public class FellowshipPhasePlan {
             }
             return List.of(actionWithTarget.getTarget());
         } else if (action instanceof UseCardWithTargetAction actionWithTarget) {
-            if (printDebugMessages) {
-                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
+            List<Integer> physicalIds = new ArrayList<>();
+            if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.ARBITRARY_CARDS)) {
+                for (String physicalCard : awaitingDecision.getDecisionParameters().get("physicalId")) {
+                    physicalIds.add(Integer.parseInt(physicalCard));
+                }
+
+            } else if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)) {
+                for (String physicalCard : awaitingDecision.getDecisionParameters().get("cardId")) {
+                    physicalIds.add(Integer.parseInt(physicalCard));
+                }
             }
-            return List.of(actionWithTarget.getTarget());
+            if (printDebugMessages) {
+                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget(physicalIds).getBlueprint().getFullName());
+            }
+            return List.of(actionWithTarget.getTarget(physicalIds));
         } else {
             throw new IllegalStateException("Last action should not trigger targeting");
         }

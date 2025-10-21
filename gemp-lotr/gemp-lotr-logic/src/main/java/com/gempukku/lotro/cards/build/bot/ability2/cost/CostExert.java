@@ -18,7 +18,7 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(PlannedBoardState plannedBoardState) {
+    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
         return new ArrayList<>(plannedBoardState.getActiveCards().stream()
                 .filter(targetPredicate)
                 .filter(botCard -> plannedBoardState.getVitality(botCard) > amount)
@@ -26,36 +26,36 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public BotCard chooseTarget(PlannedBoardState plannedBoardState) {
-        if (getPotentialTargets(plannedBoardState).isEmpty()) {
+    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
+        if (getPotentialTargets(player, plannedBoardState).isEmpty()) {
             return null;
         }
-        return BotTargetingMode.EXERT_SELF.chooseTarget(plannedBoardState, getPotentialTargets(plannedBoardState), false);
+        return BotTargetingMode.EXERT_SELF.chooseTarget(plannedBoardState, getPotentialTargets(player, plannedBoardState), false);
     }
 
     @Override
-    public void pay(BotCard source, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(source, plannedBoardState)) {
+    public void pay(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        BotCard target = chooseTarget(plannedBoardState);
+        BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
         plannedBoardState.exert(target, amount);
     }
 
     @Override
-    public boolean canPayCost(BotCard source, PlannedBoardState plannedBoardState) {
-        return !getPotentialTargets(plannedBoardState).isEmpty();
+    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
+        return !getPotentialTargets(player, plannedBoardState).isEmpty();
     }
 
     @Override
-    public double getValueIfPayed(BotCard source, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(source, plannedBoardState)) {
+    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        BotCard toBeExerted = chooseTarget(plannedBoardState);
+        BotCard toBeExerted = chooseTarget(player, plannedBoardState);
         double amount = Math.min(this.amount, plannedBoardState.getVitality(toBeExerted) - 1);
 
         double value = amount;
@@ -69,6 +69,6 @@ public class CostExert extends CostWithTarget {
             value += 0.5;
         }
         // exerting my own cards is negative value, opposite for opponent's cards
-        return toBeExerted.getSelf().getOwner().equals(source.getSelf().getOwner()) ? -value : value;
+        return toBeExerted.getSelf().getOwner().equals(player) ? -value : value;
     }
 }

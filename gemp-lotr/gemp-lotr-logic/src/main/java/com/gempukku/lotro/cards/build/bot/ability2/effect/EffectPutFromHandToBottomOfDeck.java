@@ -16,8 +16,8 @@ public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget{
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(BotCard source, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getHand(source.getSelf().getOwner()).stream().filter(targetPredicate).toList());
+    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getHand(player).stream().filter(targetPredicate).toList());
     }
 
     @Override
@@ -26,35 +26,35 @@ public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget{
     }
 
     @Override
-    public BotCard chooseTarget(BotCard source, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(source, plannedBoardState);
+    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
+        List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
         if (potentialTargets.isEmpty()) {
             return null;
         } else {
-            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(source, o2, plannedBoardState), getValueOfTarget(source, o1, plannedBoardState)));
+            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(player, o2, plannedBoardState), getValueOfTarget(player, o1, plannedBoardState)));
             return potentialTargets.getFirst();
         }
     }
 
     @Override
-    public void resolve(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(source, plannedBoardState);
+    public void resolve(String player, PlannedBoardState plannedBoardState) {
+        BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
         plannedBoardState.moveFromHandToBottomOfDeck(target);
     }
 
     @Override
-    public double getValueIfResolved(BotCard source, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(source, plannedBoardState);
-        return getValueOfTarget(source, target, plannedBoardState);
+    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+        BotCard target = chooseTarget(player, plannedBoardState);
+        return getValueOfTarget(player, target, plannedBoardState);
     }
 
-    public double getValueOfTarget(BotCard source, BotCard target, PlannedBoardState plannedBoardState) {
+    public double getValueOfTarget(String player, BotCard target, PlannedBoardState plannedBoardState) {
         if (target == null) {
             return 0;
         }
         double targetValue = HandValueUtil.cardValueInHand(target, plannedBoardState);
-        if (source.getSelf().getOwner().equals(target.getSelf().getOwner())){
+        if (player.equals(target.getSelf().getOwner())){
             if (targetValue > 0) {
                 return -targetValue;
             } else {

@@ -51,7 +51,12 @@ public class AiTargetController {
             System.out.println(builder);
         }
 
-        BotTargetingMode mode = BotCardFactory.create(source).getTargetingModeForDecision(game, awaitingDecision);
+        BotTargetingMode mode;
+        try {
+            mode = BotCardFactory.create(source).getTargetingModeForDecision(game, awaitingDecision);
+        } catch (IllegalStateException e) {
+            throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
+        }
 
         if (printDebugMessages) {
             System.out.println("Targeting mode: " + mode);
