@@ -28,4 +28,9 @@ public class CostAddTwilight extends Cost {
 
         return returnValue;
     }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        return "add " + amount + " twilight";
+    }
 }

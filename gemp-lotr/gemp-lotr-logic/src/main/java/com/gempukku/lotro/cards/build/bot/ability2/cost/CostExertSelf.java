@@ -48,4 +48,13 @@ public class CostExertSelf extends Cost {
         // exerting my own cards is negative value, opposite for opponent's cards
         return self.getSelf().getOwner().equals(player) ? -value : value;
     }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        if (amount == 1) {
+            return "exert self (" + self.getSelf().getBlueprint().getFullName() + ")";
+        } else {
+            return "exert self " + amount + " times (" + self.getSelf().getBlueprint().getFullName() + ")";
+        }
+    }
 }

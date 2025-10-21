@@ -11,6 +11,7 @@ public abstract class Cost {
     public abstract void pay(String player, PlannedBoardState plannedBoardState);
     public abstract boolean canPayCost(String player, PlannedBoardState plannedBoardState);
     public abstract double getValueIfPayed(String player, PlannedBoardState plannedBoardState);
+    public abstract String toString(String player, PlannedBoardState plannedBoardState);
 
 
     public static CostExert exert(Predicate<BotCard> target) {

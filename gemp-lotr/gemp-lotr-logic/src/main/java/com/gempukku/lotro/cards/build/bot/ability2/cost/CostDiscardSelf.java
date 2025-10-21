@@ -32,4 +32,9 @@ public class CostDiscardSelf extends Cost {
 
         return -1.1;
     }
+
+    @Override
+    public String toString(String player, PlannedBoardState plannedBoardState) {
+        return "discard self (" + self.getSelf().getBlueprint().getFullName() + ")";
+    }
 }

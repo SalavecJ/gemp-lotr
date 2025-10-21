@@ -32,6 +32,11 @@ public class CostDiscardCardFromHand extends CostWithTarget {
     }
 
     @Override
+    public String toString(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        return "discard card from hand: " + target.getSelf().getBlueprint().getFullName();
+    }
+
+    @Override
     public void pay(String player, PlannedBoardState plannedBoardState) {
         if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");

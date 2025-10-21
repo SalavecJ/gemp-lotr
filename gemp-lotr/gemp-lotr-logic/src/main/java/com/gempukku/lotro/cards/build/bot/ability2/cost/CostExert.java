@@ -34,6 +34,16 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
+    public String toString(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (amount == 1) {
+            return "exert " + target.getSelf().getBlueprint().getFullName();
+        } else {
+
+            return "exert " + amount + " times " + target.getSelf().getBlueprint().getFullName();
+        }
+    }
+
+    @Override
     public void pay(String player, PlannedBoardState plannedBoardState) {
         if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");

@@ -171,6 +171,22 @@ public class FellowshipPhasePlan {
                     }
                 }
 
+                UseCardWithTargetAction.Targeting costTargeting = null;
+                Cost cost = topEvent.getEventAbility().getCost();
+                if (cost instanceof CostWithTarget costWithTarget) {
+                    List<BotCard> potentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
+                    BotCard target = costWithTarget.chooseTarget(playerName, plannedBoardState);
+                    costTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
+                }
+
+                if (cost != null) {
+                    if (costTargeting != null) {
+                        System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
+                    } else {
+                        System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
+                    }
+                }
+
                 actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
                 plannedBoardState.playEvent(topEvent);
             }
@@ -269,6 +285,14 @@ public class FellowshipPhasePlan {
                 }
                 if (costTargeting != null) {
                     targetings.add(costTargeting);
+                }
+
+                if (cost != null) {
+                    if (costTargeting != null) {
+                        System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
+                    } else {
+                        System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
+                    }
                 }
 
                 if (effectTargeting == null && costTargeting == null) {
