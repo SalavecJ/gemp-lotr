@@ -53,13 +53,31 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
     public void resolve(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
-        plannedBoardState.moveFromDiscardIntoHand(target);
+        resolveWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return;
+        } else {
+            plannedBoardState.moveFromDiscardIntoHand(target);
+        }
     }
 
     @Override
     public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
-        return getValueOfTarget(target, plannedBoardState);
+        return getValueIfResolvedWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null || !plannedBoardState.ruleOfFourLimitOk()) {
+            return 0;
+        } else {
+            return getValueOfTarget(target, plannedBoardState);
+        }
     }
 
     public double getValueOfTarget(BotCard target, PlannedBoardState plannedBoardState) {

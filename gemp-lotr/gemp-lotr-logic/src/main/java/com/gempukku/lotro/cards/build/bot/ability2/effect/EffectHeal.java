@@ -40,10 +40,6 @@ public class EffectHeal extends EffectWithTarget {
         return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(player, plannedBoardState), false);
     }
 
-    public int getAmount() {
-        return amount;
-    }
-
     @Override
     public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
         if (targets.isEmpty()) {
@@ -64,7 +60,16 @@ public class EffectHeal extends EffectWithTarget {
     public void resolve(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
-        plannedBoardState.heal(target, amount);
+        resolveWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return;
+        } else {
+            plannedBoardState.heal(target, amount);
+        }
     }
 
     @Override
@@ -72,17 +77,26 @@ public class EffectHeal extends EffectWithTarget {
         BotCard toBeHealed = chooseTarget(player, plannedBoardState);
         if (toBeHealed == null) return 0.0;
 
-        double value = Math.min(this.amount, plannedBoardState.getWounds(toBeHealed));
-        // healing an ally has lower impact
-        if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-            value /= 2.0;
+        return getValueIfResolvedWithTarget(player, plannedBoardState, toBeHealed);
+    }
+
+    @Override
+    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return 0;
+        } else {
+            double value = Math.min(this.amount, plannedBoardState.getWounds(target));
+            // healing an ally has lower impact
+            if (target.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
+                value /= 2.0;
+            }
+            // healing an exhausted companion has higher impact
+            if (target.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
+                    && plannedBoardState.getVitality(target) == 1) {
+                value += 0.5;
+            }
+            // healing my own cards is positive value, opposite for opponent's cards
+            return target.getSelf().getOwner().equals(player) ? value : -value;
         }
-        // healing an exhausted companion has higher impact
-        if (toBeHealed.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                && plannedBoardState.getVitality(toBeHealed) == 1) {
-            value += 0.5;
-        }
-        // healing my own cards is positive value, opposite for opponent's cards
-        return toBeHealed.getSelf().getOwner().equals(player) ? value : -value;
     }
 }

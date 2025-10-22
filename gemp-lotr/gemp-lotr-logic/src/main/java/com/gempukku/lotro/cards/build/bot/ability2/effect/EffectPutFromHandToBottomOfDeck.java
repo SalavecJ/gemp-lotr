@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget{
+public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget {
     protected final Predicate<BotCard> targetPredicate;
 
     public EffectPutFromHandToBottomOfDeck(Predicate<BotCard> targetPredicate) {
@@ -53,12 +53,26 @@ public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget{
     public void resolve(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
         if (target == null) return;
-        plannedBoardState.moveFromHandToBottomOfDeck(target);
+        resolveWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return;
+        } else {
+            plannedBoardState.moveFromHandToBottomOfDeck(target);
+        }
     }
 
     @Override
     public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
         BotCard target = chooseTarget(player, plannedBoardState);
+        return getValueIfResolvedWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
         return getValueOfTarget(player, target, plannedBoardState);
     }
 

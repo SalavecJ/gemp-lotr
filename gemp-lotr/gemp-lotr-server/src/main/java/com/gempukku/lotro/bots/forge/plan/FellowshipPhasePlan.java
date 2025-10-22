@@ -257,7 +257,7 @@ public class FellowshipPhasePlan {
                     }
 
                     if (printDebugMessages) {
-                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " from hand to " + ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).toString(playerName, plannedBoardState, targets));
+                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to " + ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).toString(playerName, plannedBoardState, targets));
                     }
                     if (targets.isEmpty()) {
 
@@ -268,7 +268,7 @@ public class FellowshipPhasePlan {
                     }
                 } else {
                     if (printDebugMessages) {
-                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " from hand to " + chosenCard.getActivatedAbility(effectClass).getEffect().toString(playerName, plannedBoardState));
+                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to " + chosenCard.getActivatedAbility(effectClass).getEffect().toString(playerName, plannedBoardState));
                     }
                 }
 
@@ -391,11 +391,14 @@ public class FellowshipPhasePlan {
             }
         }
         for (BotAllyCard allyInHand : uniqueFilteredPlayableAllies) {
-            if (printDebugMessages) {
-                System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
+            // check if card can be played with bonus effect, if not play normally
+            if (!playWithBonusAction(allyInHand)) {
+                if (printDebugMessages) {
+                    System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
+                }
+                actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
+                plannedBoardState.playToFpSupportArea(allyInHand);
             }
-            actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
-            plannedBoardState.playToFpSupportArea(allyInHand);
         }
     }
 
@@ -430,11 +433,14 @@ public class FellowshipPhasePlan {
         if (numberOfCompanionsToBePlayed == uniqueFilteredPlayableCompanions.size()) {
             // play all
             for (BotCompanionCard companionInHand : uniqueFilteredPlayableCompanions) {
-                if (printDebugMessages) {
-                    System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
+                // check if card can be played with bonus effect, if not play normally
+                if (!playWithBonusAction(companionInHand)) {
+                    if (printDebugMessages) {
+                        System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
+                    }
+                    actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
+                    plannedBoardState.playCompanion(companionInHand);
                 }
-                actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
-                plannedBoardState.playCompanion(companionInHand);
             }
         } else if (numberOfCompanionsToBePlayed == 0) {
             if (printDebugMessages) {
@@ -463,6 +469,69 @@ public class FellowshipPhasePlan {
             }
         }
         return numberOfCompanionsToBePlayed;
+    }
+
+    private boolean playWithBonusAction(BotCard target) {
+        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
+                .filter(botCard -> {
+                    ActivatedAbility activatedAbility = botCard.getActivatedAbility(EffectPlayWithBonus.class);
+                    if (activatedAbility == null) return false;
+                    if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
+                    if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
+                    if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
+                    if (!((EffectPlayWithBonus) activatedAbility.getEffect()).getPotentialTargets(playerName, plannedBoardState).contains(target))
+                        return false;
+                    return true;
+                })
+                .toList());
+
+        double maxValue = 0.0;
+        BotCard chosenCard = null;
+
+        for (BotCard botCard : inPlayWithActivatedAbility) {
+            double value = botCard.getActivatedAbility(EffectPlayWithBonus.class).getValueIfUsedOnTarget(playerName, plannedBoardState, target);
+            if (value > maxValue) {
+                maxValue = value;
+                chosenCard = botCard;
+            }
+        }
+
+        if (chosenCard == null) {
+            return false;
+        } else {
+            List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getEffect()).getPotentialTargets(playerName, plannedBoardState);
+            if (printDebugMessages) {
+                System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " from hand to " + ((EffectWithTarget) chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getEffect()).toString(playerName, plannedBoardState, List.of(target)));
+            }
+            UseCardWithTargetAction.Targeting effectTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
+
+            Cost cost = chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getCost();
+            UseCardWithTargetAction.Targeting costTargeting = null;
+            if (cost instanceof CostWithTarget costWithTarget) {
+                List<BotCard> costPotentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
+                BotCard costTarget = costWithTarget.chooseTarget(playerName, plannedBoardState);
+                costTargeting = new UseCardWithTargetAction.Targeting(costTarget, costPotentialTargets);
+            }
+
+            List<UseCardWithTargetAction.Targeting> targetings = new ArrayList<>();
+            targetings.add(effectTargeting);
+            if (costTargeting != null) {
+                targetings.add(costTargeting);
+            }
+
+            if (cost != null) {
+                if (costTargeting != null) {
+                    System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
+                } else {
+                    System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
+                }
+            }
+            actions.add(new UseCardWithTargetAction(
+                    chosenCard.getSelf(),
+                    targetings));
+            chosenCard.getActivatedAbility(EffectPlayWithBonus.class).resolveAbilityOnTarget(playerName, plannedBoardState, target);
+            return true;
+        }
     }
 
     private void addHealCompanionsByDiscardActions() {

@@ -36,6 +36,7 @@ public class PlannedBoardState {
     private final Map<BotCard, Map<Token, Integer>> cardTokens = new HashMap<>();
 
     private int twilight;
+    private int ruleOfFourCount = 0;
 
     private final Map<String, Integer> playerPosition = new HashMap<>();
     private final Map<String, Integer> playerThreats = new HashMap<>();
@@ -118,13 +119,28 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
+    public void drawCard(String player) {
+        try {
+            if (ruleOfFourLimitOk()) {
+                BotCard card = decks.get(player).removeFirst();
+                hands.get(player).add(card);
+                ruleOfFourCount++;
+            }
+        } catch (NoSuchElementException ignored) {
+
+        }
+    }
+
     public void addTwilight(int amount) {
         twilight += amount;
     }
 
     public void moveFromDiscardIntoHand(BotCard botCard) {
-        discards.get(botCard.getSelf().getOwner()).remove(botCard);
-        hands.get(botCard.getSelf().getOwner()).add(botCard);
+        if (ruleOfFourLimitOk()) {
+            discards.get(botCard.getSelf().getOwner()).remove(botCard);
+            hands.get(botCard.getSelf().getOwner()).add(botCard);
+            ruleOfFourCount++;
+        }
     }
 
     public void moveFromHandToBottomOfDeck(BotCard botCard) {
@@ -317,6 +333,18 @@ public class PlannedBoardState {
             }
         }
         throw new IllegalStateException("Current site could not be found");
+    }
+
+    public boolean ruleOfFourLimitOk() {
+        if (phase.equals(Phase.FELLOWSHIP)) {
+            return ruleOfFourCount < 4;
+        } else {
+            return true;
+        }
+    }
+
+    public BotCard getTopCardOfDeck(String player) {
+        return decks.get(player).getFirst();
     }
 
     public int getTwilight() {

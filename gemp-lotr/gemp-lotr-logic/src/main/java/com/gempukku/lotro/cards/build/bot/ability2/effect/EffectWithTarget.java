@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class EffectWithTarget extends Effect{
+    public abstract void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target);
+    public abstract double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target);
+
     public abstract ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState);
     public abstract boolean affectsAll();
     public abstract BotCard chooseTarget(String player, PlannedBoardState plannedBoardState);

@@ -3,6 +3,8 @@ package com.gempukku.lotro.cards.build.bot.ability2;
 import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
@@ -40,6 +42,17 @@ public class ActivatedAbility implements Ability {
     }
 
     @Override
+    public void resolveAbilityOnTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (effect instanceof EffectWithTarget effectWithTarget) {
+            if (cost != null)
+                cost.pay(player, plannedBoardState);
+            effectWithTarget.resolveWithTarget(player, plannedBoardState, target);
+        } else {
+            throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
+        }
+    }
+
+    @Override
     public boolean conditionOk(String player, PlannedBoardState plannedBoardState) {
         if (condition == null) return true;
         return condition.isOk(player, plannedBoardState);
@@ -55,5 +68,15 @@ public class ActivatedAbility implements Ability {
     public double getValueIfUsed(String player, PlannedBoardState plannedBoardState) {
         double costValue = cost != null ? cost.getValueIfPayed(player, plannedBoardState) : 0.0;
         return effect.getValueIfResolved(player, plannedBoardState) + costValue;
+    }
+
+    @Override
+    public double getValueIfUsedOnTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (effect instanceof EffectWithTarget effectWithTarget) {
+            double costValue = cost != null ? cost.getValueIfPayed(player, plannedBoardState) : 0.0;
+            return effectWithTarget.getValueIfResolvedWithTarget(player, plannedBoardState, target) + costValue;
+        } else {
+            throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
+        }
     }
 }

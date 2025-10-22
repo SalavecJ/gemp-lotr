@@ -9,10 +9,6 @@ public class EffectRemoveBurden extends Effect{
         this.amount = amount;
     }
 
-    public int getAmount() {
-        return amount;
-    }
-
     @Override
     public void resolve(String player, PlannedBoardState plannedBoardState) {
         plannedBoardState.removeBurden(amount);

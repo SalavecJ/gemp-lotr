@@ -2,6 +2,8 @@ package com.gempukku.lotro.cards.build.bot.ability2;
 
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class EventAbility implements Ability {
@@ -29,6 +31,17 @@ public class EventAbility implements Ability {
     }
 
     @Override
+    public void resolveAbilityOnTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (effect instanceof EffectWithTarget effectWithTarget) {
+            if (cost != null)
+                cost.pay(player, plannedBoardState);
+            effectWithTarget.resolveWithTarget(player, plannedBoardState, target);
+        } else {
+            throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
+        }
+    }
+
+    @Override
     public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
         if (cost == null) return true;
         return cost.canPayCost(player, plannedBoardState);
@@ -43,5 +56,15 @@ public class EventAbility implements Ability {
     @Override
     public boolean conditionOk(String player, PlannedBoardState plannedBoardState) {
         return true;
+    }
+
+    @Override
+    public double getValueIfUsedOnTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (effect instanceof EffectWithTarget effectWithTarget) {
+            double costValue = cost != null ? cost.getValueIfPayed(player, plannedBoardState) : 0.0;
+            return effectWithTarget.getValueIfResolvedWithTarget(player, plannedBoardState, target) + costValue;
+        } else {
+            throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
+        }
     }
 }

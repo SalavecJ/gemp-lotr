@@ -3,6 +3,7 @@ package com.gempukku.lotro.cards.build.bot.ability2.effect;
 import com.gempukku.lotro.cards.build.bot.ability2.Target;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Race;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.function.Predicate;
@@ -86,5 +87,13 @@ public abstract class Effect {
 
     public static EffectHeal heal(CardType cardType, int amount) {
         return heal(Target.cardType(cardType), amount);
+    }
+
+    public static EffectPlayWithBonusDraw playWithBonusDraw(Predicate<BotCard> target){
+        return new EffectPlayWithBonusDraw(target);
+    }
+
+    public static EffectPlayWithBonusDraw playWithBonusDraw(Race race){
+        return Effect.playWithBonusDraw(Target.race(race));
     }
 }

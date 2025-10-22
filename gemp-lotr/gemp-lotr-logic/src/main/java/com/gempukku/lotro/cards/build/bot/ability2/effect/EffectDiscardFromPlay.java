@@ -50,13 +50,22 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
         if (potentialTargets.isEmpty()) {
             return;
         } else if (potentialTargets.size() == 1) {
-            plannedBoardState.discardFromPlay(potentialTargets.getFirst());
+            resolveWithTarget(player, plannedBoardState, potentialTargets.getFirst());
         } else {
             if (discardAll) {
                 potentialTargets.forEach(plannedBoardState::discardFromPlay);
             } else {
                 throw new IllegalStateException("Cannot resolve discard effect if number of potential targets is greater than 1 and not all should be discarded");
             }
+        }
+    }
+
+    @Override
+    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return;
+        } else {
+            plannedBoardState.discardFromPlay(target);
         }
     }
 
@@ -74,10 +83,19 @@ public class EffectDiscardFromPlay extends EffectWithTarget{
             if (potentialTargets.isEmpty()) {
                 return 0;
             } else if (potentialTargets.size() == 1) {
-                return potentialTargets.getFirst().getSelf().getOwner().equals(player) ? -1.1: 1.1;
+                return getValueIfResolvedWithTarget(player, plannedBoardState, potentialTargets.getFirst());
             } else {
                 throw new IllegalStateException("Cannot resolve discard value if number of potential targets is greater than 1");
             }
+        }
+    }
+
+    @Override
+    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return 0;
+        } else {
+            return target.getSelf().getOwner().equals(player) ? -1.1: 1.1;
         }
     }
 }

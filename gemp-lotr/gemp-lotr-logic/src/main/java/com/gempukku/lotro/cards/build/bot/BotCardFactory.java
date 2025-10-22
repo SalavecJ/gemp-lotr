@@ -1598,6 +1598,18 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectPlayWithBonus.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .effect(Effect.playWithBonusDraw(Race.MAN))
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_341
