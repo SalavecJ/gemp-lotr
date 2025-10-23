@@ -599,7 +599,9 @@ public class FellowshipPhasePlan {
         }
 
         if (nextStep > actions.size()) {
-            System.out.println("All actions from plan already fully taken");
+            if (printDebugMessages) {
+                System.out.println("All actions from plan already fully taken");
+            }
             throw new IllegalStateException("All actions from plan already fully taken");
         }
 

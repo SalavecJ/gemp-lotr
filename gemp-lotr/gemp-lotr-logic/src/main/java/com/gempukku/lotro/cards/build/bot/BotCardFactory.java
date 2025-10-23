@@ -4,10 +4,12 @@ import com.gempukku.lotro.cards.build.bot.ability.*;
 import com.gempukku.lotro.cards.build.bot.ability2.*;
 import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.Target;
+import com.gempukku.lotro.cards.build.bot.ability2.TriggeredAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.*;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
+import com.gempukku.lotro.cards.build.bot.ability2.trigger.Trigger;
 import com.gempukku.lotro.cards.build.bot.abstractcard.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -1914,6 +1916,19 @@ public class BotCardFactory {
                                     )
                                     .build()
                     );
+                }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.START_OF_TURN)
+                            .optional(true)
+                            .effect(Effect.heal(
+                                    Target.cardType(CardType.COMPANION).and(
+                                            Target.signet(Signet.ARAGORN)).and(
+                                            Target.not(Target.self(this)))
+                            ))
+                            .build();
                 }
             };
         }

@@ -2,10 +2,11 @@ package com.gempukku.lotro.bots.forge;
 
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.forge.controller.*;
+import com.gempukku.lotro.bots.forge.plan.BetweenTurnsPlan;
 import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
-import com.gempukku.lotro.cards.build.bot.BotCardFactory;
 import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.common.SitesBlock;
 import com.gempukku.lotro.game.CardNotFoundException;
@@ -24,6 +25,7 @@ public class AiController {
     private final String aiPlayerName;
     private final boolean printDebugMessages;
 
+    private BetweenTurnsPlan betweenTurnsPlan = null;
     private FellowshipPhasePlan fellowshipPhasePlan = null;
 
     public AiController(String aiPlayerName, boolean printDebugMessages) {
@@ -651,9 +653,15 @@ public class AiController {
             printSeparator();
         }
 
-
         if (fellowshipPhasePlan != null && !fellowshipPhasePlan.replanningNeeded()) {
             List<PhysicalCard> plannedTargets = fellowshipPhasePlan.chooseTarget(awaitingDecision);
+            int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
+            int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
+            if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
+                return plannedTargets;
+            }
+        } else if (betweenTurnsPlan != null && !betweenTurnsPlan.replanningNeeded()) {
+            List<PhysicalCard> plannedTargets = betweenTurnsPlan.chooseTarget(awaitingDecision);
             int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
             int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
             if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
@@ -702,6 +710,11 @@ public class AiController {
             } catch (Exception e) {
                 throw new UnsupportedOperationException("Fellowship plan error: " + e.getMessage());
             }
+        } else if (game.getGameState().getCurrentPhase().equals(Phase.BETWEEN_TURNS)) {
+            if (betweenTurnsPlan == null || betweenTurnsPlan.replanningNeeded()) {
+                betweenTurnsPlan = new BetweenTurnsPlan(printDebugMessages, game);
+            }
+            return betweenTurnsPlan.chooseActionToTakeOrPass(awaitingDecision);
         } else {
             throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
         }

@@ -318,6 +318,45 @@ public class PlannedBoardState {
     /*
         GET INFO
      */
+    public BotCard getCardById(int id) {
+        AtomicBoolean found = new AtomicBoolean(false);
+        final BotCard[] result = new BotCard[1];
+        Stream.of(inPlayFpCards.values(), inPlayShadowCards.values()).forEach(lists -> lists.forEach(botCards -> botCards.forEach(botCard -> {
+            if (botCard.getSelf().getCardId() == id) {
+                result[0] = botCard;
+                found.set(true);
+            }
+        })));
+        if (found.get()) {
+            return result[0];
+        }
+
+        for (String player : players) {
+            for (BotCard botCard : hands.get(player)) {
+                if (botCard.getSelf().getCardId() == id) {
+                    return botCard;
+                }
+            }
+            for (BotCard botCard : discards.get(player)) {
+                if (botCard.getSelf().getCardId() == id) {
+                    return botCard;
+                }
+            }
+            for (BotCard botCard : deadPiles.get(player)) {
+                if (botCard.getSelf().getCardId() == id) {
+                    return botCard;
+                }
+            }
+            for (BotCard botCard : decks.get(player)) {
+                if (botCard.getSelf().getCardId() == id) {
+                    return botCard;
+                }
+            }
+        }
+
+        throw new IllegalStateException("Could not find card with id: " + id);
+    }
+
     public boolean allCardsInHandRevealed(String player) {
         return new HashSet<>(revealedHands.get(player)).containsAll(hands.get(player));
     }
