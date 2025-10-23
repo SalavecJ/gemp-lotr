@@ -225,10 +225,14 @@ public class PlannedBoardState {
     }
 
     private void playFpCard(BotCard botCard) {
+        playFpCard(botCard, 0);
+    }
+
+    private void playFpCard(BotCard botCard, int twilightModifier) {
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight += botCard.getSelf().getBlueprint().getTwilightCost();
+        twilight += (botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier);
         cardTokens.put(botCard, new HashMap<>());
     }
 
@@ -249,6 +253,14 @@ public class PlannedBoardState {
 
     public void playToFpSupportArea(BotCard botCard) {
         playFpCard(botCard);
+    }
+
+    public void playCompanion(BotCompanionCard botCard, int twilightModifier) {
+        playFpCard(botCard, twilightModifier);
+    }
+
+    public void playToFpSupportArea(BotCard botCard, int twilightModifier) {
+        playFpCard(botCard, twilightModifier);
     }
 
     public void playOnBearer(BotObjectAttachableCard botCard, BotCard bearer) {

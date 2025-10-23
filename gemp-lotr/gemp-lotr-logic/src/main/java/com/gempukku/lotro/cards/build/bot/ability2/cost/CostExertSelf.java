@@ -1,7 +1,7 @@
 package com.gempukku.lotro.cards.build.bot.ability2.cost;
 
+import com.gempukku.lotro.cards.build.bot.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 public class CostExertSelf extends Cost {
@@ -33,20 +33,8 @@ public class CostExertSelf extends Cost {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        double amount = Math.min(this.amount, plannedBoardState.getVitality(self) - 1);
-
-        double value = amount;
-        // exerting an ally has lower impact
-        if (self.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-            value /= 2.0;
-        }
-        // exhausting a companion has higher impact
-        if (self.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                && plannedBoardState.getVitality(self) - amount == 1) {
-            value += 0.5;
-        }
-        // exerting my own cards is negative value, opposite for opponent's cards
-        return self.getSelf().getOwner().equals(player) ? -value : value;
+        int amount = Math.min(this.amount, plannedBoardState.getVitality(self) - 1);
+        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, self, amount);
     }
 
     @Override

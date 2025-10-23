@@ -1522,6 +1522,19 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectPlayWithBonus.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exert(Race.HOBBIT))
+                                .effect(Effect.playWithBonusTwilightModification(Target.cardType(CardType.COMPANION).or(Target.cardType(CardType.ALLY)), -1))
+                                .build();
+                    } else {
+                        return null;
+                    }
+                }
             };
         }
         // 1_327 Bree Gate - While you can spot a ranger, the move limit is +1 for this turn.
@@ -1868,6 +1881,19 @@ public class BotCardFactory {
                                     ))
                                     .build()
                     );
+                }
+
+                @Override
+                public ActivatedAbility getActivatedAbility(Class<? extends  Effect> effectClass) {
+                    if (effectClass.equals(EffectPlayWithBonus.class)) {
+                        return new ActivatedAbilityBuilder()
+                                .phase(Phase.FELLOWSHIP)
+                                .cost(Cost.exertSelf(this))
+                                .effect(Effect.playWithBonusTwilightModification(Target.cardType(CardType.COMPANION).and(Target.signet(Signet.GANDALF)), -2))
+                                .build();
+                    } else {
+                        return null;
+                    }
                 }
             };
         }

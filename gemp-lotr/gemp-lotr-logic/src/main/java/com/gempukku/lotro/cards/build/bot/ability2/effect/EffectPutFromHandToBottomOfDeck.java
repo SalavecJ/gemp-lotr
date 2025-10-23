@@ -85,13 +85,13 @@ public class EffectPutFromHandToBottomOfDeck extends EffectWithTarget {
             if (targetValue > 0) {
                 return -targetValue;
             } else {
-                return 0.5;
+                return 1;
             }
         } else {
             if (targetValue > 0) {
                 return targetValue;
             } else {
-                return -0.5;
+                return -1;
             }
         }
     }

@@ -15,7 +15,7 @@ public abstract class EffectPlayWithBonus extends EffectWithTarget {
 
     @Override
     public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getHand(player).stream().filter(targetPredicate).toList());
+        return new ArrayList<>(plannedBoardState.getHand(player).stream().filter(targetPredicate).filter(botCard -> botCard.canBePlayed(plannedBoardState)).toList());
     }
 
     @Override

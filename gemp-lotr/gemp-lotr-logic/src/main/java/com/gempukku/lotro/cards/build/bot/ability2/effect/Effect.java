@@ -96,4 +96,8 @@ public abstract class Effect {
     public static EffectPlayWithBonusDraw playWithBonusDraw(Race race){
         return Effect.playWithBonusDraw(Target.race(race));
     }
+
+    public static EffectPlayWithBonusTwilightModification playWithBonusTwilightModification(Predicate<BotCard> target, int twilightModification){
+        return new EffectPlayWithBonusTwilightModification(target, twilightModification);
+    }
 }

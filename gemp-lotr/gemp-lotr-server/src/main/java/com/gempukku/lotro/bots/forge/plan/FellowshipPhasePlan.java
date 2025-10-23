@@ -68,11 +68,12 @@ public class FellowshipPhasePlan {
             addHealActions();
 
             addTakeIntoHandFromDiscardActions();
-            addUnclogHandActions();
 
             //TODO add another actions to action lists
 
         } while (numberOfActionsToTakeAtStart != actions.size());
+
+        addUnclogHandActions();
 
 
         if (printDebugMessages) {

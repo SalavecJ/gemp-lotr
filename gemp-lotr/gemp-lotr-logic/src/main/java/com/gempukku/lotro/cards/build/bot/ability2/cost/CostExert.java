@@ -1,8 +1,8 @@
 package com.gempukku.lotro.cards.build.bot.ability2.cost;
 
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
+import com.gempukku.lotro.cards.build.bot.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.ArrayList;
@@ -66,19 +66,7 @@ public class CostExert extends CostWithTarget {
         }
 
         BotCard toBeExerted = chooseTarget(player, plannedBoardState);
-        double amount = Math.min(this.amount, plannedBoardState.getVitality(toBeExerted) - 1);
-
-        double value = amount;
-        // exerting an ally has lower impact
-        if (toBeExerted.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-            value /= 2.0;
-        }
-        // exhausting a companion has higher impact
-        if (toBeExerted.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                && plannedBoardState.getVitality(toBeExerted) - amount == 1) {
-            value += 0.5;
-        }
-        // exerting my own cards is negative value, opposite for opponent's cards
-        return toBeExerted.getSelf().getOwner().equals(player) ? -value : value;
+        int vitality = plannedBoardState.getVitality(toBeExerted);
+        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, toBeExerted, Math.min(amount, vitality - 1));
     }
 }

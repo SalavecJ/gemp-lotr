@@ -1,8 +1,8 @@
 package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
 import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
+import com.gempukku.lotro.cards.build.bot.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.ArrayList;
@@ -85,18 +85,7 @@ public class EffectHeal extends EffectWithTarget {
         if (target == null) {
             return 0;
         } else {
-            double value = Math.min(this.amount, plannedBoardState.getWounds(target));
-            // healing an ally has lower impact
-            if (target.getSelf().getBlueprint().getCardType().equals(CardType.ALLY)) {
-                value /= 2.0;
-            }
-            // healing an exhausted companion has higher impact
-            if (target.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)
-                    && plannedBoardState.getVitality(target) == 1) {
-                value += 0.5;
-            }
-            // healing my own cards is positive value, opposite for opponent's cards
-            return target.getSelf().getOwner().equals(player) ? value : -value;
+            return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, target, -amount);
         }
     }
 }

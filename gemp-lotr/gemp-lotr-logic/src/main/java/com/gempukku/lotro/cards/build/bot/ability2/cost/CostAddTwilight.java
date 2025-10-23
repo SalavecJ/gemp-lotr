@@ -21,7 +21,7 @@ public class CostAddTwilight extends Cost {
 
     @Override
     public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
-        double returnValue = (double) amount / 10;
+        double returnValue = (double) amount * 0.4;
         if (player.equals(plannedBoardState.getCurrentFpPlayer())) {
             returnValue *= -1;
         }
