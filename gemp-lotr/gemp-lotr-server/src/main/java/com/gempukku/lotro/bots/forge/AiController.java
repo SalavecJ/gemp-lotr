@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.forge.controller.*;
 import com.gempukku.lotro.bots.forge.plan.BetweenTurnsPlan;
 import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
+import com.gempukku.lotro.bots.forge.plan.ShadowPlan;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
@@ -27,10 +28,18 @@ public class AiController {
 
     private BetweenTurnsPlan betweenTurnsPlan = null;
     private FellowshipPhasePlan fellowshipPhasePlan = null;
+    private ShadowPlan shadowPlan = null;
 
     public AiController(String aiPlayerName, boolean printDebugMessages) {
         this.aiPlayerName = aiPlayerName;
         this.printDebugMessages = printDebugMessages;
+    }
+
+    public void cleanUpAfterGame() {
+        System.out.println("CLEANUP");
+        betweenTurnsPlan = null;
+        fellowshipPhasePlan = null;
+        shadowPlan = null;
     }
 
     private static void printSeparator() {
@@ -709,6 +718,15 @@ public class AiController {
                 return fellowshipPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
             } catch (Exception e) {
                 throw new UnsupportedOperationException("Fellowship plan error: " + e.getMessage());
+            }
+        } else if (!game.getGameState().getCurrentPlayerId().equals(aiPlayerName)) {
+            if (shadowPlan == null || shadowPlan.replanningNeeded()) {
+                shadowPlan = new ShadowPlan(printDebugMessages, game);
+            }
+            try {
+                return shadowPlan.chooseActionToTakeOrPass(awaitingDecision);
+            } catch (Exception e) {
+                throw new UnsupportedOperationException("Shadow plan error: " + e.getMessage());
             }
         } else if (game.getGameState().getCurrentPhase().equals(Phase.BETWEEN_TURNS)) {
             if (betweenTurnsPlan == null || betweenTurnsPlan.replanningNeeded()) {

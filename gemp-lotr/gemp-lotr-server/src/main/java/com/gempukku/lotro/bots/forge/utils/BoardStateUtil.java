@@ -4,6 +4,7 @@ import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
+import com.gempukku.lotro.common.AllyHome;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.PlannedBoardState;
@@ -22,6 +23,21 @@ public class BoardStateUtil {
                         CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType())
                         && botCard.getSelf().getBlueprint().isUnique()
                         && plannedBoardState.getWounds(botCard) > 0).toList();
+    }
+
+    public static List<BotCard> getCompanionsAndAlliesAtHome(PlannedBoardState plannedBoardState) {
+        BotCard currentSite = plannedBoardState.getCurrentSite();
+        return new ArrayList<>(plannedBoardState.getFpCardsInPlay(plannedBoardState.getCurrentFpPlayer()).stream()
+                .filter(botCard -> CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType())
+                        || (CardType.ALLY.equals(botCard.getSelf().getBlueprint().getCardType())
+                        && botCard.getSelf().getBlueprint().hasAllyHome(new AllyHome(currentSite.getSelf().getBlueprint().getSiteBlock(), currentSite.getSelf().getBlueprint().getSiteNumber()))))
+                .toList());
+    }
+
+    public static List<BotCard> getMinionsInPlay(PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getShadowCardsInPlay(plannedBoardState.getCurrentShadowPlayer()).stream()
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.MINION))
+                .toList());
     }
 
     public static int getActiveCompanionsInPlayCount(PlannedBoardState plannedBoardState) {

@@ -23,7 +23,7 @@ public abstract class ChooseCardAction implements ActionToTake {
 
     protected abstract String actionPrefix();
 
-    protected PhysicalCard getCard() {
+    public PhysicalCard getCard() {
         return card;
     }
 

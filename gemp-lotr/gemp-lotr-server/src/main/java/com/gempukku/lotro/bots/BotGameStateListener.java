@@ -163,6 +163,6 @@ public class BotGameStateListener implements GameStateListener {
 
     @Override
     public void endGame() {
-
+        new Thread(botPlayer::cleanUpAfterGame).start();
     }
 }

@@ -66,6 +66,9 @@ public class FotrStartersSimulation implements Simulation {
             }
         }
 
+        // Clean up bots after game
+        bot1.cleanUpAfterGame();
+        bot2.cleanUpAfterGame();
         // Return result based on outcome
         if (lotroGame.getWinnerPlayerId().equals(bot1.getName())) {
             return GameResult.P1_WON;

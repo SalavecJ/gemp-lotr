@@ -30,6 +30,11 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
     }
 
     @Override
+    public void cleanUpAfterGame() {
+        brains.cleanUpAfterGame();
+    }
+
+    @Override
     public String chooseAction(LotroGame game, AwaitingDecision awaitingDecision) {
         try {
             return makeDecision(game, awaitingDecision);

@@ -33,6 +33,11 @@ public class RandomDecisionBot implements BotPlayer {
     }
 
     @Override
+    public void cleanUpAfterGame() {
+
+    }
+
+    @Override
     public String getName() {
         return botName;
     }

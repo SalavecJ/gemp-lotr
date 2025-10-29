@@ -116,6 +116,32 @@ public class PlannedBoardState {
         });
     }
 
+    public PlannedBoardState(PlannedBoardState other) {
+        this.phase = other.phase;
+        this.currentPlayer = other.currentPlayer;
+        this.players.addAll(other.players);
+        this.ringBearers.putAll(other.ringBearers);
+
+        other.adventureDecks.forEach((k, v) -> this.adventureDecks.put(k, new ArrayList<>(v)));
+        other.decks.forEach((k, v) -> this.decks.put(k, new ArrayList<>(v)));
+        other.hands.forEach((k, v) -> this.hands.put(k, new ArrayList<>(v)));
+        other.revealedHands.forEach((k, v) -> this.revealedHands.put(k, new ArrayList<>(v)));
+        other.discards.forEach((k, v) -> this.discards.put(k, new ArrayList<>(v)));
+        other.deadPiles.forEach((k, v) -> this.deadPiles.put(k, new ArrayList<>(v)));
+
+        other.inPlayFpCards.forEach((k, v) -> this.inPlayFpCards.put(k, new ArrayList<>(v)));
+        other.inPlayShadowCards.forEach((k, v) -> this.inPlayShadowCards.put(k, new ArrayList<>(v)));
+        this.inPlaySites.addAll(other.inPlaySites);
+
+        other.attachedCards.forEach((k, v) -> this.attachedCards.put(k, new HashSet<>(v)));
+        other.cardTokens.forEach((k, v) -> this.cardTokens.put(k, new HashMap<>(v)));
+
+        this.twilight = other.twilight;
+        this.ruleOfFourCount = other.ruleOfFourCount;
+        this.playerPosition.putAll(other.playerPosition);
+        this.playerThreats.putAll(other.playerThreats);
+    }
+
     /*
         ALTER BOARD STATE
      */
@@ -229,21 +255,33 @@ public class PlannedBoardState {
     }
 
     private void playFpCard(BotCard botCard, int twilightModifier) {
+        int totalCost = botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier;
+        if (totalCost < 0) {
+            totalCost = 0;
+        }
         inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight += (botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier);
+        twilight += totalCost;
         cardTokens.put(botCard, new HashMap<>());
     }
 
     private void playShadowCard(BotCard botCard) {
-        if (twilight < botCard.getSelf().getBlueprint().getTwilightCost()) {
+        playShadowCard(botCard, 0);
+    }
+
+    private void playShadowCard(BotCard botCard, int twilightModifier) {
+        int totalCost = botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier;
+        if (totalCost < 0) {
+            totalCost = 0;
+        }
+        if (twilight < totalCost) {
             throw new IllegalStateException("Cannot pay twilight for event " + botCard.getSelf().getBlueprint().getFullName());
         }
         inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
+        twilight -= totalCost;
         cardTokens.put(botCard, new HashMap<>());
     }
 
@@ -255,12 +293,23 @@ public class PlannedBoardState {
         playFpCard(botCard);
     }
 
+    public void playMinion(BotCard botCard) {
+        int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+        boolean roaming = minionSiteNumber > currentSiteNumber;
+        playShadowCard(botCard, roaming ? 2 : 0);
+    }
+
     public void playCompanion(BotCompanionCard botCard, int twilightModifier) {
         playFpCard(botCard, twilightModifier);
     }
 
     public void playToFpSupportArea(BotCard botCard, int twilightModifier) {
         playFpCard(botCard, twilightModifier);
+    }
+
+    public void playMinion(BotCard botCard, int twilightModifier) {
+        playShadowCard(botCard, twilightModifier);
     }
 
     public void playOnBearer(BotObjectAttachableCard botCard, BotCard bearer) {
@@ -369,6 +418,10 @@ public class PlannedBoardState {
         return currentPlayer;
     }
 
+    public String getCurrentShadowPlayer() {
+        return getOpponent(currentPlayer);
+    }
+
     public Phase getCurrentPhase() {
         return phase;
     }
@@ -461,8 +514,16 @@ public class PlannedBoardState {
         return inPlayFpCards.get(owner);
     }
 
+    public List<BotCard> getShadowCardsInPlay(String owner) {
+        return inPlayShadowCards.get(owner);
+    }
+
     public int getBurdens() {
         return getTokenCount(ringBearers.get(currentPlayer), Token.BURDEN);
+    }
+
+    public int getResistance() {
+        return ringBearers.get(currentPlayer).getSelf().getBlueprint().getResistance();
     }
 
     public int getWounds(BotCard botCard) {
@@ -471,6 +532,10 @@ public class PlannedBoardState {
 
     public List<BotCard> getRingBearers() {
         return new ArrayList<>(ringBearers.values());
+    }
+
+    public BotCard getRingBearer(String player) {
+        return ringBearers.get(player);
     }
 
     public int getStrength(BotCard botCard) {

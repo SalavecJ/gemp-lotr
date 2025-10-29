@@ -5,5 +5,6 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 public interface BotPlayer {
     String chooseAction(LotroGame game, AwaitingDecision awaitingDecision);
+    void cleanUpAfterGame();
     String getName();
 }
