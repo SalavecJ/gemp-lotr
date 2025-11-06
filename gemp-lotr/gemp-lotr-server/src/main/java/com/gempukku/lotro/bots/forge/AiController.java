@@ -4,7 +4,7 @@ import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.forge.controller.*;
 import com.gempukku.lotro.bots.forge.plan.BetweenTurnsPlan;
 import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
-import com.gempukku.lotro.bots.forge.plan.ShadowPlan;
+import com.gempukku.lotro.bots.forge.plan.ShadowPhasePlan;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
@@ -28,7 +28,7 @@ public class AiController {
 
     private BetweenTurnsPlan betweenTurnsPlan = null;
     private FellowshipPhasePlan fellowshipPhasePlan = null;
-    private ShadowPlan shadowPlan = null;
+    private ShadowPhasePlan shadowPhasePlan = null;
 
     public AiController(String aiPlayerName, boolean printDebugMessages) {
         this.aiPlayerName = aiPlayerName;
@@ -39,7 +39,7 @@ public class AiController {
         System.out.println("CLEANUP");
         betweenTurnsPlan = null;
         fellowshipPhasePlan = null;
-        shadowPlan = null;
+        shadowPhasePlan = null;
     }
 
     private static void printSeparator() {
@@ -676,6 +676,18 @@ public class AiController {
             if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
                 return plannedTargets;
             }
+        } else if (shadowPhasePlan != null && !shadowPhasePlan.replanningNeeded()) {
+            // TODO remove when shadow phase plan is finished
+            try {
+                List<PhysicalCard> plannedTargets = shadowPhasePlan.chooseTarget(awaitingDecision);
+                int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
+                int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
+                if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
+                    return plannedTargets;
+                }
+            } catch (Exception e) {
+                throw new UnsupportedOperationException("Shadow plan target error: " + e.getMessage());
+            }
         }
 
         return new AiTargetController(printDebugMessages, game, options, source, awaitingDecision).chooseTarget();
@@ -719,12 +731,12 @@ public class AiController {
             } catch (Exception e) {
                 throw new UnsupportedOperationException("Fellowship plan error: " + e.getMessage());
             }
-        } else if (!game.getGameState().getCurrentPlayerId().equals(aiPlayerName)) {
-            if (shadowPlan == null || shadowPlan.replanningNeeded()) {
-                shadowPlan = new ShadowPlan(printDebugMessages, game);
+        } else if (!game.getGameState().getCurrentPlayerId().equals(aiPlayerName) && game.getGameState().getCurrentPhase().equals(Phase.SHADOW)) {
+            if (shadowPhasePlan == null || shadowPhasePlan.replanningNeeded()) {
+                shadowPhasePlan = new ShadowPhasePlan(printDebugMessages, game);
             }
             try {
-                return shadowPlan.chooseActionToTakeOrPass(awaitingDecision);
+                return shadowPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
             } catch (Exception e) {
                 throw new UnsupportedOperationException("Shadow plan error: " + e.getMessage());
             }

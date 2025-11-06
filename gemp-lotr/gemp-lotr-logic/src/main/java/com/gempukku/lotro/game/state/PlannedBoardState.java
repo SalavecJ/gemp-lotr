@@ -35,15 +35,27 @@ public class PlannedBoardState {
     private final Map<BotCard, Set<BotCard>> attachedCards = new HashMap<>();
     private final Map<BotCard, Map<Token, Integer>> cardTokens = new HashMap<>();
 
-    private int twilight;
-    private int ruleOfFourCount = 0;
+    // Assignment tracking: FP character -> Set of minions assigned to them
+    private final Map<BotCard, Set<BotCard>> assignments = new HashMap<>();
+
+    // Assignment phase state tracking
+    private boolean assignmentPhasePlayActionsCompleted = false; // True when both players have passed
+    private boolean fpAssignmentCompleted = false; // True when FP has finished assigning
+
+    // Skirmish phase state tracking
+    private BotCard currentSkirmish = null; // Currently active FP character's skirmish
 
     private final Map<String, Integer> playerPosition = new HashMap<>();
     private final Map<String, Integer> playerThreats = new HashMap<>();
 
+    private int twilight;
+    private int movesMade;
+    private int ruleOfFourCount = 0;
+
     public PlannedBoardState(LotroGame game) {
         phase = game.getGameState().getCurrentPhase();
         currentPlayer = game.getGameState().getCurrentPlayerId();
+        movesMade = game.getGameState().getMoveCount();
 
         // Player names
         players.addAll(game.getGameState().getPlayerOrder().getAllPlayers());
@@ -108,6 +120,23 @@ public class PlannedBoardState {
             }
         })));
 
+        // Assignments
+        game.getGameState().getAssignments().forEach(assignment -> {
+            BotCard fpCharacter = findBotCard(assignment.getFellowshipCharacter());
+            if (fpCharacter != null) {
+                Set<BotCard> assignedMinions = new HashSet<>();
+                assignment.getShadowCharacters().forEach(minion -> {
+                    BotCard botMinion = findBotCard(minion);
+                    if (botMinion != null) {
+                        assignedMinions.add(botMinion);
+                    }
+                });
+                if (!assignedMinions.isEmpty()) {
+                    assignments.put(fpCharacter, assignedMinions);
+                }
+            }
+        });
+
         // Stats
         twilight = game.getGameState().getTwilightPool();
         players.forEach(player -> {
@@ -136,8 +165,16 @@ public class PlannedBoardState {
         other.attachedCards.forEach((k, v) -> this.attachedCards.put(k, new HashSet<>(v)));
         other.cardTokens.forEach((k, v) -> this.cardTokens.put(k, new HashMap<>(v)));
 
+        other.assignments.forEach((k, v) -> this.assignments.put(k, new HashSet<>(v)));
+
+        this.currentSkirmish = other.currentSkirmish;
+
+        this.assignmentPhasePlayActionsCompleted = other.assignmentPhasePlayActionsCompleted;
+        this.fpAssignmentCompleted = other.fpAssignmentCompleted;
+
         this.twilight = other.twilight;
         this.ruleOfFourCount = other.ruleOfFourCount;
+        this.movesMade = other.movesMade;
         this.playerPosition.putAll(other.playerPosition);
         this.playerThreats.putAll(other.playerThreats);
     }
@@ -145,6 +182,124 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
+    public void moveToNextPhase() {
+        ruleOfFourCount = 0;
+        assignmentPhasePlayActionsCompleted = false;
+        fpAssignmentCompleted = false;
+        if (phase == Phase.FELLOWSHIP) {
+            phase = Phase.SHADOW;
+        } else if (phase == Phase.SHADOW) {
+            phase = Phase.MANEUVER;
+        } else if (phase == Phase.MANEUVER) {
+            phase = Phase.ARCHERY;
+        } else if (phase == Phase.ARCHERY) {
+            phase = Phase.ASSIGNMENT;
+        } else if (phase == Phase.ASSIGNMENT) {
+            phase = Phase.SKIRMISH;
+        } else if (phase == Phase.SKIRMISH) {
+            phase = Phase.REGROUP;
+        } else {
+            throw new IllegalStateException("Do not know how to move to next phase from " + phase);
+        }
+    }
+
+    /**
+     * Assigns a minion to an FP character.
+     * Can be called multiple times to assign multiple minions to the same character (for Shadow player stacking).
+     */
+    public void assignMinion(BotCard minion, BotCard fpCharacter) {
+        assignments.computeIfAbsent(fpCharacter, k -> new HashSet<>()).add(minion);
+    }
+
+    /**
+     * Clears all assignments. Useful when transitioning between assignment phases or resetting state.
+     */
+    public void clearAssignments() {
+        assignments.clear();
+    }
+
+    /**
+     * Marks that both players have passed in assignment phase and we're now in the "assigning minions" phase.
+     */
+    public void setAssignmentPhasePlayActionsCompleted(boolean completed) {
+        this.assignmentPhasePlayActionsCompleted = completed;
+    }
+
+    /**
+     * Returns true if both players have passed and we're in the "assigning minions" phase.
+     */
+    public boolean isAssignmentPhasePlayActionsCompleted() {
+        return assignmentPhasePlayActionsCompleted;
+    }
+
+    /**
+     * Marks that FP has completed their assignment (they assign first, 1-on-1).
+     */
+    public void setFpAssignmentCompleted(boolean completed) {
+        this.fpAssignmentCompleted = completed;
+    }
+
+    /**
+     * Returns true if FP has completed their assignment.
+     */
+    public boolean isFpAssignmentCompleted() {
+        return fpAssignmentCompleted;
+    }
+    /**
+     * Sets the current skirmish being resolved (the FP character in the skirmish).
+     */
+    public void setCurrentSkirmish(BotCard fpCharacter) {
+        if (!assignments.containsKey(fpCharacter)) {
+            throw new IllegalStateException("Cannot set current skirmish: no minions assigned to " + fpCharacter.getSelf().getBlueprint().getFullName());
+        }
+        this.currentSkirmish = fpCharacter;
+    }
+
+    /**
+     * Gets the current skirmish being resolved (the FP character in the skirmish).
+     */
+    public BotCard getCurrentSkirmish() {
+        return currentSkirmish;
+    }
+
+    /**
+     * Resolves the current skirmish by comparing strengths and dealing damage.
+     * Throws an exception if no skirmish is currently active.
+     */
+    public void resolveCurrentSkirmish() {
+        if (currentSkirmish == null) {
+            throw new IllegalStateException("Cannot resolve skirmish: no current skirmish is set");
+        }
+        // - Calculate FP character strength
+        int fpStrength = getStrength(currentSkirmish);
+        // - Calculate total minion strength
+        int shadowStrength = assignments.get(currentSkirmish).stream().mapToInt(this::getStrength).sum();
+        // - Compare strengths
+        if (fpStrength > shadowStrength) {
+            // FP wins
+            if (fpStrength >= shadowStrength * 2) {
+                // Overwhelm
+                assignments.get(currentSkirmish).forEach(this::kill);
+            } else {
+                int damage = 1 + getBonusDamage(currentSkirmish);
+                assignments.get(currentSkirmish).forEach(minion -> wound(minion, damage));
+            }
+        } else {
+            // Shadow wins
+            if (shadowStrength >= fpStrength * 2) {
+                // Overwhelm
+                kill(currentSkirmish);
+            } else {
+                int damage = 1 + assignments.get(currentSkirmish).stream().mapToInt(this::getBonusDamage).sum();
+                wound(currentSkirmish, damage);
+            }
+        }
+
+        // Skirmish resolved, clear current skirmish
+        assignments.remove(currentSkirmish);
+        currentSkirmish = null;
+    }
+
     public void drawCard(String player) {
         try {
             if (ruleOfFourLimitOk()) {
@@ -211,6 +366,27 @@ public class PlannedBoardState {
             cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) + realAmount);
         } else {
             cardTokens.get(botCard).put(Token.WOUND, realAmount);
+        }
+    }
+
+    public void wound(BotCard botCard, int amount) {
+        int vitality = getVitality(botCard);
+
+        if (amount >= vitality) {
+            kill(botCard);
+        } else {
+            exert(botCard, amount);
+        }
+    }
+
+    public void kill(BotCard botCard) {
+        if (botCard.getSelf().getBlueprint().getSide().equals(Side.SHADOW)) {
+            discardFromPlay(botCard);
+        } else if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
+            inPlayFpCards.get(botCard.getSelf().getOwner()).remove(botCard);
+            deadPiles.get(botCard.getSelf().getOwner()).add(botCard);
+        } else {
+            throw new IllegalStateException("Unknown side for card: " + botCard.getSelf().getBlueprint().getFullName());
         }
     }
 
@@ -426,6 +602,10 @@ public class PlannedBoardState {
         return phase;
     }
 
+    public int getMovesMade() {
+        return movesMade;
+    }
+
     public int getCurrentPlayerPosition() {
         return playerPosition.get(currentPlayer);
     }
@@ -552,6 +732,11 @@ public class PlannedBoardState {
         return botCard.getSelf().getBlueprint().getVitality() - getWounds(botCard);
     }
 
+    public int getBonusDamage(BotCard botCard) {
+        // TODO effects
+        return botCard.getSelf().getBlueprint().getKeywordCount(Keyword.DAMAGE);
+    }
+
     public List<BotCard> getActiveCards() {
         return new ArrayList<>(Stream.concat(inPlayFpCards.get(currentPlayer).stream(), inPlayShadowCards.get(getOpponent(currentPlayer)).stream()).toList());
     }
@@ -574,6 +759,36 @@ public class PlannedBoardState {
 
     public List<BotCard> getAdventureDeck(String player) {
         return new ArrayList<>(adventureDecks.get(player));
+    }
+
+    /**
+     * Gets the current assignment map.
+     * @return Map of FP character -> Set of minions assigned to them
+     */
+    public Map<BotCard, Set<BotCard>> getAssignments() {
+        return new HashMap<>(assignments);
+    }
+
+    /**
+     * Gets all minions that have been assigned to any FP character.
+     * @return Set of assigned minions
+     */
+    public Set<BotCard> getAssignedMinions() {
+        Set<BotCard> assignedMinions = new HashSet<>();
+        assignments.values().forEach(assignedMinions::addAll);
+        return assignedMinions;
+    }
+
+    /**
+     * Gets all unassigned minions currently in play.
+     * @return List of unassigned minions
+     */
+    public List<BotCard> getUnassignedMinions() {
+        Set<BotCard> assigned = getAssignedMinions();
+        return getShadowCardsInPlay(getCurrentShadowPlayer()).stream()
+                .filter(card -> CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
+                .filter(minion -> !assigned.contains(minion))
+                .toList();
     }
 
     /*
@@ -649,6 +864,14 @@ public class PlannedBoardState {
                 .orElse(null);
     }
 
+    private BotCard findBotCard(PhysicalCard physicalCard) {
+        return Stream.of(inPlayFpCards.values(), inPlayShadowCards.values())
+                .flatMap((Function<Collection<List<BotCard>>, Stream<BotCard>>) lists -> lists.stream().flatMap(List::stream))
+                .filter(b -> b.getSelf().equals(physicalCard))
+                .findFirst()
+                .orElse(null);
+    }
+
     private int getTokenCount(BotCard card, Token token) {
         Map<Token, Integer> tokens = cardTokens.get(card);
         if (tokens == null)
@@ -663,5 +886,252 @@ public class PlannedBoardState {
         int printedVitality = botCard.getSelf().getBlueprint().getVitality();
         int wounds = getWounds(botCard);
         return  printedVitality - wounds > 1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PlannedBoardState that = (PlannedBoardState) o;
+
+        // Compare simple fields
+        if (twilight != that.twilight) return false;
+        if (ruleOfFourCount != that.ruleOfFourCount) return false;
+        if (movesMade != that.movesMade) return false;
+        if (assignmentPhasePlayActionsCompleted != that.assignmentPhasePlayActionsCompleted) return false;
+        if (fpAssignmentCompleted != that.fpAssignmentCompleted) return false;
+        if (phase != that.phase) return false;
+        if (!Objects.equals(currentPlayer, that.currentPlayer)) return false;
+        if (!Objects.equals(players, that.players)) return false;
+        if (!Objects.equals(playerPosition, that.playerPosition)) return false;
+        if (!Objects.equals(playerThreats, that.playerThreats)) return false;
+
+        // Compare current skirmish by full name
+        if (!compareCurrentSkirmishByFullName(that)) return false;
+
+        // Compare ring bearers by full name
+        if (!compareRingBearersByFullName(that)) return false;
+
+        // Compare card collections by full name
+        if (!compareCardMapsByFullName(adventureDecks, that.adventureDecks)) return false;
+        if (!compareCardMapsByFullName(decks, that.decks)) return false;
+        if (!compareCardMapsByFullName(hands, that.hands)) return false;
+        if (!compareCardMapsByFullName(revealedHands, that.revealedHands)) return false;
+        if (!compareCardMapsByFullName(discards, that.discards)) return false;
+        if (!compareCardMapsByFullName(deadPiles, that.deadPiles)) return false;
+        if (!compareCardMapsByFullName(inPlayFpCards, that.inPlayFpCards)) return false;
+        if (!compareCardMapsByFullName(inPlayShadowCards, that.inPlayShadowCards)) return false;
+        if (!compareCardSetByFullName(inPlaySites, that.inPlaySites)) return false;
+
+        // Compare attached cards by full name
+        if (!compareAttachedCardsByFullName(that)) return false;
+
+        // Compare card tokens by full name
+        if (!compareCardTokensByFullName(that)) return false;
+
+        // Compare assignments by full name
+        if (!compareAssignmentsByFullName(that)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(phase, currentPlayer, players, twilight, ruleOfFourCount, movesMade, assignmentPhasePlayActionsCompleted, fpAssignmentCompleted, playerPosition, playerThreats);
+        result = 31 * result + (currentSkirmish != null ? getCardFullName(currentSkirmish).hashCode() : 0);
+        result = 31 * result + hashCardMapByFullName(adventureDecks);
+        result = 31 * result + hashCardMapByFullName(decks);
+        result = 31 * result + hashCardMapByFullName(hands);
+        result = 31 * result + hashCardMapByFullName(revealedHands);
+        result = 31 * result + hashCardMapByFullName(discards);
+        result = 31 * result + hashCardMapByFullName(deadPiles);
+        result = 31 * result + hashCardMapByFullName(inPlayFpCards);
+        result = 31 * result + hashCardMapByFullName(inPlayShadowCards);
+        result = 31 * result + hashCardSetByFullName(inPlaySites);
+        result = 31 * result + hashAssignmentsByFullName();
+        return result;
+    }
+
+    private boolean compareRingBearersByFullName(PlannedBoardState that) {
+        if (ringBearers.size() != that.ringBearers.size()) return false;
+        for (Map.Entry<String, BotCard> entry : ringBearers.entrySet()) {
+            BotCard thatCard = that.ringBearers.get(entry.getKey());
+            if (thatCard == null) return false;
+            if (!getCardFullName(entry.getValue()).equals(getCardFullName(thatCard))) return false;
+            if (!entry.getValue().getSelf().getOwner().equals(thatCard.getSelf().getOwner())) return false;
+        }
+        return true;
+    }
+
+    private boolean compareCurrentSkirmishByFullName(PlannedBoardState that) {
+        if (currentSkirmish == null && that.currentSkirmish == null) {
+            return true;
+        }
+        if (currentSkirmish == null || that.currentSkirmish == null) {
+            return false;
+        }
+        return getCardFullName(currentSkirmish).equals(getCardFullName(that.currentSkirmish))
+                && currentSkirmish.getSelf().getOwner().equals(that.currentSkirmish.getSelf().getOwner());
+    }
+
+    private boolean compareCardMapsByFullName(Map<String, List<BotCard>> map1, Map<String, List<BotCard>> map2) {
+        if (map1.size() != map2.size()) return false;
+        for (Map.Entry<String, List<BotCard>> entry : map1.entrySet()) {
+            List<BotCard> list2 = map2.get(entry.getKey());
+            if (list2 == null) return false;
+            if (!compareCardListsByFullName(entry.getValue(), list2)) return false;
+        }
+        return true;
+    }
+
+    private boolean compareCardSetByFullName(Set<BotCard> set1, Set<BotCard> set2) {
+        if (set1.size() != set2.size()) return false;
+        List<String> names1 = set1.stream()
+                .map(this::getCardFullName)
+                .sorted()
+                .toList();
+        List<String> names2 = set2.stream()
+                .map(this::getCardFullName)
+                .sorted()
+                .toList();
+        return names1.equals(names2);
+    }
+
+    private boolean compareCardListsByFullName(List<BotCard> list1, List<BotCard> list2) {
+        if (list1.size() != list2.size()) return false;
+        List<String> names1 = list1.stream()
+                .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                .sorted()
+                .toList();
+        List<String> names2 = list2.stream()
+                .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                .sorted()
+                .toList();
+        return names1.equals(names2);
+    }
+
+    private boolean compareAttachedCardsByFullName(PlannedBoardState that) {
+        if (attachedCards.size() != that.attachedCards.size()) return false;
+
+        // Convert to list of bearer->attachments mappings for comparison
+        // We use lists instead of maps to handle multiple cards with the same name
+        List<String> thisAttachments = new ArrayList<>();
+        for (Map.Entry<BotCard, Set<BotCard>> entry : attachedCards.entrySet()) {
+            String bearerName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> attachedNames = entry.getValue().stream()
+                    .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                    .sorted()
+                    .toList();
+            // Create a signature for this bearer and its attachments
+            thisAttachments.add(bearerName + "=" + String.join(",", attachedNames));
+        }
+        Collections.sort(thisAttachments);
+
+        List<String> thatAttachments = new ArrayList<>();
+        for (Map.Entry<BotCard, Set<BotCard>> entry : that.attachedCards.entrySet()) {
+            String bearerName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> attachedNames = entry.getValue().stream()
+                    .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                    .sorted()
+                    .toList();
+            thatAttachments.add(bearerName + "=" + String.join(",", attachedNames));
+        }
+        Collections.sort(thatAttachments);
+
+        return thisAttachments.equals(thatAttachments);
+    }
+
+    private boolean compareCardTokensByFullName(PlannedBoardState that) {
+        if (cardTokens.size() != that.cardTokens.size()) return false;
+
+        // Convert to list of card->tokens mappings for comparison
+        List<String> thisTokens = new ArrayList<>();
+        for (Map.Entry<BotCard, Map<Token, Integer>> entry : cardTokens.entrySet()) {
+            String cardName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> tokenList = entry.getValue().entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(e -> e.getKey() + ":" + e.getValue())
+                    .toList();
+            thisTokens.add(cardName + "=" + String.join(",", tokenList));
+        }
+        Collections.sort(thisTokens);
+
+        List<String> thatTokens = new ArrayList<>();
+        for (Map.Entry<BotCard, Map<Token, Integer>> entry : that.cardTokens.entrySet()) {
+            String cardName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> tokenList = entry.getValue().entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(e -> e.getKey() + ":" + e.getValue())
+                    .toList();
+            thatTokens.add(cardName + "=" + String.join(",", tokenList));
+        }
+        Collections.sort(thatTokens);
+
+        return thisTokens.equals(thatTokens);
+    }
+
+    private boolean compareAssignmentsByFullName(PlannedBoardState that) {
+        if (assignments.size() != that.assignments.size()) return false;
+
+        // Convert to list of fpCharacter->minions mappings for comparison
+        List<String> thisAssignments = new ArrayList<>();
+        for (Map.Entry<BotCard, Set<BotCard>> entry : assignments.entrySet()) {
+            String fpCharacterName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> minionNames = entry.getValue().stream()
+                    .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                    .sorted()
+                    .toList();
+            // Create a signature for this FP character and assigned minions
+            thisAssignments.add(fpCharacterName + "=" + String.join(",", minionNames));
+        }
+        Collections.sort(thisAssignments);
+
+        List<String> thatAssignments = new ArrayList<>();
+        for (Map.Entry<BotCard, Set<BotCard>> entry : that.assignments.entrySet()) {
+            String fpCharacterName = getCardFullName(entry.getKey()) + "|" + entry.getKey().getSelf().getOwner();
+            List<String> minionNames = entry.getValue().stream()
+                    .map(card -> getCardFullName(card) + "|" + card.getSelf().getOwner())
+                    .sorted()
+                    .toList();
+            thatAssignments.add(fpCharacterName + "=" + String.join(",", minionNames));
+        }
+        Collections.sort(thatAssignments);
+
+        return thisAssignments.equals(thatAssignments);
+    }
+
+    private String getCardFullName(BotCard card) {
+        return card.getSelf().getBlueprint().getFullName();
+    }
+
+    private int hashCardMapByFullName(Map<String, List<BotCard>> map) {
+        int hash = 0;
+        for (Map.Entry<String, List<BotCard>> entry : map.entrySet()) {
+            hash += entry.getKey().hashCode();
+            for (BotCard card : entry.getValue()) {
+                hash += getCardFullName(card).hashCode() + card.getSelf().getOwner().hashCode();
+            }
+        }
+        return hash;
+    }
+
+    private int hashCardSetByFullName(Set<BotCard> set) {
+        int hash = 0;
+        for (BotCard card : set) {
+            hash += getCardFullName(card).hashCode();
+        }
+        return hash;
+    }
+
+    private int hashAssignmentsByFullName() {
+        int hash = 0;
+        for (Map.Entry<BotCard, Set<BotCard>> entry : assignments.entrySet()) {
+            hash += getCardFullName(entry.getKey()).hashCode() + entry.getKey().getSelf().getOwner().hashCode();
+            for (BotCard minion : entry.getValue()) {
+                hash += getCardFullName(minion).hashCode() + minion.getSelf().getOwner().hashCode();
+            }
+        }
+        return hash;
     }
 }

@@ -1,19 +1,20 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
-import com.gempukku.lotro.bots.forge.plan.action.PassAction;
-import com.gempukku.lotro.bots.forge.plan.action.PlayCardFromHandAction;
+import com.gempukku.lotro.bots.forge.plan.action.*;
+import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
+import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
-import com.gempukku.lotro.common.Side;
+import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
 import java.util.*;
 
-public class ShadowPlan {
+public class ShadowPhasePlan {
     private final int siteNumber;
     private final String playerName;
     private final LotroGame game;
@@ -23,13 +24,13 @@ public class ShadowPlan {
     List<ActionToTake> actions = new ArrayList<>();
     private final PlannedBoardState plannedBoardState;
 
-    public ShadowPlan(boolean printDebugMessages, LotroGame game) {
+    public ShadowPhasePlan(boolean printDebugMessages, LotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
         this.game = game;
         this.printDebugMessages = printDebugMessages;
 
         if (printDebugMessages) {
-            System.out.println("Making new shadow plan for opponent's site " + siteNumber);
+            System.out.println("Making new shadow phase plan for opponent's site " + siteNumber);
         }
 
         plannedBoardState = new PlannedBoardState(game);
@@ -38,11 +39,11 @@ public class ShadowPlan {
     }
 
     private void makePlan() {
-        List<ShadowPhaseEndState> allEndStates = new ArrayList<>(findAllShadowPhaseEndStates());
+        List<ShadowPhaseEndState> allEndStates = new ArrayList<>(ActionFinderUtil.findAllShadowPhaseEndStates(plannedBoardState));
 
         for (ShadowPhaseEndState endState : allEndStates) {
             if (endState.hasPotentialToWinTheGame()) {
-                this.actions = endState.getActions();
+                this.actions = endState.getShadowActions();
                 if (printDebugMessages) {
                     System.out.println("Chosen shadow plan leading to potential win:");
                     for (ActionToTake action : actions) {
@@ -62,66 +63,6 @@ public class ShadowPlan {
                 return;
             }
         }
-
-    }
-
-    private Set<ShadowPhaseEndState> findAllShadowPhaseEndStates() {
-        Set<ShadowPhaseEndState> endStates = new HashSet<>();
-        explore(plannedBoardState, new ArrayList<>(), endStates);
-        return endStates;
-    }
-
-    private void explore(PlannedBoardState plannedBoardState, ArrayList<ActionToTake> history, Set<ShadowPhaseEndState> endStates) {
-        List<ActionToTake> possibleActions = getAllPossibleShadowActions(plannedBoardState);
-
-        for (ActionToTake action : possibleActions) {
-            PlannedBoardState next = new PlannedBoardState(plannedBoardState);
-            history.add(action);
-            if (action instanceof PassAction) {
-                ShadowPhaseEndState endState = new ShadowPhaseEndState(next, history);
-                endStates.add(endState);
-            } else {
-                if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
-                    BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
-                    if (cardToPlay.getSelf().getBlueprint().getCardType().equals(CardType.MINION)) {
-                        next.playMinion(cardToPlay);
-                    } else {
-                        throw new IllegalStateException("Only minion play is implemented in ShadowPlan");
-                    }
-                } else {
-                    throw new IllegalStateException("Only PlayCardFromHandAction is implemented in ShadowPlan");
-                }
-                explore(next, history, endStates);
-            }
-            history.removeLast();
-        }
-    }
-
-    private List<ActionToTake> getAllPossibleShadowActions(PlannedBoardState plannedBoardState) {
-        List<ActionToTake> possibleActions = new ArrayList<>();
-
-        List<BotCard> shadowCardsInHand = plannedBoardState.getHand(playerName).stream()
-                .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
-                .toList();
-
-        for (BotCard botCard : shadowCardsInHand) {
-            if (botCard.getSelf().getBlueprint().getCardType().equals(CardType.MINION)) {
-                int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                boolean roaming = minionSiteNumber > currentSiteNumber;
-                int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
-                if (roaming) {
-                    twilightCost += 2;
-                }
-                if (plannedBoardState.getTwilight() >= twilightCost) {
-                    possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
-                }
-            }
-        }
-
-        possibleActions.add(new PassAction());
-
-        return possibleActions;
     }
 
     public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
@@ -151,8 +92,61 @@ public class ShadowPlan {
     }
 
     public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
-        //TODO
-        throw new IllegalStateException("Targeting not implemented yet in ShadowPlan");
+        if (printDebugMessages) {
+            System.out.println("Shadow phase plan asked to take action on " + awaitingDecision.toJson().toString());
+        }
+
+        if (!isActive()) {
+            if (printDebugMessages) {
+                System.out.println("Plan is outdated");
+            }
+            throw new IllegalStateException("Plan is outdated");
+        }
+
+        if (actions.isEmpty()) {
+            if (printDebugMessages) {
+                System.out.println("No actions in plan");
+            }
+            throw new IllegalStateException("No actions in plan");
+        }
+
+        if (nextStep > actions.size()) {
+            if (printDebugMessages) {
+                System.out.println("All actions from plan already fully taken");
+            }
+            throw new IllegalStateException("All actions from plan already fully taken");
+        }
+
+        ActionToTake action = actions.get(nextStep - 1);
+        if (printDebugMessages) {
+            System.out.println("Last action");
+            System.out.println(action.toString());
+        }
+
+        if (action instanceof PlayCardFromHandWithTargetAction actionWithTarget) {
+            if (printDebugMessages) {
+                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
+            }
+            return List.of(actionWithTarget.getTarget());
+        } else if (action instanceof UseCardWithTargetAction actionWithTarget) {
+            List<Integer> physicalIds = new ArrayList<>();
+            if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.ARBITRARY_CARDS)) {
+                for (String physicalCard : awaitingDecision.getDecisionParameters().get("physicalId")) {
+                    physicalIds.add(Integer.parseInt(physicalCard));
+                }
+
+            } else if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)) {
+                for (String physicalCard : awaitingDecision.getDecisionParameters().get("cardId")) {
+                    physicalIds.add(Integer.parseInt(physicalCard));
+                }
+            }
+            if (printDebugMessages) {
+                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget(physicalIds).getBlueprint().getFullName());
+            }
+            return List.of(actionWithTarget.getTarget(physicalIds));
+        } else {
+            throw new IllegalStateException("Last action should not trigger targeting");
+        }
     }
 
     public boolean replanningNeeded() {
@@ -161,7 +155,8 @@ public class ShadowPlan {
 
     private boolean isActive() {
         boolean tbr =  !game.getGameState().getCurrentPlayerId().equals(playerName)
-                && game.getGameState().getCurrentSiteNumber() == siteNumber;
+                && game.getGameState().getCurrentSiteNumber() == siteNumber
+                && game.getGameState().getCurrentPhase().equals(Phase.SHADOW);
         if (printDebugMessages) {
             System.out.println("Plan is active: " + tbr);
         }

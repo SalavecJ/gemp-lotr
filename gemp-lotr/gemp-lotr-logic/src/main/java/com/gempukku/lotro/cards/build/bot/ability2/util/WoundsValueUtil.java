@@ -42,11 +42,6 @@ public class WoundsValueUtil {
 
         double value = Math.abs(realChange);
 
-        if (realChange > 0 && vitality - realChange == 0) {
-            // killing blow bonus
-            throw new IllegalStateException("Calculation of wounds value for killing blow not supported yet");
-        }
-
         if (!isCompanion) {
             value *= 0.5;
         }
@@ -62,7 +57,9 @@ public class WoundsValueUtil {
             }
 
             // Assign value based on vitality
-            if (vitalityToEvaluate == 1) {
+            if (vitalityToEvaluate == 0) {
+                value += 1.0; // very valuable to deal the killing blow
+            } else if (vitalityToEvaluate == 1) {
                 value += 0.5; // last vitality point very valuable
             } else if (vitalityToEvaluate == 2) {
                 value += 0.0; // 2 vitality standard value

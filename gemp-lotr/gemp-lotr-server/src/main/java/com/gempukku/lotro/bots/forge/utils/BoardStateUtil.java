@@ -34,6 +34,12 @@ public class BoardStateUtil {
                 .toList());
     }
 
+    public static List<BotCard> getCompanionsInPlay(PlannedBoardState plannedBoardState) {
+        return new ArrayList<>(plannedBoardState.getFpCardsInPlay(plannedBoardState.getCurrentFpPlayer()).stream()
+                .filter(botCard -> CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .toList());
+    }
+
     public static List<BotCard> getMinionsInPlay(PlannedBoardState plannedBoardState) {
         return new ArrayList<>(plannedBoardState.getShadowCardsInPlay(plannedBoardState.getCurrentShadowPlayer()).stream()
                 .filter(botCard -> botCard.getSelf().getBlueprint().getCardType().equals(CardType.MINION))
@@ -78,5 +84,57 @@ public class BoardStateUtil {
                 })
                 .map(botCard -> (BotEventCard) botCard)
                 .toList());
+    }
+
+    /**
+     * Gets shadow cards in play that will persist beyond the current turn.
+     * This excludes minions (which are discarded at end of turn) and any cards attached to minions.
+     * Includes conditions, possessions attached to non-minions, etc.
+     */
+    public static List<BotCard> getPersistentShadowCards(PlannedBoardState plannedBoardState) {
+        List<BotCard> shadowCards = plannedBoardState.getShadowCardsInPlay(plannedBoardState.getCurrentShadowPlayer());
+
+        // Get all minions
+        List<BotCard> minions = shadowCards.stream()
+                .filter(card -> CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
+                .toList();
+
+        // Get non-minion shadow cards that are NOT attached to minions
+        return shadowCards.stream()
+                .filter(card -> !CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
+                .filter(card -> {
+                    // Check if this card is attached to a minion
+                    for (BotCard minion : minions) {
+                        if (plannedBoardState.getAttachedCards(minion).contains(card)) {
+                            return false; // Attached to a minion, will be discarded
+                        }
+                    }
+                    return true; // Not attached to a minion, will persist
+                })
+                .toList();
+    }
+
+    /**
+     * Gets FP cards in play excluding companions.
+     * Includes possessions, allies, conditions - all persistent cards that support the fellowship.
+     * Companions are excluded as they're evaluated separately in damage calculations.
+     */
+    public static List<BotCard> getFpNonCompanionCards(PlannedBoardState plannedBoardState) {
+        List<BotCard> fpCards = plannedBoardState.getFpCardsInPlay(plannedBoardState.getCurrentFpPlayer());
+
+        return fpCards.stream()
+                .filter(card -> !CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType()))
+                .toList();
+    }
+
+    /**
+     * Gets all FP allies in play.
+     */
+    public static List<BotCard> getAlliesInPlay(PlannedBoardState plannedBoardState) {
+        List<BotCard> fpCards = plannedBoardState.getFpCardsInPlay(plannedBoardState.getCurrentFpPlayer());
+
+        return fpCards.stream()
+                .filter(card -> CardType.ALLY.equals(card.getSelf().getBlueprint().getCardType()))
+                .toList();
     }
 }
