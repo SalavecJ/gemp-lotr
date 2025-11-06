@@ -41,7 +41,19 @@ public class ShadowPhasePlan {
     private void makePlan() {
         List<ShadowPhaseEndState> allEndStates = new ArrayList<>(ActionFinderUtil.findAllShadowPhaseEndStates(plannedBoardState));
 
-        for (ShadowPhaseEndState endState : allEndStates) {
+        if (printDebugMessages) {
+            System.out.println("Total shadow end states found: " + allEndStates.size());
+        }
+
+        // Select only interesting end states using heuristics (for performance)
+        List<ShadowPhaseEndState> interestingEndStates = selectInterestingEndStates(allEndStates);
+
+        if (printDebugMessages) {
+            System.out.println("Interesting shadow end states selected: " + interestingEndStates.size());
+        }
+
+        // Evaluate only the interesting ones (combat path is computed lazily)
+        for (ShadowPhaseEndState endState : interestingEndStates) {
             if (endState.hasPotentialToWinTheGame()) {
                 this.actions = endState.getShadowActions();
                 if (printDebugMessages) {
@@ -63,6 +75,66 @@ public class ShadowPhasePlan {
                 return;
             }
         }
+    }
+
+    /**
+     * Selects a diverse set of interesting shadow end states using heuristics.
+     * This avoids evaluating all possible end states for better performance.
+     * Strategies selected:
+     * 1. Do nothing (save cards for next turn)
+     * 2. Play maximum minions (all-in aggression)
+     * 3. Play biggest/most expensive minion only
+     * 4. Play all conditions first, then fill with minions
+     * 5. Play smallest/cheapest minions (keep twilight pool small)
+     * 6. Balanced approach (medium number of minions)
+     */
+    private List<ShadowPhaseEndState> selectInterestingEndStates(List<ShadowPhaseEndState> allEndStates) {
+        if (allEndStates.isEmpty()) {
+            return allEndStates;
+        }
+
+        Set<ShadowPhaseEndState> selected = new LinkedHashSet<>();
+
+        // Strategy 1: Do nothing (save everything for next turn)
+        findEndStateWithNoActions(allEndStates).ifPresent(selected::add);
+
+        // Strategy 2: Play the strongest board with given number of minions
+        for (int i = 0; true; i++) {
+            Optional<ShadowPhaseEndState> endState = findEndStateWithStrongestMinions(allEndStates, i);
+            if (endState.isPresent()) {
+                selected.add(endState.get());
+            } else {
+                break;
+            }
+        }
+
+        return new ArrayList<>(selected);
+    }
+
+    private Optional<ShadowPhaseEndState> findEndStateWithNoActions(List<ShadowPhaseEndState> endStates) {
+        return endStates.stream().filter(shadowPhaseEndState -> shadowPhaseEndState.getShadowActions().size() == 1).findFirst();
+    }
+
+    private Optional<ShadowPhaseEndState> findEndStateWithStrongestMinions(List<ShadowPhaseEndState> endStates, int numberOfMinions) {
+        return endStates.stream()
+                .filter(shadowPhaseEndState -> countMinionsOnBoard(shadowPhaseEndState) == numberOfMinions)
+                .max(Comparator.comparingInt(this::countTotalStrengthOfMinionsOnBoard));
+    }
+
+    private int countMinionsOnBoard(ShadowPhaseEndState endState) {
+        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
+    }
+
+    private int countTotalStrengthOfMinionsOnBoard(ShadowPhaseEndState endState) {
+        return endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream()
+                .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .mapToInt(botCard -> endState.getBoardState().getStrength(botCard)).sum();
+    }
+
+    private int countTotalVitalityOfMinionsOnBoard(ShadowPhaseEndState endState) {
+        return endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream()
+                .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .mapToInt(botCard -> endState.getBoardState().getVitality(botCard)).sum();
     }
 
     public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {

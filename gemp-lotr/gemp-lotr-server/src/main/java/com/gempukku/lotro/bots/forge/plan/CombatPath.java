@@ -75,5 +75,10 @@ public class CombatPath {
     public double evaluate() {
         return getCombatOutcome().evaluateOutcome();
     }
+
+    @Override
+    public String toString() {
+        return getCombatOutcome().toString();
+    }
 }
 

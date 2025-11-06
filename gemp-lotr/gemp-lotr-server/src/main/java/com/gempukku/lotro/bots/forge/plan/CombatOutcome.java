@@ -34,7 +34,7 @@ public class CombatOutcome {
 
     public boolean winsTheGame() {
         BotCard ringBearer = finalBoardState.getRingBearer(finalBoardState.getCurrentFpPlayer());
-        if (ringBearer == null || finalBoardState.getDeadPile(finalBoardState.getCurrentShadowPlayer()).contains(ringBearer)) {
+        if (ringBearer == null || finalBoardState.getDeadPile(finalBoardState.getCurrentFpPlayer()).contains(ringBearer)) {
             return true; // Ring bearer is dead
         } else if (finalBoardState.getBurdens() >= finalBoardState.getResistance()) {
             return true; // Ring bearer corrupted
@@ -331,5 +331,147 @@ public class CombatOutcome {
         score += getSetupValue() * setupWeight;
 
         return score;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        // Companions analysis
+        List<BotCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
+        List<BotCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
+
+        // Find killed companions
+        List<String> killedCompanions = initialCompanions.stream()
+                .filter(initialComp -> finalCompanions.stream()
+                        .noneMatch(finalComp -> finalComp.getSelf().getCardId() == initialComp.getSelf().getCardId()))
+                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .toList();
+
+        // Find wounded companions (survived but took damage)
+        List<String> woundedCompanions = initialCompanions.stream()
+                .filter(initialComp -> {
+                    BotCard finalComp = finalCompanions.stream()
+                            .filter(fc -> fc.getSelf().getCardId() == initialComp.getSelf().getCardId())
+                            .findFirst()
+                            .orElse(null);
+                    if (finalComp == null) return false; // Dead, not wounded
+
+                    int initialWounds = getWoundCount(initialBoardState, initialComp);
+                    int finalWounds = getWoundCount(finalBoardState, finalComp);
+                    return finalWounds > initialWounds;
+                })
+                .map(card -> {
+                    BotCard finalComp = finalCompanions.stream()
+                            .filter(fc -> fc.getSelf().getCardId() == card.getSelf().getCardId())
+                            .findFirst()
+                            .orElseThrow();
+                    int initialWounds = getWoundCount(initialBoardState, card);
+                    int finalWounds = getWoundCount(finalBoardState, finalComp);
+                    int woundsDealt = finalWounds - initialWounds;
+                    return card.getSelf().getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
+                })
+                .toList();
+
+        sb.append("Companions killed: ");
+        if (killedCompanions.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", killedCompanions));
+        }
+        sb.append("\n");
+
+        sb.append("Companions wounded: ");
+        if (woundedCompanions.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", woundedCompanions));
+        }
+        sb.append("\n");
+
+        // Allies analysis
+        List<BotCard> initialAllies = BoardStateUtil.getAlliesInPlay(initialBoardState);
+        List<BotCard> finalAllies = BoardStateUtil.getAlliesInPlay(finalBoardState);
+
+        // Find killed allies
+        List<String> killedAllies = initialAllies.stream()
+                .filter(initialAlly -> finalAllies.stream()
+                        .noneMatch(finalAlly -> finalAlly.getSelf().getCardId() == initialAlly.getSelf().getCardId()))
+                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .toList();
+
+        // Find wounded allies (survived but took damage)
+        List<String> woundedAllies = initialAllies.stream()
+                .filter(initialAlly -> {
+                    BotCard finalAlly = finalAllies.stream()
+                            .filter(fa -> fa.getSelf().getCardId() == initialAlly.getSelf().getCardId())
+                            .findFirst()
+                            .orElse(null);
+                    if (finalAlly == null) return false; // Dead, not wounded
+
+                    int initialWounds = getWoundCount(initialBoardState, initialAlly);
+                    int finalWounds = getWoundCount(finalBoardState, finalAlly);
+                    return finalWounds > initialWounds;
+                })
+                .map(card -> {
+                    BotCard finalAlly = finalAllies.stream()
+                            .filter(fa -> fa.getSelf().getCardId() == card.getSelf().getCardId())
+                            .findFirst()
+                            .orElseThrow();
+                    int initialWounds = getWoundCount(initialBoardState, card);
+                    int finalWounds = getWoundCount(finalBoardState, finalAlly);
+                    int woundsDealt = finalWounds - initialWounds;
+                    return card.getSelf().getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
+                })
+                .toList();
+
+        sb.append("Allies killed: ");
+        if (killedAllies.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", killedAllies));
+        }
+        sb.append("\n");
+
+        sb.append("Allies wounded: ");
+        if (woundedAllies.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", woundedAllies));
+        }
+        sb.append("\n");
+
+        // Minions analysis
+        List<BotCard> initialMinions = BoardStateUtil.getMinionsInPlay(initialBoardState);
+        List<BotCard> finalMinions = BoardStateUtil.getMinionsInPlay(finalBoardState);
+
+        // Find killed minions
+        List<String> killedMinions = initialMinions.stream()
+                .filter(initialMin -> finalMinions.stream()
+                        .noneMatch(finalMin -> finalMin.getSelf().getCardId() == initialMin.getSelf().getCardId()))
+                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .toList();
+
+        // Find surviving minions
+        List<String> survivingMinions = finalMinions.stream()
+                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .toList();
+
+        sb.append("Minions killed: ");
+        if (killedMinions.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", killedMinions));
+        }
+        sb.append("\n");
+
+        sb.append("Minions surviving: ");
+        if (survivingMinions.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", survivingMinions));
+        }
+
+        return sb.toString();
     }
 }

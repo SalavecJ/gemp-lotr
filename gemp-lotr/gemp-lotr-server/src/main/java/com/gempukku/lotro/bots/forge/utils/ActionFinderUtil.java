@@ -20,10 +20,7 @@ import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ActionFinderUtil {
 
@@ -564,10 +561,9 @@ public class ActionFinderUtil {
         }
 
         // For each unassigned minion, generate assignment actions to each valid FP character
-        for (BotCard minionToAssign : unassignedMinions) {
-            for (BotCard fpCharacter : validFpCharacters) {
-                possibleActions.add(new AssignMinionAction(minionToAssign.getSelf(), fpCharacter.getSelf()));
-            }
+        BotCard minionToAssign = unassignedMinions.stream().max(Comparator.comparingInt(plannedBoardState::getStrength)).get();
+        for (BotCard fpCharacter : validFpCharacters) {
+            possibleActions.add(new AssignMinionAction(minionToAssign.getSelf(), fpCharacter.getSelf()));
         }
 
         return possibleActions;
