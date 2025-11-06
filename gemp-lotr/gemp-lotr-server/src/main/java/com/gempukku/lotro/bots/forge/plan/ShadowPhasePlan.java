@@ -1,9 +1,9 @@
 package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.action.*;
+import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -58,35 +58,24 @@ public class ShadowPhasePlan {
                 this.actions = endState.getShadowActions();
                 if (printDebugMessages) {
                     System.out.println("Chosen shadow plan leading to potential win:");
-                    for (ActionToTake action : actions) {
-                        if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
-                            BotCard card = plannedBoardState.getCardById(playCardFromHandAction.getCard().getCardId());
-                            if (!CardType.MINION.equals(card.getSelf().getBlueprint().getCardType())) {
-                                throw new IllegalStateException("Only minion play is implemented in ShadowPlan");
-                            }
-                            System.out.println("Will play minion " + card.getSelf().getBlueprint().getFullName() + " from hand");
-                        } else if (action instanceof PassAction){
-                            System.out.println("Finally, will pass");
-                        } else {
-                            throw new IllegalStateException("Only PlayCardFromHandAction and PassAction is implemented in ShadowPlan");
-                        }
-                    }
+                    System.out.println(endState);
                 }
                 return;
             }
         }
+
+        interestingEndStates.stream().max(Comparator.comparingDouble(PhaseEndState::getValue)).ifPresent(bestEndState -> {
+            this.actions = bestEndState.getShadowActions();
+            if (printDebugMessages) {
+                System.out.println("No shadow plan leads to win, chosen best plan with value " + bestEndState.getValue());
+                System.out.println(bestEndState);
+            }
+        });
     }
 
     /**
      * Selects a diverse set of interesting shadow end states using heuristics.
      * This avoids evaluating all possible end states for better performance.
-     * Strategies selected:
-     * 1. Do nothing (save cards for next turn)
-     * 2. Play maximum minions (all-in aggression)
-     * 3. Play biggest/most expensive minion only
-     * 4. Play all conditions first, then fill with minions
-     * 5. Play smallest/cheapest minions (keep twilight pool small)
-     * 6. Balanced approach (medium number of minions)
      */
     private List<ShadowPhaseEndState> selectInterestingEndStates(List<ShadowPhaseEndState> allEndStates) {
         if (allEndStates.isEmpty()) {
@@ -129,12 +118,6 @@ public class ShadowPhasePlan {
         return endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream()
                 .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
                 .mapToInt(botCard -> endState.getBoardState().getStrength(botCard)).sum();
-    }
-
-    private int countTotalVitalityOfMinionsOnBoard(ShadowPhaseEndState endState) {
-        return endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream()
-                .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
-                .mapToInt(botCard -> endState.getBoardState().getVitality(botCard)).sum();
     }
 
     public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {

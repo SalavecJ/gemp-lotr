@@ -193,6 +193,11 @@ public class CombatOutcome {
      * @return Higher score means better setup for Shadow for future turns
      */
     public double getSetupValue() {
+        if (finalBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber() == 9) {
+            // At site 9, setup is irrelevant as the game ends
+            return 0.0;
+        }
+
         double score = 0.0;
 
         // Persistent shadow cards (conditions, possessions not on minions) are valuable for future turns

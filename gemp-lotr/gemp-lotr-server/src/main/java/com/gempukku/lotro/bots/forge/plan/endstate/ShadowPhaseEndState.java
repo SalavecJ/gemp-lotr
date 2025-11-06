@@ -37,6 +37,13 @@ public class ShadowPhaseEndState extends PhaseEndState {
     }
 
     @Override
+    public double getValue() {
+        if (value != 0.0)
+            return value;
+        return getCombatPath().evaluate();
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Shadow Phase Actions:\n");
