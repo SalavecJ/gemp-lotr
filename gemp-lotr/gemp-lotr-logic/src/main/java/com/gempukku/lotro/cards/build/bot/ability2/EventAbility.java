@@ -1,6 +1,7 @@
 package com.gempukku.lotro.cards.build.bot.ability2;
 
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
+import com.gempukku.lotro.cards.build.bot.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
@@ -31,11 +32,39 @@ public class EventAbility implements Ability {
     }
 
     @Override
+    public void resolveAbilityWithCostTarget(String player, PlannedBoardState plannedBoardState, BotCard costTarget) {
+        if (cost != null && cost instanceof CostWithTarget costWithTarget) {
+            costWithTarget.payWithTarget(player, plannedBoardState, costTarget);
+            effect.resolve(player, plannedBoardState);
+        } else {
+            if (cost == null)
+                throw new IllegalStateException("No cost to target for paying with target.");
+            throw new IllegalStateException("Cost targeting for this cost not supported: " + cost.getClass().getSimpleName());
+        }
+    }
+
+    @Override
     public void resolveAbilityOnTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
         if (effect instanceof EffectWithTarget effectWithTarget) {
             if (cost != null)
                 cost.pay(player, plannedBoardState);
             effectWithTarget.resolveWithTarget(player, plannedBoardState, target);
+        } else {
+            throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
+        }
+    }
+
+    @Override
+    public void resolveAbilityOnTargetWithCostTarget(String player, PlannedBoardState plannedBoardState, BotCard effectTarget, BotCard costTarget) {
+        if (effect instanceof EffectWithTarget effectWithTarget) {
+            if (cost != null && cost instanceof CostWithTarget costWithTarget) {
+                costWithTarget.payWithTarget(player, plannedBoardState, costTarget);
+                effectWithTarget.resolveWithTarget(player, plannedBoardState, effectTarget);
+            } else {
+                if (cost == null)
+                    throw new IllegalStateException("No cost to target for paying with target.");
+                throw new IllegalStateException("Cost targeting for this cost not supported: " + cost.getClass().getSimpleName());
+            }
         } else {
             throw new IllegalStateException("Targeting for this effect not supported: " + effect.getClass().getSimpleName());
         }

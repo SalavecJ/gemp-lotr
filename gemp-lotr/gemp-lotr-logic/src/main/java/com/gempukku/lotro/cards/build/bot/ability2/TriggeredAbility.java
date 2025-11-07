@@ -1,5 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.ability2;
 
+import com.gempukku.lotro.cards.build.bot.ability2.condition.Condition;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
@@ -11,12 +12,14 @@ import com.gempukku.lotro.game.state.PlannedBoardState;
 public class TriggeredAbility implements Ability {
     protected final boolean optionalTrigger;
     protected final Trigger trigger;
+    protected final Condition condition;
     protected final Effect effect;
     protected final Cost cost;
 
-    protected TriggeredAbility(boolean optionalTrigger, Trigger trigger, Effect effect, Cost cost) {
+    protected TriggeredAbility(boolean optionalTrigger, Trigger trigger, Condition condition, Effect effect, Cost cost) {
         this.optionalTrigger = optionalTrigger;
         this.trigger = trigger;
+        this.condition = condition;
         this.effect = effect;
         this.cost = cost;
     }
@@ -35,6 +38,12 @@ public class TriggeredAbility implements Ability {
 
     public Cost getCost() {
         return cost;
+    }
+
+    public boolean resolvesWithoutActionNeeded() {
+        return !optionalTrigger
+                && (cost == null || !(cost instanceof CostWithTarget))
+                && !(effect instanceof EffectWithTarget);
     }
 
     @Override
@@ -107,6 +116,7 @@ public class TriggeredAbility implements Ability {
 
     @Override
     public boolean conditionOk(String player, PlannedBoardState plannedBoardState) {
-        return true;
+        if (condition == null) return true;
+        return condition.isOk(player, plannedBoardState);
     }
 }

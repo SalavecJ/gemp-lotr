@@ -1006,6 +1006,15 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(false) // json card implementation sets this as non-optional trigger even though the text says "you may"
+                            .effect(Effect.addTwilight(2))
+                            .build();
+                }
             };
         }
         // 1_179 Goblin Scavengers - When you play this minion, you may play a weapon from your discard pile on your [moria] Orc.
@@ -1122,6 +1131,16 @@ public class BotCardFactory {
                                     .effect(addTwilight(2))
                                     .build()
                     );
+                }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(false) // json card implementation sets this as non-optional trigger even though the text says spot, which is optional
+                            .condition(Condition.spot(Race.ELF))
+                            .effect(Effect.addTwilight(2))
+                            .build();
                 }
             };
         }

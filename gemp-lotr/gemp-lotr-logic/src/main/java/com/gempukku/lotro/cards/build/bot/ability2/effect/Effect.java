@@ -100,4 +100,8 @@ public abstract class Effect {
     public static EffectPlayWithBonusTwilightModification playWithBonusTwilightModification(Predicate<BotCard> target, int twilightModification){
         return new EffectPlayWithBonusTwilightModification(target, twilightModification);
     }
+
+    public static EffectAddTwilight addTwilight(int amount){
+        return new EffectAddTwilight(amount);
+    }
 }

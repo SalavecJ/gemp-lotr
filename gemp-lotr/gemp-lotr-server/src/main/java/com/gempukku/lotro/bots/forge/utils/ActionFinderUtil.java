@@ -14,6 +14,7 @@ import com.gempukku.lotro.bots.forge.plan.action.AssignMinionAction;
 import com.gempukku.lotro.bots.forge.plan.action.ChooseSkirmishAction;
 import com.gempukku.lotro.bots.forge.plan.action.PassAction;
 import com.gempukku.lotro.bots.forge.plan.action.PlayCardFromHandAction;
+import com.gempukku.lotro.cards.build.bot.ability2.trigger.Trigger;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
@@ -431,6 +432,14 @@ public class ActionFinderUtil {
                 if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
                     BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
                     next.playCard(cardToPlay);
+                    if (cardToPlay.getTriggeredAbility() != null
+                            && cardToPlay.getTriggeredAbility().getTrigger() == Trigger.WHEN_PLAYED) {
+                        if (cardToPlay.getTriggeredAbility().resolvesWithoutActionNeeded()) {
+                            next.activateTriggeredAbility(cardToPlay, plannedBoardState.getCurrentShadowPlayer());
+                        } else {
+                            throw new IllegalStateException("Only triggered abilities that resolve without action are implemented in ShadowPlan");
+                        }
+                    }
                 } else {
                     throw new IllegalStateException("Only PlayCardFromHandAction is implemented in ShadowPlan");
                 }
