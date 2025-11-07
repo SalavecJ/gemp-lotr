@@ -1106,12 +1106,14 @@ public class BotCardFactory {
 
                 @Override
                 public Condition getCondition() {
-                    return Condition.spotInDiscard(Culture.MORIA, Race.ORC);
+                    return Condition.spotPlayableInDiscard(Culture.MORIA, Race.ORC);
                 }
 
                 @Override
                 public EventAbility getEventAbility() {
-                    throw new IllegalStateException("Shadow events not yet implemented");
+                    return new EventAbilityBuilder()
+                            .effect(Effect.playFromDiscard(Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
+                            .build();
                 }
             };
         }

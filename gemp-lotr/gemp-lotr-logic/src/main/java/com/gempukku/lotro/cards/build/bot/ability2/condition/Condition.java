@@ -12,12 +12,12 @@ import java.util.function.Predicate;
 public abstract class Condition {
     public abstract boolean isOk(String player, PlannedBoardState plannedBoardState);
 
-    public static ConditionSpotInDiscard spotInDiscard(Predicate<BotCard> target) {
-        return new ConditionSpotInDiscard(target);
+    public static ConditionSpotPlayableInDiscard spotPlayableInDiscard(Predicate<BotCard> target) {
+        return new ConditionSpotPlayableInDiscard(target);
     }
 
-    public static ConditionSpotInDiscard spotInDiscard(Culture culture, Race race) {
-        return spotInDiscard(Target.and(Target.culture(culture), Target.race(race)));
+    public static ConditionSpotPlayableInDiscard spotPlayableInDiscard(Culture culture, Race race) {
+        return spotPlayableInDiscard(Target.and(Target.culture(culture), Target.race(race)));
     }
 
     public static ConditionSpot spot(Predicate<BotCard> target) {

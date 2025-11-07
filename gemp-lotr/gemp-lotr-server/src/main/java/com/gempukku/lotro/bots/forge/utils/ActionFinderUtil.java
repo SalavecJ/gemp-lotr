@@ -2,6 +2,7 @@ package com.gempukku.lotro.bots.forge.utils;
 
 import com.gempukku.lotro.bots.forge.plan.CombatOutcome;
 import com.gempukku.lotro.bots.forge.plan.CombatPath;
+import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.plan.endstate.ArcheryPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.AssignmentPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ManeuverPhaseEndState;
@@ -9,11 +10,10 @@ import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
-import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
-import com.gempukku.lotro.bots.forge.plan.action.AssignMinionAction;
-import com.gempukku.lotro.bots.forge.plan.action.ChooseSkirmishAction;
-import com.gempukku.lotro.bots.forge.plan.action.PassAction;
-import com.gempukku.lotro.bots.forge.plan.action.PlayCardFromHandAction;
+import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayFromDiscard;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayWithBonus;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.cards.build.bot.ability2.trigger.Trigger;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
@@ -429,7 +429,22 @@ public class ActionFinderUtil {
                 ShadowPhaseEndState endState = new ShadowPhaseEndState(next, history);
                 endStates.add(endState);
             } else {
-                if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
+                if (action instanceof PlayCardFromHandWithTargetAction playCardFromHandWithTargetAction) {
+                    BotCard cardToPlay = next.getCardById(playCardFromHandWithTargetAction.getCard().getCardId());
+                    BotCard targetCard = next.getCardById(playCardFromHandWithTargetAction.getTarget().getCardId());
+                    next.playCard(cardToPlay, targetCard);
+                    if (cardToPlay.getEventAbility().getEffect() instanceof EffectPlayFromDiscard
+                            || cardToPlay.getEventAbility().getEffect() instanceof EffectPlayWithBonus) {
+                        if (targetCard.getTriggeredAbility() != null
+                                && targetCard.getTriggeredAbility().getTrigger() == Trigger.WHEN_PLAYED) {
+                            if (targetCard.getTriggeredAbility().resolvesWithoutActionNeeded()) {
+                                next.activateTriggeredAbility(targetCard, plannedBoardState.getCurrentShadowPlayer());
+                            } else {
+                                throw new IllegalStateException("Only triggered abilities that resolve without action are implemented in ShadowPlan");
+                            }
+                        }
+                    }
+                } else if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
                     BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
                     next.playCard(cardToPlay);
                     if (cardToPlay.getTriggeredAbility() != null
@@ -494,6 +509,7 @@ public class ActionFinderUtil {
             //TODO other stuff than playing minions
             possibleActions.addAll(getPlayMinionsFromHandActions(plannedBoardState));
             possibleActions.addAll(getPlayShadowConditionsFromHandActions(plannedBoardState));
+            possibleActions.addAll(getPlayShadowEventsFromHandActions(plannedBoardState));
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.MANEUVER)) {
             // TODO maneuver actions
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.ARCHERY)) {
@@ -555,6 +571,30 @@ public class ActionFinderUtil {
         for (BotCard botCard : shadowCardsInHand) {
             int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
             if (plannedBoardState.getTwilight() >= twilightCost) {
+                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+            }
+        }
+
+        return possibleActions;
+    }
+
+    private static List<ActionToTake> getPlayShadowEventsFromHandActions(PlannedBoardState plannedBoardState) {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+        List<BotCard> shadowCardsInHand = plannedBoardState.getHand(plannedBoardState.getCurrentShadowPlayer()).stream()
+                .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
+                .filter(botCard -> CardType.EVENT.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost())
+                .toList();
+
+        for (BotCard botCard : shadowCardsInHand) {
+            EventAbility eventAbility = botCard.getEventAbility();
+            if (eventAbility.getEffect() instanceof EffectWithTarget) {
+                List<BotCard> potentialTargets = ((EffectWithTarget) eventAbility.getEffect()).getPotentialTargets(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState);
+                for (BotCard target : potentialTargets) {
+                    possibleActions.add(new PlayCardFromHandWithTargetAction(botCard.getSelf(), target.getSelf()));
+                }
+            } else {
                 possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
             }
         }

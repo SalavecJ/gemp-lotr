@@ -421,7 +421,17 @@ public class PlannedBoardState {
         }
     }
 
-    private void playCardInternal(BotCard botCard, BotCard target, int twilightModifier, boolean isFreePeoples) {
+    private void playCardInternal(BotCard botCard, BotCard target, int twilightModifier, CardZone zone) {
+        // Check if it's a minion and calculate roaming cost
+        if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
+            int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+            int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+            boolean roaming = minionSiteNumber > currentSiteNumber;
+            twilightModifier += roaming ? 2 : 0;
+        }
+
+        boolean isFreePeoples = botCard.getSelf().getBlueprint().getSide() == Side.FREE_PEOPLE;
+
         int totalCost = botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier;
         if (totalCost < 0) {
             totalCost = 0;
@@ -433,9 +443,18 @@ public class PlannedBoardState {
         if (botCard instanceof BotObjectAttachableCard attachableCard && (target == null || !attachableCard.isValidBearer(target, this))) {
             throw new IllegalStateException("Invalid target for attachment: " + botCard.getSelf().getBlueprint().getFullName());
         }
+        if (!isCardInZone(botCard, zone)) {
+            throw new IllegalStateException("Card not in expected zone to be played: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+
+        removeCardFromZone(botCard, zone);
 
         if (botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)) {
-            botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
+            if (target == null) {
+                botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
+            } else {
+                botCard.getEventAbility().resolveAbilityOnTarget(botCard.getSelf().getOwner(), this, target);
+            }
             discards.get(botCard.getSelf().getOwner()).add(botCard);
         } else if (isFreePeoples) {
             inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
@@ -448,7 +467,6 @@ public class PlannedBoardState {
         }
 
         payTwilight(totalCost, isFreePeoples);
-        removeCardFromHand(botCard);
         cardTokens.put(botCard, new HashMap<>());
     }
 
@@ -463,9 +481,27 @@ public class PlannedBoardState {
         }
     }
 
-    private void removeCardFromHand(BotCard botCard) {
-        hands.get(botCard.getSelf().getOwner()).remove(botCard);
-        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
+    private enum CardZone {
+        HAND, DISCARD
+    }
+
+    private void removeCardFromZone(BotCard botCard, CardZone source) {
+        if (source == CardZone.HAND) {
+            hands.get(botCard.getSelf().getOwner()).remove(botCard);
+            revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
+        } else {
+            discards.get(botCard.getSelf().getOwner()).remove(botCard);
+        }
+    }
+
+    private boolean isCardInZone(BotCard botCard, CardZone zone) {
+        if (zone == CardZone.HAND) {
+            return hands.get(botCard.getSelf().getOwner()).contains(botCard);
+        } else if (zone == CardZone.DISCARD) {
+            return discards.get(botCard.getSelf().getOwner()).contains(botCard);
+        } else {
+            throw new IllegalStateException("Unknown zone: " + zone);
+        }
     }
 
     public void playCard(BotCard botCard) {
@@ -481,29 +517,29 @@ public class PlannedBoardState {
     }
 
     public void playCard(BotCard botCard, BotCard target, int twilightModifier) {
-        Side side = botCard.getSelf().getBlueprint().getSide();
+        playCardInternal(botCard, target, twilightModifier, CardZone.HAND);
+    }
 
-        if (side.equals(Side.FREE_PEOPLE)) {
-            playCardInternal(botCard, target, twilightModifier, true);
-        } else {
-            // Check if it's a minion and calculate roaming cost
-            if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
-                int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                boolean roaming = minionSiteNumber > currentSiteNumber;
-                twilightModifier += roaming ? 2 : 0;
-            }
-            playCardInternal(botCard, target, twilightModifier, false);
-        }
+    public void playCardFromDiscard(BotCard botCard) {
+        playCardFromDiscard(botCard, 0);
+    }
+
+    public void playCardFromDiscard(BotCard botCard, int twilightModifier) {
+        playCardFromDiscard(botCard, null, twilightModifier);
+    }
+
+    public void playCardFromDiscard(BotCard botCard, BotCard target) {
+        playCardFromDiscard(botCard, target, 0);
+    }
+
+    public void playCardFromDiscard(BotCard botCard, BotCard target, int twilightModifier) {
+        playCardInternal(botCard, target, twilightModifier, CardZone.DISCARD);
     }
 
     public void activateAbility(BotCard botCard, Class<? extends Effect> effectClass, String player) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
-        }
-        if (ability.getEffect() instanceof EffectWithTarget) {
-            throw new IllegalStateException("Ability requires target: " + effectClass.getSimpleName());
         }
         ability.resolveAbility(player, this);
     }
@@ -524,9 +560,6 @@ public class PlannedBoardState {
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
         }
-        if (ability.getEffect() instanceof EffectWithTarget) {
-            throw new IllegalStateException("Triggered ability requires target: " + botCard.getSelf().getBlueprint().getFullName());
-        }
         ability.resolveAbility(player, this);
     }
 
@@ -546,9 +579,6 @@ public class PlannedBoardState {
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
         }
-        if (ability.getEffect() instanceof EffectWithTarget) {
-            throw new IllegalStateException("Ability requires effect target: " + effectClass.getSimpleName());
-        }
         ability.resolveAbilityWithCostTarget(player, this, costTarget);
     }
 
@@ -567,9 +597,6 @@ public class PlannedBoardState {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
-        }
-        if (ability.getEffect() instanceof EffectWithTarget) {
-            throw new IllegalStateException("Triggered ability requires effect target: " + botCard.getSelf().getBlueprint().getFullName());
         }
         ability.resolveAbilityWithCostTarget(player, this, costTarget);
     }

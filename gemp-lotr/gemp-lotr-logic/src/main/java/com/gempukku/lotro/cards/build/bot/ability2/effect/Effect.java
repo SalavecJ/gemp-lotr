@@ -101,6 +101,10 @@ public abstract class Effect {
         return new EffectPlayWithBonusTwilightModification(target, twilightModification);
     }
 
+    public static EffectPlayFromDiscard playFromDiscard(Predicate<BotCard> target){
+        return new EffectPlayFromDiscard(target);
+    }
+
     public static EffectAddTwilight addTwilight(int amount){
         return new EffectAddTwilight(amount);
     }
