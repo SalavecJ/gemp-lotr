@@ -15,6 +15,7 @@ import com.gempukku.lotro.bots.forge.plan.action.ChooseSkirmishAction;
 import com.gempukku.lotro.bots.forge.plan.action.PassAction;
 import com.gempukku.lotro.bots.forge.plan.action.PlayCardFromHandAction;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -432,6 +433,8 @@ public class ActionFinderUtil {
                     BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
                     if (cardToPlay.getSelf().getBlueprint().getCardType().equals(CardType.MINION)) {
                         next.playMinion(cardToPlay);
+                    } else if (cardToPlay.getSelf().getBlueprint().getCardType().equals(CardType.CONDITION) && cardToPlay instanceof BotObjectSupportAreaCard) {
+                        next.playToShadowSupportArea(cardToPlay);
                     } else {
                         throw new IllegalStateException("Only minion play is implemented in ShadowPlan");
                     }
@@ -488,6 +491,7 @@ public class ActionFinderUtil {
         if (plannedBoardState.getCurrentPhase().equals(Phase.SHADOW)) {
             //TODO other stuff than playing minions
             possibleActions.addAll(getPlayMinionsFromHandActions(plannedBoardState));
+            possibleActions.addAll(getPlayShadowConditionsFromHandActions(plannedBoardState));
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.MANEUVER)) {
             // TODO maneuver actions
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.ARCHERY)) {
@@ -518,20 +522,38 @@ public class ActionFinderUtil {
         List<ActionToTake> possibleActions = new ArrayList<>();
         List<BotCard> shadowCardsInHand = plannedBoardState.getHand(plannedBoardState.getCurrentShadowPlayer()).stream()
                 .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
+                .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
                 .toList();
 
         for (BotCard botCard : shadowCardsInHand) {
-            if (botCard.getSelf().getBlueprint().getCardType().equals(CardType.MINION)) {
-                int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                boolean roaming = minionSiteNumber > currentSiteNumber;
-                int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
-                if (roaming) {
-                    twilightCost += 2;
-                }
-                if (plannedBoardState.getTwilight() >= twilightCost) {
-                    possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
-                }
+            int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+            int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+            boolean roaming = minionSiteNumber > currentSiteNumber;
+            int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
+            if (roaming) {
+                twilightCost += 2;
+            }
+            if (plannedBoardState.getTwilight() >= twilightCost) {
+                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+            }
+        }
+
+        return possibleActions;
+    }
+
+    private static List<ActionToTake> getPlayShadowConditionsFromHandActions(PlannedBoardState plannedBoardState) {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+        List<BotCard> shadowCardsInHand = plannedBoardState.getHand(plannedBoardState.getCurrentShadowPlayer()).stream()
+                .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
+                .filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
+                .toList();
+
+        for (BotCard botCard : shadowCardsInHand) {
+            int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
+            if (plannedBoardState.getTwilight() >= twilightCost) {
+                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
             }
         }
 

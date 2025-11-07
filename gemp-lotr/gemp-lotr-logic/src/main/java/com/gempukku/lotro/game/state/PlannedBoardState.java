@@ -212,13 +212,6 @@ public class PlannedBoardState {
     }
 
     /**
-     * Clears all assignments. Useful when transitioning between assignment phases or resetting state.
-     */
-    public void clearAssignments() {
-        assignments.clear();
-    }
-
-    /**
      * Marks that both players have passed in assignment phase and we're now in the "assigning minions" phase.
      */
     public void setAssignmentPhasePlayActionsCompleted(boolean completed) {
@@ -476,6 +469,10 @@ public class PlannedBoardState {
         playShadowCard(botCard, roaming ? 2 : 0);
     }
 
+    public void playToShadowSupportArea(BotCard botCard) {
+        playToShadowSupportArea(botCard, 0);
+    }
+
     public void playCompanion(BotCompanionCard botCard, int twilightModifier) {
         playFpCard(botCard, twilightModifier);
     }
@@ -485,6 +482,10 @@ public class PlannedBoardState {
     }
 
     public void playMinion(BotCard botCard, int twilightModifier) {
+        playShadowCard(botCard, twilightModifier);
+    }
+
+    public void playToShadowSupportArea(BotCard botCard, int twilightModifier) {
         playShadowCard(botCard, twilightModifier);
     }
 
