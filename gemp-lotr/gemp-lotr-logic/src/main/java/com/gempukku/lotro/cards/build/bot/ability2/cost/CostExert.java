@@ -50,7 +50,14 @@ public class CostExert extends CostWithTarget {
         }
 
         BotCard target = chooseTarget(player, plannedBoardState);
-        if (target == null) return;
+        payWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public void payWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
         plannedBoardState.exert(target, amount);
     }
 
@@ -60,13 +67,27 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
+    public boolean canPayCostWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        return getPotentialTargets(player, plannedBoardState).contains(target);
+    }
+
+    @Override
     public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
         if (!canPayCost(player, plannedBoardState)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
         BotCard toBeExerted = chooseTarget(player, plannedBoardState);
-        int vitality = plannedBoardState.getVitality(toBeExerted);
-        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, toBeExerted, Math.min(amount, vitality - 1));
+        return getValueIfPayedWithTarget(player, plannedBoardState, toBeExerted);
+    }
+
+    @Override
+    public double getValueIfPayedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
+
+        int vitality = plannedBoardState.getVitality(target);
+        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, target, Math.min(amount, vitality - 1));
     }
 }

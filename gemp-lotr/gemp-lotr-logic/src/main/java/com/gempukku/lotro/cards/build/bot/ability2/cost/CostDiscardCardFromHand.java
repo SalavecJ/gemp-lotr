@@ -42,7 +42,14 @@ public class CostDiscardCardFromHand extends CostWithTarget {
             throw new IllegalStateException("Cost cannot be payed");
         }
         BotCard target = chooseTarget(player, plannedBoardState);
-        if (target == null) return;
+        payWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public void payWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
         plannedBoardState.discardFromHand(target);
     }
 
@@ -52,8 +59,24 @@ public class CostDiscardCardFromHand extends CostWithTarget {
     }
 
     @Override
+    public boolean canPayCostWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        return getPotentialTargets(player, plannedBoardState).contains(target);
+    }
+
+    @Override
     public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
+        if (!canPayCost(player, plannedBoardState)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
         BotCard target = chooseTarget(player, plannedBoardState);
+        return getValueIfPayedWithTarget(player, plannedBoardState, target);
+    }
+
+    @Override
+    public double getValueIfPayedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
+            throw new IllegalStateException("Cost cannot be payed");
+        }
         return getValueOfTarget(target, plannedBoardState);
     }
 

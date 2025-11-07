@@ -145,7 +145,16 @@ public class BetweenTurnsPlan {
                         chosenCard.getSelf(),
                         targetings);
             }
-            chosenCard.getTriggeredAbility().resolveAbility(playerName, plannedBoardState);
+
+            if (effectTargeting != null && costTargeting != null) {
+                plannedBoardState.activateTriggeredAbilityOnTargetWithCostTarget(chosenCard, playerName, effectTargeting.target(), costTargeting.target());
+            } else if (effectTargeting != null) {
+                plannedBoardState.activateTriggeredAbilityOnTarget(chosenCard, playerName, effectTargeting.target());
+            } else if (costTargeting != null) {
+                plannedBoardState.activateTriggeredAbilityWithCostTarget(chosenCard, playerName, costTargeting.target());
+            } else {
+                plannedBoardState.activateTriggeredAbility(chosenCard, playerName);
+            }
 
             return cardsWithPositions.get(chosenCard);
         }
@@ -172,7 +181,7 @@ public class BetweenTurnsPlan {
 
         if (printDebugMessages) {
             System.out.println("Last action");
-            System.out.println(lastAction.toString());
+            System.out.println(lastAction);
         }
 
         if (lastAction instanceof UseCardWithTargetAction actionWithTarget) {

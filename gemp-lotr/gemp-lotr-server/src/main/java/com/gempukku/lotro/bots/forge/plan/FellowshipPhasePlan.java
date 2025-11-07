@@ -189,7 +189,7 @@ public class FellowshipPhasePlan {
                 }
 
                 actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
-                plannedBoardState.playEvent(topEvent);
+                plannedBoardState.playCard(topEvent);
             }
         }
     }
@@ -303,7 +303,16 @@ public class FellowshipPhasePlan {
                             chosenCard.getSelf(),
                             targetings));
                 }
-                chosenCard.getActivatedAbility(effectClass).resolveAbility(playerName, plannedBoardState);
+
+                if (effectTargeting != null && costTargeting != null) {
+                    plannedBoardState.activateAbilityOnTargetWithCostTarget(chosenCard, effectClass, playerName, effectTargeting.target(), costTargeting.target());
+                } else if (effectTargeting != null) {
+                    plannedBoardState.activateAbilityOnTarget(chosenCard, effectClass, playerName, effectTargeting.target());
+                } else if (costTargeting != null) {
+                    plannedBoardState.activateAbilityWithCostTarget(chosenCard, effectClass, playerName, costTargeting.target());
+                } else {
+                    plannedBoardState.activateAbility(chosenCard, effectClass, playerName);
+                }
             }
         }
     }
@@ -331,7 +340,7 @@ public class FellowshipPhasePlan {
                         System.out.println("Will play condition " + condition.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
                     }
                     actions.add(new PlayCardFromHandWithTargetAction(condition.getSelf(), target.getSelf()));
-                    plannedBoardState.playOnBearer(attachableCard, target);
+                    plannedBoardState.playCard(attachableCard, target);
                 } else {
                     throw new IllegalStateException("Condition not instance of support area nor attachable object card: " + condition.getSelf().getBlueprint().getFullName());
                 }
@@ -362,7 +371,7 @@ public class FellowshipPhasePlan {
                         System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
                     }
                     actions.add(new PlayCardFromHandWithTargetAction(possession.getSelf(), target.getSelf()));
-                    plannedBoardState.playOnBearer(attachableCard, target);
+                    plannedBoardState.playCard(attachableCard, target);
                 } else {
                     throw new IllegalStateException("Possession not instance of support area nor attachable object card: " + possession.getSelf().getBlueprint().getFullName());
                 }
@@ -398,7 +407,7 @@ public class FellowshipPhasePlan {
                     System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
                 }
                 actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
-                plannedBoardState.playToFpSupportArea(allyInHand);
+                plannedBoardState.playCard(allyInHand);
             }
         }
     }
@@ -440,7 +449,7 @@ public class FellowshipPhasePlan {
                         System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
                     }
                     actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
-                    plannedBoardState.playCompanion(companionInHand);
+                    plannedBoardState.playCard(companionInHand);
                 }
             }
         } else if (numberOfCompanionsToBePlayed == 0) {
@@ -530,7 +539,7 @@ public class FellowshipPhasePlan {
             actions.add(new UseCardWithTargetAction(
                     chosenCard.getSelf(),
                     targetings));
-            chosenCard.getActivatedAbility(EffectPlayWithBonus.class).resolveAbilityOnTarget(playerName, plannedBoardState, target);
+            plannedBoardState.activateAbilityOnTarget(chosenCard, EffectPlayWithBonus.class, playerName, target);
             return true;
         }
     }

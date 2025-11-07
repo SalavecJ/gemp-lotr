@@ -1,10 +1,12 @@
 package com.gempukku.lotro.game.state;
 
 import com.gempukku.lotro.cards.build.bot.BotCardFactory;
+import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.TriggeredAbility;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCompanionCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
+import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 
@@ -419,102 +421,168 @@ public class PlannedBoardState {
         }
     }
 
-    private void playFpCard(BotCard botCard) {
-        playFpCard(botCard, 0);
-    }
-
-    private void playFpCard(BotCard botCard, int twilightModifier) {
+    private void playCardInternal(BotCard botCard, BotCard target, int twilightModifier, boolean isFreePeoples) {
         int totalCost = botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier;
         if (totalCost < 0) {
             totalCost = 0;
         }
-        inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
-        hands.get(botCard.getSelf().getOwner()).remove(botCard);
-        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight += totalCost;
+
+        if (!botCard.canBePlayed(this)) {
+            throw new IllegalStateException("Cannot be played now: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (botCard instanceof BotObjectAttachableCard attachableCard && (target == null || !attachableCard.isValidBearer(target, this))) {
+            throw new IllegalStateException("Invalid target for attachment: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+
+        if (botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)) {
+            botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
+            discards.get(botCard.getSelf().getOwner()).add(botCard);
+        } else if (isFreePeoples) {
+            inPlayFpCards.get(botCard.getSelf().getOwner()).add(botCard);
+        } else {
+            inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
+        }
+
+        if (botCard instanceof BotObjectAttachableCard) {
+            attachedCards.computeIfAbsent(target, k -> new HashSet<>()).add(botCard);
+        }
+
+        payTwilight(totalCost, isFreePeoples);
+        removeCardFromHand(botCard);
         cardTokens.put(botCard, new HashMap<>());
     }
 
-    private void playShadowCard(BotCard botCard) {
-        playShadowCard(botCard, 0);
-    }
-
-    private void playShadowCard(BotCard botCard, int twilightModifier) {
-        int totalCost = botCard.getSelf().getBlueprint().getTwilightCost() + twilightModifier;
-        if (totalCost < 0) {
-            totalCost = 0;
-        }
-        if (twilight < totalCost) {
-            throw new IllegalStateException("Cannot pay twilight for event " + botCard.getSelf().getBlueprint().getFullName());
-        }
-        inPlayShadowCards.get(botCard.getSelf().getOwner()).add(botCard);
-        hands.get(botCard.getSelf().getOwner()).remove(botCard);
-        revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        twilight -= totalCost;
-        cardTokens.put(botCard, new HashMap<>());
-    }
-
-    public void playCompanion(BotCompanionCard botCard) {
-        playFpCard(botCard);
-    }
-
-    public void playToFpSupportArea(BotCard botCard) {
-        playFpCard(botCard);
-    }
-
-    public void playMinion(BotCard botCard) {
-        int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-        boolean roaming = minionSiteNumber > currentSiteNumber;
-        playShadowCard(botCard, roaming ? 2 : 0);
-    }
-
-    public void playToShadowSupportArea(BotCard botCard) {
-        playToShadowSupportArea(botCard, 0);
-    }
-
-    public void playCompanion(BotCompanionCard botCard, int twilightModifier) {
-        playFpCard(botCard, twilightModifier);
-    }
-
-    public void playToFpSupportArea(BotCard botCard, int twilightModifier) {
-        playFpCard(botCard, twilightModifier);
-    }
-
-    public void playMinion(BotCard botCard, int twilightModifier) {
-        playShadowCard(botCard, twilightModifier);
-    }
-
-    public void playToShadowSupportArea(BotCard botCard, int twilightModifier) {
-        playShadowCard(botCard, twilightModifier);
-    }
-
-    public void playOnBearer(BotObjectAttachableCard botCard, BotCard bearer) {
-        boolean fp = botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE);
-        if (fp) {
-            playFpCard(botCard);
-            attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
+    private void payTwilight(int cost, boolean isFreePeoples) {
+        if (isFreePeoples) {
+            twilight += cost;
         } else {
-            playShadowCard(botCard);
-            attachedCards.computeIfAbsent(bearer, k -> new HashSet<>()).add(botCard);
-        }
-    }
-
-    public void playEvent(BotEventCard botCard) {
-        if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
-            twilight += botCard.getSelf().getBlueprint().getTwilightCost();
-        } else {
-            if (twilight < botCard.getSelf().getBlueprint().getTwilightCost()) {
-                throw new IllegalStateException("Cannot pay twilight for event " + botCard.getSelf().getBlueprint().getFullName());
+            if (twilight < cost) {
+                throw new IllegalStateException("Cannot pay twilight of " + cost + " when twilight pool is " + twilight);
             }
-            twilight -= botCard.getSelf().getBlueprint().getTwilightCost();
+            twilight -= cost;
         }
+    }
 
-        botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
-
+    private void removeCardFromHand(BotCard botCard) {
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
-        discards.get(botCard.getSelf().getOwner()).add(botCard);
+    }
+
+    public void playCard(BotCard botCard) {
+        playCard(botCard, 0);
+    }
+
+    public void playCard(BotCard botCard, int twilightModifier) {
+        playCard(botCard, null, twilightModifier);
+    }
+
+    public void playCard(BotCard botCard, BotCard target) {
+        playCard(botCard, target, 0);
+    }
+
+    public void playCard(BotCard botCard, BotCard target, int twilightModifier) {
+        Side side = botCard.getSelf().getBlueprint().getSide();
+
+        if (side.equals(Side.FREE_PEOPLE)) {
+            playCardInternal(botCard, target, twilightModifier, true);
+        } else {
+            // Check if it's a minion and calculate roaming cost
+            if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
+                int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+                int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+                boolean roaming = minionSiteNumber > currentSiteNumber;
+                twilightModifier += roaming ? 2 : 0;
+            }
+            playCardInternal(botCard, target, twilightModifier, false);
+        }
+    }
+
+    public void activateAbility(BotCard botCard, Class<? extends Effect> effectClass, String player) {
+        ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
+        }
+        if (ability.getEffect() instanceof EffectWithTarget) {
+            throw new IllegalStateException("Ability requires target: " + effectClass.getSimpleName());
+        }
+        ability.resolveAbility(player, this);
+    }
+
+    public void activateAbilityOnTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard target) {
+        ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
+        }
+        if (!(ability.getEffect() instanceof EffectWithTarget)) {
+            throw new IllegalStateException("Ability does not require target: " + effectClass.getSimpleName());
+        }
+        ability.resolveAbilityOnTarget(player, this, target);
+    }
+
+    public void activateTriggeredAbility(BotCard botCard, String player) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (ability.getEffect() instanceof EffectWithTarget) {
+            throw new IllegalStateException("Triggered ability requires target: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbility(player, this);
+    }
+
+    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, BotCard target) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (!(ability.getEffect() instanceof EffectWithTarget)) {
+            throw new IllegalStateException("Triggered ability does not require target: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbilityOnTarget(player, this, target);
+    }
+
+    public void activateAbilityWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard costTarget) {
+        ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
+        }
+        if (ability.getEffect() instanceof EffectWithTarget) {
+            throw new IllegalStateException("Ability requires effect target: " + effectClass.getSimpleName());
+        }
+        ability.resolveAbilityWithCostTarget(player, this, costTarget);
+    }
+
+    public void activateAbilityOnTargetWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard effectTarget, BotCard costTarget) {
+        ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
+        }
+        if (!(ability.getEffect() instanceof EffectWithTarget)) {
+            throw new IllegalStateException("Ability does not require effect target: " + effectClass.getSimpleName());
+        }
+        ability.resolveAbilityOnTargetWithCostTarget(player, this, effectTarget, costTarget);
+    }
+
+    public void activateTriggeredAbilityWithCostTarget(BotCard botCard, String player, BotCard costTarget) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (ability.getEffect() instanceof EffectWithTarget) {
+            throw new IllegalStateException("Triggered ability requires effect target: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbilityWithCostTarget(player, this, costTarget);
+    }
+
+    public void activateTriggeredAbilityOnTargetWithCostTarget(BotCard botCard, String player, BotCard effectTarget, BotCard costTarget) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (!(ability.getEffect() instanceof EffectWithTarget)) {
+            throw new IllegalStateException("Triggered ability does not require effect target: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbilityOnTargetWithCostTarget(player, this, effectTarget, costTarget);
     }
 
     public void healByDiscard(BotCard discardedCard) {

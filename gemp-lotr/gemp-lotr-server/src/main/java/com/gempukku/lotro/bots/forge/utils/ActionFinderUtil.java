@@ -15,7 +15,6 @@ import com.gempukku.lotro.bots.forge.plan.action.ChooseSkirmishAction;
 import com.gempukku.lotro.bots.forge.plan.action.PassAction;
 import com.gempukku.lotro.bots.forge.plan.action.PlayCardFromHandAction;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectSupportAreaCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -431,13 +430,7 @@ public class ActionFinderUtil {
             } else {
                 if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
                     BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
-                    if (cardToPlay.getSelf().getBlueprint().getCardType().equals(CardType.MINION)) {
-                        next.playMinion(cardToPlay);
-                    } else if (cardToPlay.getSelf().getBlueprint().getCardType().equals(CardType.CONDITION) && cardToPlay instanceof BotObjectSupportAreaCard) {
-                        next.playToShadowSupportArea(cardToPlay);
-                    } else {
-                        throw new IllegalStateException("Only minion play is implemented in ShadowPlan");
-                    }
+                    next.playCard(cardToPlay);
                 } else {
                     throw new IllegalStateException("Only PlayCardFromHandAction is implemented in ShadowPlan");
                 }

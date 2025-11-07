@@ -1,8 +1,6 @@
 package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotAllyCard;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCompanionCard;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.List;
@@ -16,14 +14,7 @@ public class EffectPlayWithBonusDraw extends EffectPlayWithBonus {
 
     @Override
     public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (target instanceof BotCompanionCard companionCard) {
-            plannedBoardState.playCompanion(companionCard);
-        } else if (target instanceof BotAllyCard allyCard) {
-            plannedBoardState.playToFpSupportArea(allyCard);
-        } else {
-            throw new IllegalStateException("Unsupported card type for EffectPlayWithBonusDraw: " + target.getSelf().getBlueprint().getFullName());
-        }
-
+        plannedBoardState.playCard(target);
         plannedBoardState.drawCard(player);
     }
 
