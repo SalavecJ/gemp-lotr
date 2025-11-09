@@ -1,6 +1,7 @@
 package com.gempukku.lotro.cards.build.bot.ability2.effect;
 
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.state.PlannedBoardState;
 
@@ -21,9 +22,12 @@ public class EffectPlayFromDiscard extends EffectWithTarget {
                 .filter(targetPredicate)
                 .filter(botCard -> botCard.canBePlayed(plannedBoardState))
                 .filter(botCard -> {
-                    int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                    int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                    boolean roaming = minionSiteNumber > currentSiteNumber;
+                    boolean roaming = false;
+                    if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
+                        int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+                        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+                        roaming = minionSiteNumber > currentSiteNumber;
+                    }
                     return botCard.getSelf().getBlueprint().getSide() == Side.FREE_PEOPLE
                             || plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost() + (roaming ? 2 : 0);
                 })
