@@ -59,6 +59,7 @@ public enum BotTargetingMode {
                 case COMPANION_HIGH_STRENGTH -> chooseHighestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
                 case COMPANION_LOW_STRENGTH -> chooseLowestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
                 case COMPANION_NOT_DYING -> chooseCompanionLeastLikelyToDie(plannedBoardState, myOptions, printDebugMessages);
+                case HIGH_STRENGTH -> chooseHighestStrength(plannedBoardState, myOptions, printDebugMessages);
                 default -> throw new IllegalStateException("Targeting from enum for " + this + " is not implemented yet");
             };
             tbr.add(chosen);
@@ -167,6 +168,25 @@ public enum BotTargetingMode {
     }
 
     private BotCard chooseHighestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen =  options.stream()
+                .max(Comparator
+                        .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
+                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
+                        .thenComparingInt(plannedBoardState::getStrength)
+                        .thenComparingInt(plannedBoardState::getVitality))
+                .orElseThrow();
+
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
+            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+        }
+
+        return chosen;
+    }
+
+    private BotCard chooseHighestStrength(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
                         .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)

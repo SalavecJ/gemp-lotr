@@ -52,25 +52,25 @@ public class ShadowPhasePlan {
             System.out.println("Interesting shadow end states selected: " + interestingEndStates.size());
         }
 
-        // Evaluate only the interesting ones (combat path is computed lazily)
-        for (ShadowPhaseEndState endState : interestingEndStates) {
-            if (endState.hasPotentialToWinTheGame()) {
-                this.actions = endState.getShadowActions();
-                if (printDebugMessages) {
-                    System.out.println("Chosen shadow plan leading to potential win:");
-                    System.out.println(endState);
-                }
-                return;
-            }
-        }
-
-        interestingEndStates.stream().max(Comparator.comparingDouble(PhaseEndState::getValue)).ifPresent(bestEndState -> {
-            this.actions = bestEndState.getShadowActions();
+        // Check for winning play
+        interestingEndStates.stream().filter(ShadowPhaseEndState::hasPotentialToWinTheGame).max(Comparator.comparingInt(value -> Math.toIntExact(value.getBoardState().getShadowCardsInPlay(value.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> botCard.getSelf().getBlueprint().getCardType() == CardType.MINION).count()))).ifPresent(shadowPhaseEndState -> {
+            actions = shadowPhaseEndState.getShadowActions();
             if (printDebugMessages) {
-                System.out.println("No shadow plan leads to win, chosen best plan with value " + bestEndState.getValue());
-                System.out.println(bestEndState);
+                System.out.println("Chosen shadow plan leading to potential win:");
+                System.out.println(shadowPhaseEndState);
             }
         });
+
+        // If no winning play, choose best evaluated play
+        if (actions.isEmpty()) {
+            interestingEndStates.stream().max(Comparator.comparingDouble(PhaseEndState::getValue)).ifPresent(bestEndState -> {
+                this.actions = bestEndState.getShadowActions();
+                if (printDebugMessages) {
+                    System.out.println("No shadow plan leads to win, chosen best plan with value " + bestEndState.getValue());
+                    System.out.println(bestEndState);
+                }
+            });
+        }
     }
 
     /**

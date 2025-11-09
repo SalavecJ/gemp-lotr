@@ -23,6 +23,12 @@ public abstract class BotObjectCard extends BotCard {
         return (getCondition() == null || getCondition().isOk(this.getSelf().getOwner(), plannedBoardState));
     }
 
+    @Override
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
+        return super.canBePlayed(plannedBoardState)
+                && (playsToSupportArea() || plannedBoardState.canSpot(self.getOwner(), botCard -> isValidBearer(botCard, plannedBoardState)));
+    }
+
     /**
      * Hook for subclasses to implement card-specific rules for current board state
      */

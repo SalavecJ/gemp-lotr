@@ -290,12 +290,11 @@ public class CombatOutcome {
      * @return A single evaluation score for use in minimax tree search
      */
     public double evaluateOutcome() {
-        // Winning the game is infinitely valuable - short circuit
-        if (winsTheGame()) {
-            return Double.POSITIVE_INFINITY;
-        }
-
         double score = 0.0;
+
+        if (winsTheGame()) {
+            score += 1000.0;
+        }
 
         // Base weights for each component
         double damageWeight = 1.0;

@@ -27,7 +27,7 @@ public abstract class BotCard {
         return self;
     }
 
-    public final boolean canBePlayed(PlannedBoardState plannedBoardState) {
+    public boolean canBePlayed(PlannedBoardState plannedBoardState) {
         return isPlayableInPhase(plannedBoardState.getCurrentPhase())
                 && canBePlayedNoMatterThePhase(plannedBoardState);
     }

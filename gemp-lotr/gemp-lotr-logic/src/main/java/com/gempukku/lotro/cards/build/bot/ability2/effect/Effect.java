@@ -108,4 +108,8 @@ public abstract class Effect {
     public static EffectAddTwilight addTwilight(int amount){
         return new EffectAddTwilight(amount);
     }
+
+    public static EffectDrawCard drawCard(int amount){
+        return new EffectDrawCard(amount);
+    }
 }

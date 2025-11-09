@@ -10,12 +10,14 @@ import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
+import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
 import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayFromDiscard;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayWithBonus;
 import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.cards.build.bot.ability2.trigger.Trigger;
 import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -424,7 +426,11 @@ public class ActionFinderUtil {
 
         for (ActionToTake action : possibleActions) {
             PlannedBoardState next = new PlannedBoardState(plannedBoardState);
+            int actionsAddedCount = 0;
+
             history.add(action);
+            actionsAddedCount++;
+
             if (action instanceof PassAction) {
                 ShadowPhaseEndState endState = new ShadowPhaseEndState(next, history);
                 endStates.add(endState);
@@ -433,8 +439,28 @@ public class ActionFinderUtil {
                     BotCard cardToPlay = next.getCardById(playCardFromHandWithTargetAction.getCard().getCardId());
                     BotCard targetCard = next.getCardById(playCardFromHandWithTargetAction.getTarget().getCardId());
                     next.playCard(cardToPlay, targetCard);
-                    if (cardToPlay.getEventAbility().getEffect() instanceof EffectPlayFromDiscard
-                            || cardToPlay.getEventAbility().getEffect() instanceof EffectPlayWithBonus) {
+                    if (cardToPlay.getTriggeredAbility() != null
+                            && cardToPlay.getTriggeredAbility().getTrigger() == Trigger.WHEN_PLAYED) {
+                        if (cardToPlay.getTriggeredAbility().resolvesWithoutActionNeeded()) {
+                            next.activateTriggeredAbility(cardToPlay, plannedBoardState.getCurrentShadowPlayer());
+                        } else {
+                            if (!(cardToPlay.getTriggeredAbility().getEffect() instanceof EffectWithTarget)) {
+                                if (cardToPlay.getTriggeredAbility().getValueIfUsed(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState) >= 0) {
+                                    history.add(new OptionalTriggerAcceptAction(cardToPlay.getSelf()));
+                                    actionsAddedCount++;
+                                    next.activateTriggeredAbility(cardToPlay, plannedBoardState.getCurrentShadowPlayer());
+                                } else {
+                                    history.add(new OptionalTriggerDenyAction(cardToPlay.getSelf()));
+                                    actionsAddedCount++;
+                                }
+                            } else {
+                                throw new IllegalStateException("Only triggered abilities that do not require target are implemented in ShadowPlan");
+                            }
+                        }
+                    }
+                    if (cardToPlay.getEventAbility() != null
+                            && (cardToPlay.getEventAbility().getEffect() instanceof EffectPlayFromDiscard
+                            || cardToPlay.getEventAbility().getEffect() instanceof EffectPlayWithBonus)) {
                         if (targetCard.getTriggeredAbility() != null
                                 && targetCard.getTriggeredAbility().getTrigger() == Trigger.WHEN_PLAYED) {
                             if (targetCard.getTriggeredAbility().resolvesWithoutActionNeeded()) {
@@ -460,7 +486,11 @@ public class ActionFinderUtil {
                 }
                 exploreShadowPhaseOptions(next, history, endStates);
             }
-            history.removeLast();
+
+            // Backtrack by removing all actions that were added
+            for (int i = 0; i < actionsAddedCount; i++) {
+                history.removeLast();
+            }
         }
     }
 
@@ -510,6 +540,7 @@ public class ActionFinderUtil {
             possibleActions.addAll(getPlayMinionsFromHandActions(plannedBoardState));
             possibleActions.addAll(getPlayShadowConditionsFromHandActions(plannedBoardState));
             possibleActions.addAll(getPlayShadowEventsFromHandActions(plannedBoardState));
+            possibleActions.addAll(getPlayShadowPossessionsFromHandActions(plannedBoardState));
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.MANEUVER)) {
             // TODO maneuver actions
         } else if (plannedBoardState.getCurrentPhase().equals(Phase.ARCHERY)) {
@@ -566,13 +597,11 @@ public class ActionFinderUtil {
                 .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
                 .filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType()))
                 .filter(botCard -> botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost())
                 .toList();
 
         for (BotCard botCard : shadowCardsInHand) {
-            int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
-            if (plannedBoardState.getTwilight() >= twilightCost) {
-                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
-            }
+            possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
         }
 
         return possibleActions;
@@ -596,6 +625,34 @@ public class ActionFinderUtil {
                 }
             } else {
                 possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+            }
+        }
+
+        return possibleActions;
+    }
+
+    private static List<ActionToTake> getPlayShadowPossessionsFromHandActions(PlannedBoardState plannedBoardState) {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+        List<BotCard> shadowCardsInHand = plannedBoardState.getHand(plannedBoardState.getCurrentShadowPlayer()).stream()
+                .filter(botCard -> Side.SHADOW.equals(botCard.getSelf().getBlueprint().getSide()))
+                .filter(botCard -> CardType.POSSESSION.equals(botCard.getSelf().getBlueprint().getCardType()))
+                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
+                .filter(botCard -> plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost())
+                .toList();
+
+        for (BotCard botCard : shadowCardsInHand) {
+            if (botCard instanceof BotObjectAttachableCard attachableCard) {
+                List<BotCard> potentialTargets = plannedBoardState.getActiveCards().stream()
+                        .filter(inPlay -> attachableCard.isValidBearer(inPlay, plannedBoardState))
+                        .toList();
+                BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
+                BotCard target = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
+                if (target == null) {
+                    throw new IllegalStateException("Could not find target for " + botCard.getSelf().getBlueprint().getFullName());
+                }
+                possibleActions.add(new PlayCardFromHandWithTargetAction(botCard.getSelf(), target.getSelf()));
+            } else {
+                throw new IllegalStateException("Only attachable possessions are implemented in ShadowPlan");
             }
         }
 

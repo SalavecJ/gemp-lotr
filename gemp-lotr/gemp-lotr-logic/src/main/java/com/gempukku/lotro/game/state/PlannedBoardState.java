@@ -723,6 +723,10 @@ public class PlannedBoardState {
         }
     }
 
+    public int getRuleOfFourReminder() {
+        return 4 - ruleOfFourCount;
+    }
+
     public BotCard getTopCardOfDeck(String player) {
         return decks.get(player).getFirst();
     }

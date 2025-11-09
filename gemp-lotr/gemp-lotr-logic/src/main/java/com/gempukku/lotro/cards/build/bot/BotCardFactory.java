@@ -1060,6 +1060,15 @@ public class BotCardFactory {
                 public BotTargetingMode getAttachTargetingMode() {
                     return BotTargetingMode.HIGH_STRENGTH;
                 }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(true)
+                            .effect(Effect.drawCard(1))
+                            .build();
+                }
             };
 
         }
