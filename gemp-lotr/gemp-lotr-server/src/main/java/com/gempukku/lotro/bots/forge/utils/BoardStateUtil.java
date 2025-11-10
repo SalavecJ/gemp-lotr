@@ -1,13 +1,13 @@
 package com.gempukku.lotro.bots.forge.utils;
 
-import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.Effect;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotEventCard;
+import com.gempukku.lotro.bots.forge.cards.ability2.EventAbility;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotEventCard;
 import com.gempukku.lotro.common.AllyHome;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.game.state.PlannedBoardState;
+import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ public class BoardStateUtil {
 
     }
 
-    public static List<BotCard> getWoundedActiveCompanionsInPlay(PlannedBoardState plannedBoardState) {
+    public static List<BotCard> getWoundedActiveUniqueCompanionsInPlay(PlannedBoardState plannedBoardState) {
         return plannedBoardState.getActiveCards().stream()
                 .filter(botCard ->
                         CardType.COMPANION.equals(botCard.getSelf().getBlueprint().getCardType())

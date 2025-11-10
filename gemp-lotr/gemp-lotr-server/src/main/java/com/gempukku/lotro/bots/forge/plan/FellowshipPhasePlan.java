@@ -1,27 +1,20 @@
 package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.action.*;
-import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
-import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.ability2.ActivatedAbility;
-import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
-import com.gempukku.lotro.cards.build.bot.ability2.cost.CostWithTarget;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.*;
-import com.gempukku.lotro.cards.build.bot.abstractcard.*;
+import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
+import com.gempukku.lotro.bots.forge.cards.ability2.ActivatedAbility;
+import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.*;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.*;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
-import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
-import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
-import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class FellowshipPhasePlan {
     private final int siteNumber;
@@ -44,529 +37,317 @@ public class FellowshipPhasePlan {
         }
 
         plannedBoardState = new PlannedBoardState(game);
-        makePlan();
+//        makePlan();
+        makePlan2();
     }
 
-    private void makePlan() {
-        int numberOfActionsToTakeAtStart;
-        do {
-            numberOfActionsToTakeAtStart = actions.size();
-
-            addRevealOpponentsHandActions();
-
-            addHealCompanionsByDiscardActions();
-
-            addDiscardShadowCardsActions();
-
-            addPlayCompanionFromHandActions();
-            addPlayAlliesFromHandActions();
-            addPlayPossessionsFromHandActions();
-            addPlayConditionsFromHandActions();
-
-            addRemoveBurdensActions();
-            addPlayFellowshipsNextSiteActions();
-            addHealActions();
-
-            addTakeIntoHandFromDiscardActions();
-
-            //TODO add another actions to action lists
-
-        } while (numberOfActionsToTakeAtStart != actions.size());
-
-        addUnclogHandActions();
-
-
-        if (printDebugMessages) {
-            System.out.println("Finally, will pass");
+    private void makePlan2() {
+        while (true) {
+            List<ActionToTake> possibleActions = plannedBoardState.getAvailableActions(playerName);
+            ActionToTake action = chooseAction(possibleActions);
+            actions.add(action);
+            if (printDebugMessages) {
+                System.out.println("  " + actions.size() + ". " + action);
+            }
+            plannedBoardState.takeAction(playerName, action);
+            if (action instanceof PassAction) {
+                break;
+            }
         }
-        actions.add(new PassAction());
     }
 
-    private void addUnclogHandActions() {
-        throwExceptionIfEventWithEffectIsFound(
-                EffectPutFromHandToBottomOfDeck.class,
-                eventCard -> true);
+    private ActionToTake chooseAction(List<ActionToTake> possibleActions) {
+        // Mandatory target choosing actions for attached cards
+        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForAttachmentAction)) {
+            return getBestTargetForAttachment(possibleActions);
+        }
+        // Mandatory target choosing actions for cost
+        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForCostAction)) {
+            return getBestTargetForCost(possibleActions);
+        }
+        // Mandatory target choosing actions for effect
+        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForEffectAction)) {
+            return getBestTargetForEffect(possibleActions);
+        }
 
-        activateAbilitiesWithEffect(EffectPutFromHandToBottomOfDeck.class);
-    }
-
-    private void addTakeIntoHandFromDiscardActions() {
-        throwExceptionIfEventWithEffectIsFound(
-                EffectTakeIntoHandFromDiscard.class,
-                eventCard -> true);
-
-        activateAbilitiesWithEffect(EffectTakeIntoHandFromDiscard.class);
-    }
-
-    private void addPlayFellowshipsNextSiteActions() {
-        playBestEventsWithEffect(EffectPlayFellowshipsNextSite.class);
-
-        throwExceptionIfActivatedAbilityWithEffectIsFound(
-                EffectPlayFellowshipsNextSite.class,
-                botCard -> true);
-    }
-
-    private void addRevealOpponentsHandActions() {
-        playBestEventsWithEffect(EffectRevealOpponentsHand.class);
-        activateAbilitiesWithEffect(EffectRevealOpponentsHand.class);
-    }
-
-    private void addHealActions() {
-        throwExceptionIfEventWithEffectIsFound(
-                EffectHeal.class,
-                eventCard -> true);
-
-        activateAbilitiesWithEffect(EffectHeal.class);
-    }
-
-    private void addRemoveBurdensActions() {
-        playBestEventsWithEffect(EffectRemoveBurden.class);
-        activateAbilitiesWithEffect(EffectRemoveBurden.class);
-    }
-
-    private void addDiscardShadowCardsActions() {
-        playBestEventsWithEffect(EffectDiscardFromPlay.class);
-
-        throwExceptionIfActivatedAbilityWithEffectIsFound(
+        // Priority order of effects to consider
+        List<Class<? extends Effect>> effectPriority = List.of(
+                EffectRevealOpponentsHand.class,
                 EffectDiscardFromPlay.class,
-                botCard -> ((EffectDiscardFromPlay) botCard.getActivatedAbility(EffectDiscardFromPlay.class).getEffect()).getPotentialTargets(playerName, plannedBoardState).stream().anyMatch(botCard1 -> Side.SHADOW.equals(botCard1.getSelf().getBlueprint().getSide())));
-    }
+                EffectRemoveBurden.class,
+                EffectPlayFellowshipsNextSite.class,
+                EffectHeal.class,
+                EffectTakeIntoHandFromDiscard.class,
+                EffectPlayWithBonus.class
+        );
 
-    private void throwExceptionIfEventWithEffectIsFound(Class<? extends Effect> effectClass, Predicate<BotEventCard> extraFilter) {
-        List<BotEventCard> events = BoardStateUtil.getPlayableFellowshipEventsWithEffect(plannedBoardState, playerName, effectClass).stream().filter(extraFilter).toList();
-        if (!events.isEmpty()) {
-            String names = events.stream()
-                    .map(e -> e.getSelf().getBlueprint().getFullName())
-                    .collect(Collectors.joining(", "));
-            throw new IllegalStateException("Unimplemented Fellowship events with effect " + effectClass.getSimpleName() + ": " + names);
-        }
-    }
-
-    private void playBestEventsWithEffect(Class<? extends Effect> effectClass) {
-        playBestEventsWithEffect(effectClass, eventCard -> true);
-    }
-
-    private void playBestEventsWithEffect(Class<? extends Effect> effectClass, Predicate<BotEventCard> extraFilter) {
-        while (true) {
-            List<BotEventCard> fellowshipEvents = new ArrayList<>(BoardStateUtil.getPlayableFellowshipEventsWithEffect(plannedBoardState, playerName, effectClass).stream().filter(extraFilter).toList());
-            if (fellowshipEvents.isEmpty()) break;
-            fellowshipEvents.sort((o1, o2) -> Double.compare(o1.getEventAbility().getValueIfUsed(playerName, plannedBoardState), o2.getEventAbility().getValueIfUsed(playerName, plannedBoardState)));
-            BotEventCard topEvent = fellowshipEvents.getFirst();
-            if (topEvent.getEventAbility().getValueIfUsed(playerName, plannedBoardState) < 0.0) {
-                break;
-            } else {
-                List<BotCard> targets = new ArrayList<>();
-                if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
-                    List<BotCard> potentialTargets = ((EffectWithTarget) topEvent.getEventAbility().getEffect()).getPotentialTargets(playerName, plannedBoardState);
-                    if (((EffectWithTarget) topEvent.getEventAbility().getEffect()).affectsAll() || potentialTargets.size() <= 1) {
-                        targets.addAll(potentialTargets);
-                    } else {
-                        throw new IllegalStateException("Cannot resolve effect if number of potential targets is greater than 1 and not all should be affected");
-                    }
-                    if (printDebugMessages) {
-                        System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to " + ((EffectWithTarget) topEvent.getEventAbility().getEffect()).toString(playerName, plannedBoardState, targets));
-                    }
-                } else {
-                    if (printDebugMessages) {
-                        System.out.println("Will play event " + topEvent.getSelf().getBlueprint().getFullName() + " from hand to " + topEvent.getEventAbility().getEffect().toString(playerName, plannedBoardState));
-                    }
-                }
-
-                UseCardWithTargetAction.Targeting costTargeting = null;
-                Cost cost = topEvent.getEventAbility().getCost();
-                if (cost instanceof CostWithTarget costWithTarget) {
-                    List<BotCard> potentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
-                    BotCard target = costWithTarget.chooseTarget(playerName, plannedBoardState);
-                    costTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
-                }
-
-                if (cost != null) {
-                    if (costTargeting != null) {
-                        System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
-                    } else {
-                        System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
-                    }
-                }
-
-                actions.add(new PlayCardFromHandAction(topEvent.getSelf()));
-                plannedBoardState.playCard(topEvent);
+        for (Class<? extends Effect> effectClass : effectPriority) {
+            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
+            if (bestAction != null) {
+                return bestAction;
             }
         }
-    }
 
-    private void throwExceptionIfActivatedAbilityWithEffectIsFound(Class<? extends Effect> effectClass, Predicate<BotCard> extraFilter) {
-        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
-                .filter(botCard -> {
-                    ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-                    if (activatedAbility == null) return false;
-                    if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
-                    if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
-                    if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
-                    return true;
-                })
-                .filter(extraFilter)
-                .toList());
-        if (!inPlayWithActivatedAbility.isEmpty()) {
-            String names = inPlayWithActivatedAbility.stream()
-                    .map(e -> e.getSelf().getBlueprint().getFullName())
-                    .collect(Collectors.joining(", "));
-            throw new IllegalStateException("Unimplemented Fellowship activated abilities with effect " + effectClass.getSimpleName() + ": " + names);
+        // Check for heal companion by discard actions
+        Optional<ActionToTake> healAction = possibleActions.stream()
+                .filter(actionToTake -> actionToTake instanceof DiscardCompanionToHealAction)
+                .findFirst();
+        if (healAction.isPresent()) {
+            return healAction.get();
         }
-    }
 
-    private void activateAbilitiesWithEffect(Class<? extends Effect> effectClass) {
-        activateAbilitiesWithEffect(effectClass, botCard -> true);
-    }
+        // Play permanents from hand
+        ActionToTake bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
+        if (bestPlayPermanentAction != null) {
+            return bestPlayPermanentAction;
+        }
 
-    private void activateAbilitiesWithEffect(Class<? extends Effect> effectClass, Predicate<BotCard> extraFilter) {
-        while (true) {
-            List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
-                    .filter(botCard -> {
-                        ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-                        if (activatedAbility == null) return false;
-                        if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
-                        if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
-                        if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
-                        return true;
-                    })
-                    .filter(extraFilter)
-                    .toList());
+        // Priority order of effects to unclog hand
+        List<Class<? extends Effect>> unclogEffectPriority = List.of(
+                EffectPutFromHandToBottomOfDeck.class
+        );
 
-            double maxValue = 0.0;
-            BotCard chosenCard = null;
-
-            for (BotCard botCard : inPlayWithActivatedAbility) {
-                double value = botCard.getActivatedAbility(effectClass).getValueIfUsed(playerName, plannedBoardState);
-                if (value > maxValue) {
-                    maxValue = value;
-                    chosenCard = botCard;
-                }
-            }
-
-            if (chosenCard == null) {
-                break;
-            } else {
-                UseCardWithTargetAction.Targeting effectTargeting = null;
-                UseCardWithTargetAction.Targeting costTargeting = null;
-                if (EffectWithTarget.class.isAssignableFrom(effectClass)) {
-                    List<BotCard> targets = new ArrayList<>();
-                    List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).getPotentialTargets(playerName, plannedBoardState);
-                    if (((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).affectsAll() || potentialTargets.size() <= 1) {
-                        targets.addAll(potentialTargets);
-                    } else {
-                       targets.add(((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).chooseTarget(playerName, plannedBoardState));
-                    }
-
-                    if (printDebugMessages) {
-                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to " + ((EffectWithTarget) chosenCard.getActivatedAbility(effectClass).getEffect()).toString(playerName, plannedBoardState, targets));
-                    }
-                    if (targets.isEmpty()) {
-
-                    } else if (targets.size() == 1) {
-                        effectTargeting = new UseCardWithTargetAction.Targeting(targets.getFirst(), potentialTargets);
-                    } else {
-                        throw new IllegalStateException("Cannot resolve activated ability effect if number of targets greater than 1");
-                    }
-                } else {
-                    if (printDebugMessages) {
-                        System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " to " + chosenCard.getActivatedAbility(effectClass).getEffect().toString(playerName, plannedBoardState));
-                    }
-                }
-
-                Cost cost = chosenCard.getActivatedAbility(effectClass).getCost();
-                if (cost instanceof CostWithTarget costWithTarget) {
-                    List<BotCard> potentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
-                    BotCard target = costWithTarget.chooseTarget(playerName, plannedBoardState);
-                    costTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
-                }
-
-                List<UseCardWithTargetAction.Targeting> targetings = new ArrayList<>();
-                if (effectTargeting != null) {
-                    targetings.add(effectTargeting);
-                }
-                if (costTargeting != null) {
-                    targetings.add(costTargeting);
-                }
-
-                if (cost != null) {
-                    if (costTargeting != null) {
-                        System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
-                    } else {
-                        System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
-                    }
-                }
-
-                if (effectTargeting == null && costTargeting == null) {
-                    actions.add(new UseCardAction(chosenCard.getSelf()));
-                } else {
-                    actions.add(new UseCardWithTargetAction(
-                            chosenCard.getSelf(),
-                            targetings));
-                }
-
-                if (effectTargeting != null && costTargeting != null) {
-                    plannedBoardState.activateAbilityOnTargetWithCostTarget(chosenCard, effectClass, playerName, effectTargeting.target(), costTargeting.target());
-                } else if (effectTargeting != null) {
-                    plannedBoardState.activateAbilityOnTarget(chosenCard, effectClass, playerName, effectTargeting.target());
-                } else if (costTargeting != null) {
-                    plannedBoardState.activateAbilityWithCostTarget(chosenCard, effectClass, playerName, costTargeting.target());
-                } else {
-                    plannedBoardState.activateAbility(chosenCard, effectClass, playerName);
-                }
+        for (Class<? extends Effect> effectClass : unclogEffectPriority) {
+            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
+            if (bestAction != null) {
+                return bestAction;
             }
         }
+
+        // Finally pass if no other action with value is found
+        return possibleActions.stream()
+                .filter(actionToTake -> actionToTake instanceof PassAction)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No valid action found, and no pass action available."));
     }
 
-    private void addPlayConditionsFromHandActions() {
-        List<BotCard> conditionsInHand = new ArrayList<>(BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
-                .filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType()))
-                .toList());
+    private ActionToTake getBestTargetForAttachment(List<ActionToTake> possibleActions) {
+        ChooseTargetForAttachmentAction firstAction = validateAndGetFirstAction(
+                possibleActions,
+                ChooseTargetForAttachmentAction.class,
+                "ChooseTargetForAttachmentAction"
+        );
 
-        Collections.shuffle(conditionsInHand);
-        for (BotCard condition : conditionsInHand) {
-            if (condition.canBePlayed(plannedBoardState)) {
-                if (condition instanceof BotObjectSupportAreaCard) {
-                    throw new IllegalStateException("Support Area conditions not implemented yet: " + condition.getSelf().getBlueprint().getFullName());
-                } else if (condition instanceof BotObjectAttachableCard attachableCard) {
-                    List<BotCard> potentialTargets = plannedBoardState.getActiveCards().stream()
-                            .filter(botCard -> attachableCard.isValidBearer(botCard, plannedBoardState))
-                            .toList();
-                    BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
-                    BotCard target = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
-                    if (target == null) {
-                        throw new IllegalStateException("Could not find target for " + condition.getSelf().getBlueprint().getFullName());
-                    }
-                    if (printDebugMessages) {
-                        System.out.println("Will play condition " + condition.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
-                    }
-                    actions.add(new PlayCardFromHandWithTargetAction(condition.getSelf(), target.getSelf()));
-                    plannedBoardState.playCard(attachableCard, target);
-                } else {
-                    throw new IllegalStateException("Condition not instance of support area nor attachable object card: " + condition.getSelf().getBlueprint().getFullName());
-                }
-            }
+        BotCard attachment = firstAction.getAttachment();
+        verifyAllActionsShareSameCard(possibleActions,
+                action -> ((ChooseTargetForAttachmentAction) action).getAttachment(),
+                "attachment");
+
+        if (!(attachment instanceof BotObjectAttachableCard attachableCard)) {
+            throw new IllegalStateException("Attachment is not a BotObjectAttachableCard: " + attachment.getSelf().getBlueprint().getFullName());
         }
-    }
 
-    private void addPlayPossessionsFromHandActions() {
-        List<BotCard> possessionsInHand = new ArrayList<>(BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
-                .filter(botCard -> CardType.POSSESSION.equals(botCard.getSelf().getBlueprint().getCardType()))
-                .toList());
-
-        Collections.shuffle(possessionsInHand);
-        for (BotCard possession : possessionsInHand) {
-            if (possession.canBePlayed(plannedBoardState)) {
-                if (possession instanceof BotObjectSupportAreaCard) {
-                    throw new IllegalStateException("Support Area possessions not implemented yet: " + possession.getSelf().getBlueprint().getFullName());
-                } else if (possession instanceof BotObjectAttachableCard attachableCard) {
-                    List<BotCard> potentialTargets = plannedBoardState.getActiveCards().stream()
-                            .filter(botCard -> attachableCard.isValidBearer(botCard, plannedBoardState))
-                            .toList();
-                    BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
-                    BotCard target = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
-                    if (target == null) {
-                        throw new IllegalStateException("Could not find target for " + possession.getSelf().getBlueprint().getFullName());
-                    }
-                    if (printDebugMessages) {
-                        System.out.println("Will play possession " + possession.getSelf().getBlueprint().getFullName() + " from hand on " + target.getSelf().getBlueprint().getFullName());
-                    }
-                    actions.add(new PlayCardFromHandWithTargetAction(possession.getSelf(), target.getSelf()));
-                    plannedBoardState.playCard(attachableCard, target);
-                } else {
-                    throw new IllegalStateException("Possession not instance of support area nor attachable object card: " + possession.getSelf().getBlueprint().getFullName());
-                }
-            }
-        }
-    }
-
-    private void addPlayAlliesFromHandActions() {
-        List<BotAllyCard> playableAlliesInHand = BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
-                .filter(card -> card instanceof BotAllyCard)
-                .filter(card ->
-                        CardType.ALLY.equals(card.getSelf().getBlueprint().getCardType())
-                                && card.canBePlayed(plannedBoardState))
-                .map(botCard -> (BotAllyCard) botCard)
+        List<BotCard> potentialTargets = possibleActions.stream()
+                .map(action -> ((ChooseTargetForAttachmentAction) action).getTarget())
                 .toList();
 
-        List<BotAllyCard> uniqueFilteredPlayableAllies = new ArrayList<>();
-        for (BotAllyCard ally : playableAlliesInHand) {
-            if (!ally.getSelf().getBlueprint().isUnique()) {
-                uniqueFilteredPlayableAllies.add(ally);
-            } else {
-                boolean additionalCopy = uniqueFilteredPlayableAllies.stream()
-                        .anyMatch(alreadyThere -> alreadyThere.getSelf().getBlueprint().getTitle().equals(ally.getSelf().getBlueprint().getTitle()));
-                if (!additionalCopy) {
-                    uniqueFilteredPlayableAllies.add(ally);
-                }
-            }
-        }
-        for (BotAllyCard allyInHand : uniqueFilteredPlayableAllies) {
-            // check if card can be played with bonus effect, if not play normally
-            if (!playWithBonusAction(allyInHand)) {
-                if (printDebugMessages) {
-                    System.out.println("Will play ally " + allyInHand.getSelf().getBlueprint().getFullName() + " from hand");
-                }
-                actions.add(new PlayCardFromHandAction(allyInHand.getSelf()));
-                plannedBoardState.playCard(allyInHand);
-            }
-        }
+        BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
+        BotCard chosenTarget = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
+
+        return findActionWithTarget(possibleActions, chosenTarget,
+                action -> ((ChooseTargetForAttachmentAction) action).getTarget(),
+                attachment.getSelf().getBlueprint().getFullName());
     }
 
-    private void addPlayCompanionFromHandActions() {
-        List<BotCompanionCard> playableCompanionsInHand = BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
-                .filter(card -> card instanceof BotCompanionCard)
-                .filter(card ->
-                        CardType.COMPANION.equals(card.getSelf().getBlueprint().getCardType())
-                                && card.canBePlayed(plannedBoardState))
-                .map(botCard -> (BotCompanionCard) botCard)
+    private ActionToTake getBestTargetForCost(List<ActionToTake> possibleActions) {
+        ChooseTargetForCostAction firstAction = validateAndGetFirstAction(
+                possibleActions,
+                ChooseTargetForCostAction.class,
+                "ChooseTargetForCostAction"
+        );
+
+        BotCard source = firstAction.getSource();
+        CostWithTarget cost = firstAction.getCost();
+
+        verifyAllActionsShareSameCard(possibleActions,
+                action -> ((ChooseTargetForCostAction) action).getSource(),
+                "source");
+
+        List<BotCard> potentialTargets = possibleActions.stream()
+                .map(action -> ((ChooseTargetForCostAction) action).getTarget())
                 .toList();
 
-        int companionsInPlay = BoardStateUtil.getActiveCompanionsInPlayCount(plannedBoardState);
+        BotCard chosenTarget = cost.chooseTarget(playerName, plannedBoardState);
 
-        List<BotCompanionCard> uniqueFilteredPlayableCompanions = new ArrayList<>();
-        for (BotCompanionCard companion : playableCompanionsInHand) {
-            if (!companion.getSelf().getBlueprint().isUnique()) {
-                uniqueFilteredPlayableCompanions.add(companion);
-            } else {
-                boolean additionalCopy = uniqueFilteredPlayableCompanions.stream()
-                        .anyMatch(alreadyThere -> alreadyThere.getSelf().getBlueprint().getTitle().equals(companion.getSelf().getBlueprint().getTitle()));
-                if (!additionalCopy) {
-                    uniqueFilteredPlayableCompanions.add(companion);
-                }
-            }
-        }
-
-        int ruleOfNineRemainder = BoardStateUtil.getRuleOfNineRemainder(plannedBoardState);
-
-        int numberOfCompanionsToBePlayed = getNumberOfCompanionsToBePlayed(uniqueFilteredPlayableCompanions.size(), ruleOfNineRemainder, companionsInPlay);
-
-        if (numberOfCompanionsToBePlayed == uniqueFilteredPlayableCompanions.size()) {
-            // play all
-            for (BotCompanionCard companionInHand : uniqueFilteredPlayableCompanions) {
-                // check if card can be played with bonus effect, if not play normally
-                if (!playWithBonusAction(companionInHand)) {
-                    if (printDebugMessages) {
-                        System.out.println("Will play companion " + companionInHand.getSelf().getBlueprint().getFullName() + " from hand");
-                    }
-                    actions.add(new PlayCardFromHandAction(companionInHand.getSelf()));
-                    plannedBoardState.playCard(companionInHand);
-                }
-            }
-        } else if (numberOfCompanionsToBePlayed == 0) {
-            if (printDebugMessages) {
-                System.out.println("Won't play any companions. Companions in play: " + companionsInPlay + ". Playable companions in hand: " + uniqueFilteredPlayableCompanions.size());
-            }
-            return;
-        } else {
-            // find the best cards to play and play those
-            throw new NotImplementedException("Choosing which companion to play is not yet implemented");
-        }
+        return findActionWithTarget(possibleActions, chosenTarget,
+                action -> ((ChooseTargetForCostAction) action).getTarget(),
+                source.getSelf().getBlueprint().getFullName());
     }
 
-    private int getNumberOfCompanionsToBePlayed(int playableCompanions, int ruleOfNineRemainder, int companionsInPlay) {
-        int numberOfCompanionsThatCanBePlayed = Math.min(playableCompanions, ruleOfNineRemainder);
+    private ActionToTake getBestTargetForEffect(List<ActionToTake> possibleActions) {
+        ChooseTargetForEffectAction firstAction = validateAndGetFirstAction(
+                possibleActions,
+                ChooseTargetForEffectAction.class,
+                "ChooseTargetForEffectAction"
+        );
 
-        int numberOfCompanionsToBePlayed;
-        if (companionsInPlay >= 6) {
-            // already getting hit enquea, play whatever
-            numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
-        } else {
-            // if fellowship can get to large companion number, do it, else fill to 5 comps
-            if (companionsInPlay + playableCompanions >= 8) {
-                numberOfCompanionsToBePlayed = numberOfCompanionsThatCanBePlayed;
-            } else {
-                numberOfCompanionsToBePlayed = Math.min(numberOfCompanionsThatCanBePlayed, 5 - companionsInPlay);
-            }
-        }
-        return numberOfCompanionsToBePlayed;
+        BotCard source = firstAction.getSource();
+        EffectWithTarget effect = firstAction.getEffect();
+
+        verifyAllActionsShareSameCard(possibleActions,
+                action -> ((ChooseTargetForEffectAction) action).getSource(),
+                "source");
+
+        List<BotCard> potentialTargets = possibleActions.stream()
+                .map(action -> ((ChooseTargetForEffectAction) action).getTarget())
+                .toList();
+
+        BotCard chosenTarget = effect.chooseTarget(playerName, plannedBoardState);
+
+        return findActionWithTarget(possibleActions, chosenTarget,
+                action -> ((ChooseTargetForEffectAction) action).getTarget(),
+                source.getSelf().getBlueprint().getFullName());
     }
 
-    private boolean playWithBonusAction(BotCard target) {
-        List<BotCard> inPlayWithActivatedAbility = new ArrayList<>(Stream.concat(plannedBoardState.getFpCardsInPlay(playerName).stream(), Stream.of(plannedBoardState.getCurrentSite()))
-                .filter(botCard -> {
-                    ActivatedAbility activatedAbility = botCard.getActivatedAbility(EffectPlayWithBonus.class);
-                    if (activatedAbility == null) return false;
-                    if (activatedAbility.getPhase() != Phase.FELLOWSHIP) return false;
-                    if (!activatedAbility.conditionOk(playerName, plannedBoardState)) return false;
-                    if (!activatedAbility.canPayCost(playerName, plannedBoardState)) return false;
-                    if (!((EffectPlayWithBonus) activatedAbility.getEffect()).getPotentialTargets(playerName, plannedBoardState).contains(target))
-                        return false;
-                    return true;
-                })
+    private ActionToTake getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
+        List<ActionToTake> playPermanentActions = new ArrayList<>(possibleActions.stream()
+                .filter(action -> action instanceof PlayCardFromHandAction playCardFromHandAction
+                        && !(playCardFromHandAction.getCard() instanceof BotEventCard))
+                .sorted(playPermanentComparator())
                 .toList());
 
-        double maxValue = 0.0;
-        BotCard chosenCard = null;
-
-        for (BotCard botCard : inPlayWithActivatedAbility) {
-            double value = botCard.getActivatedAbility(EffectPlayWithBonus.class).getValueIfUsedOnTarget(playerName, plannedBoardState, target);
-            if (value > maxValue) {
-                maxValue = value;
-                chosenCard = botCard;
-            }
+        if (playPermanentActions.isEmpty()) {
+            return null;
         }
+        return playPermanentActions.getFirst();
+    }
 
-        if (chosenCard == null) {
+    private ActionToTake getBestActionWithEffect(List<ActionToTake> possibleActions, Class<? extends Effect> effectClass) {
+        List<ActionToTake> actionsWithEffect = new ArrayList<>(possibleActions.stream().filter(valuableCardsWithEffect(effectClass)).sorted(eventAbilityComparator(effectClass)).toList());
+        if (actionsWithEffect.isEmpty()) {
+            return null;
+        }
+        return actionsWithEffect.getFirst();
+    }
+
+    private Comparator<ActionToTake> eventAbilityComparator(Class<? extends Effect> effectClass) {
+        // Sort actions: events first, then abilities, each group sorted by value (highest first)
+        return (action1, action2) -> {
+            boolean isEvent1 = action1 instanceof PlayCardFromHandAction;
+            boolean isEvent2 = action2 instanceof PlayCardFromHandAction;
+
+            // Events come before abilities
+            if (isEvent1 && !isEvent2) return -1;
+            if (!isEvent1 && isEvent2) return 1;
+
+            // Both are same type, sort by value (highest first)
+            double value1 = getActionValue(action1, effectClass);
+            double value2 = getActionValue(action2, effectClass);
+            return Double.compare(value2, value1); // Reversed for descending order
+        };
+    }
+
+    private Comparator<ActionToTake> playPermanentComparator() {
+        return (action1, action2) -> {
+            if (!(action1 instanceof PlayCardFromHandAction play1) || !(action2 instanceof PlayCardFromHandAction play2)) {
+                return 0;
+            }
+
+            CardType type1 = play1.getCard().getSelf().getBlueprint().getCardType();
+            CardType type2 = play2.getCard().getSelf().getBlueprint().getCardType();
+
+            // Define priority order: companion (0), ally (1), possession (2), condition (3)
+            int priority1 = getCardTypePriority(type1);
+            int priority2 = getCardTypePriority(type2);
+
+            if (priority1 != priority2) {
+                return Integer.compare(priority1, priority2);
+            }
+
+            // If both are companions, sort by strength (highest first)
+            if (type1 == CardType.COMPANION && type2 == CardType.COMPANION) {
+                int strength1 = play1.getCard().getSelf().getBlueprint().getStrength();
+                int strength2 = play2.getCard().getSelf().getBlueprint().getStrength();
+                return Integer.compare(strength2, strength1); // Reversed for descending order
+            }
+
+            return 0;
+        };
+    }
+
+    private int getCardTypePriority(CardType cardType) {
+        return switch (cardType) {
+            case COMPANION -> 0;
+            case ALLY -> 1;
+            case POSSESSION -> 2;
+            case CONDITION -> 3;
+            default -> 4;
+        };
+    }
+
+    private double getActionValue(ActionToTake action, Class<? extends Effect> effectClass) {
+        if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
+            if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard
+                    && botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
+                return botEventCard.getEventAbility().getValueIfUsed(playerName, plannedBoardState);
+            }
+        } else if (action instanceof UseCardAction useCardAction) {
+            BotCard botCard = useCardAction.getCard();
+            ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
+            return activatedAbility.getValueIfUsed(playerName, plannedBoardState);
+        }
+        return 0.0;
+    }
+
+    private Predicate<ActionToTake> valuableCardsWithEffect(Class<? extends Effect> effectClass) {
+        return action -> {
+            if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
+                if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard) {
+                    if (botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
+                        double value = botEventCard.getEventAbility().getValueIfUsed(playerName, plannedBoardState);
+                        return value >= 0.0; // play cards with 0 value to cycle hand
+                    }
+                }
+            } else if (action instanceof UseCardAction useCardAction) {
+                BotCard botCard = useCardAction.getCard();
+                ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
+                if (activatedAbility != null) {
+                    double value = activatedAbility.getValueIfUsed(playerName, plannedBoardState);
+                    return value > 0.0;
+                }
+            }
             return false;
-        } else {
-            List<BotCard> potentialTargets = ((EffectWithTarget) chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getEffect()).getPotentialTargets(playerName, plannedBoardState);
-            if (printDebugMessages) {
-                System.out.println("Will use ability of " + chosenCard.getSelf().getBlueprint().getFullName() + " from hand to " + ((EffectWithTarget) chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getEffect()).toString(playerName, plannedBoardState, List.of(target)));
-            }
-            UseCardWithTargetAction.Targeting effectTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
+        };
+    }
 
-            Cost cost = chosenCard.getActivatedAbility(EffectPlayWithBonus.class).getCost();
-            UseCardWithTargetAction.Targeting costTargeting = null;
-            if (cost instanceof CostWithTarget costWithTarget) {
-                List<BotCard> costPotentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
-                BotCard costTarget = costWithTarget.chooseTarget(playerName, plannedBoardState);
-                costTargeting = new UseCardWithTargetAction.Targeting(costTarget, costPotentialTargets);
-            }
+    // Helper methods for target choosing refactoring
 
-            List<UseCardWithTargetAction.Targeting> targetings = new ArrayList<>();
-            targetings.add(effectTargeting);
-            if (costTargeting != null) {
-                targetings.add(costTargeting);
-            }
+    private <T extends ActionToTake> T validateAndGetFirstAction(
+            List<ActionToTake> possibleActions,
+            Class<T> expectedClass,
+            String expectedClassName) {
+        if (possibleActions.stream().anyMatch(action -> !expectedClass.isInstance(action))) {
+            throw new IllegalStateException("Expected all actions to be " + expectedClassName);
+        }
+        return expectedClass.cast(possibleActions.getFirst());
+    }
 
-            if (cost != null) {
-                if (costTargeting != null) {
-                    System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
-                } else {
-                    System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
-                }
+    private void verifyAllActionsShareSameCard(
+            List<ActionToTake> possibleActions,
+            Function<ActionToTake, BotCard> cardExtractor,
+            String cardDescription) {
+        BotCard firstCard = cardExtractor.apply(possibleActions.getFirst());
+        for (ActionToTake action : possibleActions) {
+            BotCard card = cardExtractor.apply(action);
+            if (!card.equals(firstCard)) {
+                throw new IllegalStateException("Not all actions share the same " + cardDescription);
             }
-            actions.add(new UseCardWithTargetAction(
-                    chosenCard.getSelf(),
-                    targetings));
-            plannedBoardState.activateAbilityOnTarget(chosenCard, EffectPlayWithBonus.class, playerName, target);
-            return true;
         }
     }
 
-    private void addHealCompanionsByDiscardActions() {
-        List<BotCard> woundedUniqueCompanionsInPlay = BoardStateUtil.getWoundedActiveCompanionsInPlay(plannedBoardState);
-
-        for (BotCard companion : woundedUniqueCompanionsInPlay) {
-            int wounds = plannedBoardState.getWounds(companion);
-
-            List<BotCard> matchingCardsInHand = BoardStateUtil.getCardInHandPlayableInPhase(plannedBoardState, playerName, Phase.FELLOWSHIP).stream()
-                    .filter(cardInHand ->
-                            CardType.COMPANION.equals(cardInHand.getSelf().getBlueprint().getCardType())
-                            && cardInHand.getSelf().getBlueprint().getTitle().equals(companion.getSelf().getBlueprint().getTitle()))
-                    .toList();
-
-            int cardsToDiscardToHeal = Math.min(wounds, matchingCardsInHand.size());
-
-            for (int i = 0; i < cardsToDiscardToHeal; i++) {
-                BotCard toDiscard = matchingCardsInHand.get(i);
-                if (printDebugMessages) {
-                    System.out.println("Will discard " + toDiscard.getSelf().getBlueprint().getFullName() + " from hand to heal companion in play");
-                }
-                actions.add(new DiscardCompanionToHealAction(toDiscard.getSelf()));
-                plannedBoardState.healByDiscard(toDiscard);
-            }
+    private ActionToTake findActionWithTarget(
+            List<ActionToTake> possibleActions,
+            BotCard chosenTarget,
+            Function<ActionToTake, BotCard> targetExtractor,
+            String sourceName) {
+        if (chosenTarget == null) {
+            throw new IllegalStateException("Could not find target for " + sourceName);
         }
+
+        return possibleActions.stream()
+                .filter(action -> targetExtractor.apply(action).equals(chosenTarget))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Could not find action for chosen target"));
     }
 
     public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
@@ -607,47 +388,25 @@ public class FellowshipPhasePlan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (nextStep > actions.size()) {
-            if (printDebugMessages) {
-                System.out.println("All actions from plan already fully taken");
-            }
-            throw new IllegalStateException("All actions from plan already fully taken");
+        if (nextStep >= actions.size()) {
+            System.out.println("All actions from plan already taken");
+            throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep - 1);
+        ActionToTake action = actions.get(nextStep);
+        if (!(action instanceof ChooseTargetAction)) {
+            throw new IllegalStateException("Next action in plan is not target action");
+        }
         if (printDebugMessages) {
-            System.out.println("Last action");
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
             System.out.println(action.toString());
         }
-
-        if (action instanceof PlayCardFromHandWithTargetAction actionWithTarget) {
-            if (printDebugMessages) {
-                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
-            }
-            return List.of(actionWithTarget.getTarget());
-        } else if (action instanceof UseCardWithTargetAction actionWithTarget) {
-            List<Integer> physicalIds = new ArrayList<>();
-            if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.ARBITRARY_CARDS)) {
-                for (String physicalCard : awaitingDecision.getDecisionParameters().get("physicalId")) {
-                    physicalIds.add(Integer.parseInt(physicalCard));
-                }
-
-            } else if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)) {
-                for (String physicalCard : awaitingDecision.getDecisionParameters().get("cardId")) {
-                    physicalIds.add(Integer.parseInt(physicalCard));
-                }
-            }
-            if (printDebugMessages) {
-                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget(physicalIds).getBlueprint().getFullName());
-            }
-            return List.of(actionWithTarget.getTarget(physicalIds));
-        } else {
-            throw new IllegalStateException("Last action should not trigger targeting");
-        }
+        nextStep++;
+        return List.of(((ChooseTargetAction) action).getTarget().getSelf());
     }
 
     public boolean replanningNeeded() {
-        return !isActive() || nextStep >= actions.size() || actions.get(nextStep) instanceof ReplanAction;
+        return !isActive() || nextStep >= actions.size();
     }
 
     private boolean isActive() {

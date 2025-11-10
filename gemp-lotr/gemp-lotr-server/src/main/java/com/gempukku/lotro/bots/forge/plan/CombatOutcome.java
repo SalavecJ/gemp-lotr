@@ -2,10 +2,9 @@ package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
-import com.gempukku.lotro.cards.build.bot.ability2.util.WoundsValueUtil;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.Side;
-import com.gempukku.lotro.game.state.PlannedBoardState;
 
 import java.util.List;
 

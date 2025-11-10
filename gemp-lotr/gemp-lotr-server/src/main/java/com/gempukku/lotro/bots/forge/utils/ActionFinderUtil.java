@@ -10,18 +10,18 @@ import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
-import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
-import com.gempukku.lotro.cards.build.bot.ability2.EventAbility;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayFromDiscard;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectPlayWithBonus;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
-import com.gempukku.lotro.cards.build.bot.ability2.trigger.Trigger;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotObjectAttachableCard;
+import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
+import com.gempukku.lotro.bots.forge.cards.ability2.EventAbility;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectPlayFromDiscard;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectPlayWithBonus;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
+import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
-import com.gempukku.lotro.game.state.PlannedBoardState;
+import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 import java.util.*;
 
@@ -436,7 +436,7 @@ public class ActionFinderUtil {
                 endStates.add(endState);
             } else {
                 if (action instanceof PlayCardFromHandWithTargetAction playCardFromHandWithTargetAction) {
-                    BotCard cardToPlay = next.getCardById(playCardFromHandWithTargetAction.getCard().getCardId());
+                    BotCard cardToPlay = next.getCardById(playCardFromHandWithTargetAction.getPhysicalCard().getCardId());
                     BotCard targetCard = next.getCardById(playCardFromHandWithTargetAction.getTarget().getCardId());
                     next.playCard(cardToPlay, targetCard);
                     if (cardToPlay.getTriggeredAbility() != null
@@ -446,7 +446,7 @@ public class ActionFinderUtil {
                         } else {
                             if (!(cardToPlay.getTriggeredAbility().getEffect() instanceof EffectWithTarget)) {
                                 if (cardToPlay.getTriggeredAbility().getValueIfUsed(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState) >= 0) {
-                                    history.add(new OptionalTriggerAcceptAction(cardToPlay.getSelf()));
+                                    history.add(new OptionalTriggerAcceptAction(cardToPlay));
                                     actionsAddedCount++;
                                     next.activateTriggeredAbility(cardToPlay, plannedBoardState.getCurrentShadowPlayer());
                                 } else {
@@ -471,7 +471,7 @@ public class ActionFinderUtil {
                         }
                     }
                 } else if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
-                    BotCard cardToPlay = next.getCardById(playCardFromHandAction.getCard().getCardId());
+                    BotCard cardToPlay = next.getCardById(playCardFromHandAction.getPhysicalCard().getCardId());
                     next.playCard(cardToPlay);
                     if (cardToPlay.getTriggeredAbility() != null
                             && cardToPlay.getTriggeredAbility().getTrigger() == Trigger.WHEN_PLAYED) {
@@ -584,7 +584,7 @@ public class ActionFinderUtil {
                 twilightCost += 2;
             }
             if (plannedBoardState.getTwilight() >= twilightCost) {
-                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+                possibleActions.add(new PlayCardFromHandAction(botCard));
             }
         }
 
@@ -601,7 +601,7 @@ public class ActionFinderUtil {
                 .toList();
 
         for (BotCard botCard : shadowCardsInHand) {
-            possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+            possibleActions.add(new PlayCardFromHandAction(botCard));
         }
 
         return possibleActions;
@@ -621,10 +621,10 @@ public class ActionFinderUtil {
             if (eventAbility.getEffect() instanceof EffectWithTarget) {
                 List<BotCard> potentialTargets = ((EffectWithTarget) eventAbility.getEffect()).getPotentialTargets(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState);
                 for (BotCard target : potentialTargets) {
-                    possibleActions.add(new PlayCardFromHandWithTargetAction(botCard.getSelf(), target.getSelf()));
+                    possibleActions.add(new PlayCardFromHandWithTargetAction(botCard, target.getSelf()));
                 }
             } else {
-                possibleActions.add(new PlayCardFromHandAction(botCard.getSelf()));
+                possibleActions.add(new PlayCardFromHandAction(botCard));
             }
         }
 
@@ -650,7 +650,7 @@ public class ActionFinderUtil {
                 if (target == null) {
                     throw new IllegalStateException("Could not find target for " + botCard.getSelf().getBlueprint().getFullName());
                 }
-                possibleActions.add(new PlayCardFromHandWithTargetAction(botCard.getSelf(), target.getSelf()));
+                possibleActions.add(new PlayCardFromHandWithTargetAction(botCard, target.getSelf()));
             } else {
                 throw new IllegalStateException("Only attachable possessions are implemented in ShadowPlan");
             }

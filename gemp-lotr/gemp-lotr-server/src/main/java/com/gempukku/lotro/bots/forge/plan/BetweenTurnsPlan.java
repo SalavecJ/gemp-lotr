@@ -1,15 +1,14 @@
 package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.action.*;
-import com.gempukku.lotro.cards.build.bot.ability2.TriggeredAbility;
-import com.gempukku.lotro.cards.build.bot.ability2.cost.Cost;
-import com.gempukku.lotro.cards.build.bot.ability2.cost.CostWithTarget;
-import com.gempukku.lotro.cards.build.bot.ability2.effect.EffectWithTarget;
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.ability2.TriggeredAbility;
+import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
+import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
-import com.gempukku.lotro.game.state.PlannedBoardState;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
@@ -139,11 +138,12 @@ public class BetweenTurnsPlan {
             }
 
             if (effectTargeting == null && costTargeting == null) {
-                lastAction = new UseCardAction(chosenCard.getSelf());
+                lastAction = new UseCardAction(chosenCard, chosenCard.getTriggeredAbility().getEffect().getClass());
             } else {
                 lastAction = new UseCardWithTargetAction(
-                        chosenCard.getSelf(),
-                        targetings);
+                        chosenCard,
+                        targetings,
+                        chosenCard.getTriggeredAbility().getEffect().getClass());
             }
 
             if (effectTargeting != null && costTargeting != null) {

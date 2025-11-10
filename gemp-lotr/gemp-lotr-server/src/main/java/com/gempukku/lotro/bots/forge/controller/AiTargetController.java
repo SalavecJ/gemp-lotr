@@ -1,9 +1,9 @@
 package com.gempukku.lotro.bots.forge.controller;
 
 import com.gempukku.lotro.bots.forge.utils.CombatUtil;
-import com.gempukku.lotro.cards.build.bot.ability2.util.HandValueUtil;
-import com.gempukku.lotro.cards.build.bot.BotCardFactory;
-import com.gempukku.lotro.cards.build.bot.BotTargetingMode;
+import com.gempukku.lotro.bots.forge.cards.ability2.util.HandValueUtil;
+import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
+import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Keyword;
 import com.gempukku.lotro.common.Side;

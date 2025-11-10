@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.forge.plan.endstate;
 
 import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
-import com.gempukku.lotro.game.state.PlannedBoardState;
+import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 import java.util.List;
 

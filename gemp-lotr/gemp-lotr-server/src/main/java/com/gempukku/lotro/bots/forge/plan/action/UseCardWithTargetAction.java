@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.cards.build.bot.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.game.PhysicalCard;
 
 import java.util.ArrayList;
@@ -12,8 +13,8 @@ import java.util.stream.Collectors;
 public class UseCardWithTargetAction extends UseCardAction {
     private final List<Targeting> targetings;
 
-    public UseCardWithTargetAction(PhysicalCard toUse, List<Targeting> targetings) {
-        super(toUse);
+    public UseCardWithTargetAction(BotCard toUse, List<Targeting> targetings, Class<? extends Effect> effectClass) {
+        super(toUse, effectClass);
         this.targetings = targetings;
     }
 
@@ -44,7 +45,7 @@ public class UseCardWithTargetAction extends UseCardAction {
             targetStrings.add("Choose " + targeting.target.getSelf().getBlueprint().getFullName() + " from [" + joined + "]");
 
         }
-        StringBuilder builder = new StringBuilder("Action: Use " + getCard().getBlueprint().getFullName());
+        StringBuilder builder = new StringBuilder("Action: Use " + getPhysicalCard().getBlueprint().getFullName());
         for (String targetString : targetStrings) {
             builder.append("\n").append(targetString);
         }

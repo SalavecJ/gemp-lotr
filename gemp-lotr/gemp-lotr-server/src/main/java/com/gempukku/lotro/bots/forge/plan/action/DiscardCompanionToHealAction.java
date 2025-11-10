@@ -1,10 +1,10 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 
 public class DiscardCompanionToHealAction extends ChooseCardAction {
 
-    public DiscardCompanionToHealAction(PhysicalCard toDiscard) {
+    public DiscardCompanionToHealAction(BotCard toDiscard) {
         super(toDiscard);
     }
 
@@ -15,6 +15,19 @@ public class DiscardCompanionToHealAction extends ChooseCardAction {
 
     @Override
     public String toString() {
-        return "Action: Discard " + getCard().getBlueprint().getFullName() + " from hand to heal companion in play";
+        return "Action: Discard " + getPhysicalCard().getBlueprint().getFullName() + " from hand to heal companion in play";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DiscardCompanionToHealAction that = (DiscardCompanionToHealAction) o;
+        return getPhysicalCard().getCardId() == that.getPhysicalCard().getCardId();
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(getPhysicalCard().getCardId());
     }
 }

@@ -5,12 +5,10 @@ import com.gempukku.lotro.bots.forge.plan.endstate.AssignmentPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ManeuverPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
-import com.gempukku.lotro.game.state.PlannedBoardState;
 
 /**
  * Container for the complete combat path from a shadow phase end state.
  * Contains all 5 combat phase end states: Maneuver -> Archery -> Assignment -> Skirmish -> Regroup
- *
  * The combat outcome can be evaluated by comparing the initial board state (after shadow phase)
  * with the final board state (from the regroup phase end state).
  */

@@ -1,10 +1,10 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 
 public class OptionalTriggerAcceptAction extends ChooseCardAction {
 
-    public OptionalTriggerAcceptAction(PhysicalCard toUse) {
+    public OptionalTriggerAcceptAction(BotCard toUse) {
         super(toUse);
     }
 
@@ -15,6 +15,6 @@ public class OptionalTriggerAcceptAction extends ChooseCardAction {
 
     @Override
     public String toString() {
-        return "Action: Accept trigger of " + getCard().getBlueprint().getFullName();
+        return "Action: Accept trigger of " + getPhysicalCard().getBlueprint().getFullName();
     }
 }
