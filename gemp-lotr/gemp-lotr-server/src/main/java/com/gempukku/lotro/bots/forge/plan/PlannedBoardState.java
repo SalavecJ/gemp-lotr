@@ -65,6 +65,7 @@ public class PlannedBoardState {
 
     private final Map<String, Deque<List<ActionToTake>>> pendingActions = new HashMap<>();
     private BotCard attachableWaitingForTarget = null;
+    private BotCard attachableInDiscardWaitingForTarget = null;
     private WaitingSource waitingEvent = null;
     private WaitingSource waitingAbility = null;
 
@@ -79,6 +80,7 @@ public class PlannedBoardState {
         boolean effectTargetRequired = false;
 
         Class<? extends Effect> effectClass = null;
+        boolean isTriggeredAbility = false;
 
 
         public WaitingSource(BotCard source) {
@@ -225,6 +227,7 @@ public class PlannedBoardState {
         });
 
         this.attachableWaitingForTarget = other.attachableWaitingForTarget;
+        this.attachableInDiscardWaitingForTarget = other.attachableInDiscardWaitingForTarget;
         this.waitingEvent = other.waitingEvent;
         this.waitingAbility = other.waitingAbility;
 
@@ -303,6 +306,9 @@ public class PlannedBoardState {
             if (attachableWaitingForTarget != null) {
                 playCard(attachableWaitingForTarget, List.of(chooseTargetAction.getTarget()));
                 attachableWaitingForTarget = null;
+            } else if (attachableInDiscardWaitingForTarget != null) {
+                playCardFromDiscard(attachableInDiscardWaitingForTarget, List.of(chooseTargetAction.getTarget()));
+                attachableInDiscardWaitingForTarget = null;
             } else {
                 throw new IllegalStateException("Not waiting for attachment target");
             }
@@ -898,7 +904,7 @@ public class PlannedBoardState {
 
     private void handleWhenPlayedTriggeredAbilities(BotCard botCard) {
         TriggeredAbility triggeredAbility = botCard.getTriggeredAbility();
-        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED) {
+        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED && triggeredAbility.conditionOk(botCard.getSelf().getOwner(), this)) {
             if (triggeredAbility.resolvesWithoutActionNeeded()) {
                 activateTriggeredAbility(botCard, getCurrentShadowPlayer());
             } else if (triggeredAbility.isOptionalTrigger()) {
@@ -965,6 +971,28 @@ public class PlannedBoardState {
 
     public void playCard(BotCard botCard, List<BotCard> targets, BotCard costTarget) {
         playCardInternal(botCard, targets, costTarget, 0, CardZone.HAND);
+    }
+
+    public void playPossessionFromDiscardOn(BotCard botCard, Predicate<BotCard> bearerFilter) {
+        if (botCard instanceof BotObjectAttachableCard attachableCard) {
+            PlannedBoardState boardState = this;
+            List<BotCard> potentialBearers = getActiveCards().stream().filter(activeCard -> attachableCard.isValidBearer(activeCard, boardState) && bearerFilter.test(activeCard)).toList();
+            if (potentialBearers.isEmpty()) {
+                throw new IllegalStateException("No valid bearers found for attachable card: " + botCard.getSelf().getBlueprint().getFullName());
+            } else if (potentialBearers.size() == 1) {
+                playCardFromDiscard(botCard, List.of(potentialBearers.getFirst()));
+            } else {
+                attachableInDiscardWaitingForTarget = botCard;
+                pendingActions.computeIfAbsent(botCard.getSelf().getOwner(), k -> new ArrayDeque<>());
+                List<ActionToTake> attachmentActions = new ArrayList<>();
+                for (BotCard potentialBearer : potentialBearers) {
+                    attachmentActions.add(new ChooseTargetForAttachmentAction(potentialBearer, botCard));
+                }
+                pendingActions.get(botCard.getSelf().getOwner()).addLast(attachmentActions);
+            }
+        } else {
+            throw new IllegalStateException("Card is not an attachable possession: " + botCard.getSelf().getBlueprint().getFullName());
+        }
     }
 
     public void playCardFromDiscard(BotCard botCard) {
@@ -1578,10 +1606,18 @@ public class PlannedBoardState {
             waitingEvent = null;
         } else if (waitingAbility != null) {
             BotCard abilitySource = waitingAbility.source;
-            if (waitingAbility.costTarget != null) {
-                activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget), waitingAbility.costTarget);
+            if (waitingAbility.isTriggeredAbility) {
+                if (waitingAbility.costTarget != null) {
+                    activateTriggeredAbilityOnTargetWithCostTarget(abilitySource, player, List.of(effectTarget), waitingAbility.costTarget);
+                } else {
+                    activateTriggeredAbilityOnTarget(abilitySource, player, List.of(effectTarget));
+                }
             } else {
-                activateAbilityOnTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget));
+                if (waitingAbility.costTarget != null) {
+                    activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget), waitingAbility.costTarget);
+                } else {
+                    activateAbilityOnTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget));
+                }
             }
             waitingAbility = null;
         } else {
@@ -1668,6 +1704,7 @@ public class PlannedBoardState {
 
         if (info.needToAskForCostTarget || info.needToAskForEffectTarget) {
             waitingAbility = new WaitingSource(source);
+            waitingAbility.isTriggeredAbility = true;
             setupTargetingActions(player, source, info, waitingAbility, cost, effect);
         } else {
             activateTriggeredAbilityWithTargets(source, player, info);

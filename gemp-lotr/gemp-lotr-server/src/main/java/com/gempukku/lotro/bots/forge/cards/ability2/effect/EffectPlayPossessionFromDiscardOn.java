@@ -1,36 +1,35 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.common.CardType;
-import com.gempukku.lotro.common.Side;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.common.CardType;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class EffectPlayFromDiscard extends EffectWithTarget {
-    private final Predicate<BotCard> targetPredicate;
+public class EffectPlayPossessionFromDiscardOn extends EffectWithTarget {
+    private final Predicate<BotCard> possessionPredicate;
+    private final Predicate<BotCard> bearerPredicate;
 
-    public EffectPlayFromDiscard(Predicate<BotCard> targetPredicate) {
-        this.targetPredicate = targetPredicate;
+    public EffectPlayPossessionFromDiscardOn(Predicate<BotCard> possessionPredicate, Predicate<BotCard> bearerPredicate) {
+        this.possessionPredicate = possessionPredicate;
+        this.bearerPredicate = bearerPredicate;
     }
 
     @Override
     public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
         return new ArrayList<>(plannedBoardState.getDiscard(player).stream()
-                .filter(targetPredicate)
+                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType() == CardType.POSSESSION && possessionPredicate.test(botCard))
+                .filter(botCard -> botCard instanceof BotObjectAttachableCard)
                 .filter(botCard -> botCard.canBePlayed(plannedBoardState))
-                .filter(botCard -> {
-                    boolean roaming = false;
-                    if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
-                        int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                        roaming = minionSiteNumber > currentSiteNumber;
-                    }
-                    return botCard.getSelf().getBlueprint().getSide() == Side.FREE_PEOPLE
-                            || plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost() + (roaming ? 2 : 0);
-                })
+                .filter(botCard -> plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost())
+                .filter(botCard -> plannedBoardState.getActiveCards().stream().anyMatch(activeCard -> {
+                    BotObjectAttachableCard attachableCard = (BotObjectAttachableCard) botCard;
+                    return attachableCard.isValidBearer(activeCard, plannedBoardState)
+                            && bearerPredicate.test(activeCard);
+                }))
                 .toList());
     }
 
@@ -41,7 +40,7 @@ public class EffectPlayFromDiscard extends EffectWithTarget {
 
     @Override
     public void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        plannedBoardState.playCardFromDiscard(target);
+        plannedBoardState.playPossessionFromDiscardOn(target, bearerPredicate);
     }
 
     @Override

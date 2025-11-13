@@ -10,6 +10,7 @@ import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
+import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
@@ -215,26 +216,46 @@ public class ActionFinderUtil {
         }
 
         Set<ShadowPhaseEndState> endStates = new HashSet<>();
-        exploreShadowPhaseOptions(plannedBoardState, new ArrayList<>(), endStates);
+        exploreShadowPhaseOptions(plannedBoardState, new ArrayList<>(), endStates, new ArrayList<>());
         return endStates;
     }
 
-    private static void exploreShadowPhaseOptions(PlannedBoardState plannedBoardState, ArrayList<ActionToTake> history, Set<ShadowPhaseEndState> endStates) {
+    private static void exploreShadowPhaseOptions(PlannedBoardState plannedBoardState, ArrayList<ActionToTake> history, Set<ShadowPhaseEndState> endStates,
+                                                  List<String> cardsToNotPlay) {
         List<ActionToTake> possibleActions = new ArrayList<>();
 
         for (ActionToTake availableAction : plannedBoardState.getAvailableActions(plannedBoardState.getCurrentShadowPlayer())) {
-            if (availableAction instanceof PlayCardFromHandAction playCardFromHandAction) {
-                if (possibleActions.stream().noneMatch(action -> action instanceof PlayCardFromHandAction otherPlayCard && playCardFromHandAction.playsTheSameCard(otherPlayCard))) {
-                    possibleActions.add(availableAction);
-                } else {
-                    // Skip duplicate play card actions for the same card
+            switch (availableAction) {
+                case PlayCardFromHandAction playCardFromHandAction -> {
+                    if (cardsToNotPlay.contains(playCardFromHandAction.getCard().getSelf().getBlueprint().getFullName())) {
+                        // Skip playing cards that are marked to not play
+                        continue;
+                    }
+                    if (possibleActions.stream().noneMatch(action -> action instanceof PlayCardFromHandAction otherPlayCard
+                            && playCardFromHandAction.playsTheSameCard(otherPlayCard))) {
+                        possibleActions.add(availableAction);
+                    } else {
+                        // Skip duplicate play card actions for the same card
+                    }
                 }
-            } else if (availableAction instanceof OptionalTriggerDenyAction denyAction) {
-                if (!denyAction.getSource().getTriggeredAbility().goodToUseNoMatterWhat(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState)) {
-                    possibleActions.add(availableAction);
+                case OptionalTriggerDenyAction denyAction -> {
+                    if (!denyAction.getSource().getTriggeredAbility().goodToUseNoMatterWhat(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState)) {
+                        possibleActions.add(availableAction);
+                    }
                 }
-            } else {
-                possibleActions.add(availableAction);
+                case ChooseTargetForAttachmentAction chooseTargetForAttachmentAction -> {
+                    if (possibleActions.stream().noneMatch(action -> action instanceof ChooseTargetForAttachmentAction otherChooseTarget
+                            && chooseTargetForAttachmentAction.targetsTheSameTypeOfBearer(otherChooseTarget, plannedBoardState))) {
+                        possibleActions.add(availableAction);
+                    }
+                }
+                case ChooseTargetForEffectAction chooseTargetForEffectAction -> {
+                    if (possibleActions.stream().noneMatch(action -> action instanceof ChooseTargetForEffectAction otherChooseTarget
+                            && chooseTargetForEffectAction.targetsTheSameTypeOfTarget(otherChooseTarget, plannedBoardState))) {
+                        possibleActions.add(availableAction);
+                    }
+                }
+                case null, default -> possibleActions.add(availableAction);
             }
         }
 
@@ -243,13 +264,43 @@ public class ActionFinderUtil {
 
             history.add(action);
 
+            int sizeOfCardsToNotPlayBefore = cardsToNotPlay.size();
+
             if (action instanceof PassAction) {
                 next.takeAction(next.getCurrentShadowPlayer(), action); // move to maneuver phase
                 ShadowPhaseEndState endState = new ShadowPhaseEndState(next, history);
                 endStates.add(endState);
             } else {
+
+                if(action instanceof PlayCardFromHandAction playCardFromHandAction) {
+                    // Play conditions at the first opportunity to avoid exploring unnecessary branches
+                    if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.CONDITION) {
+                        for (ActionToTake possibleAction : possibleActions) {
+                            if (possibleAction instanceof PlayCardFromHandAction otherPlayCardAction) {
+                                if (otherPlayCardAction.getCard().getSelf().getBlueprint().getCardType() == CardType.CONDITION) {
+                                    cardsToNotPlay.add(otherPlayCardAction.getCard().getSelf().getBlueprint().getFullName());
+                                }
+                            }
+                        }
+                    }
+                    // Play possessions last to avoid exploring unnecessary branches
+                    if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() == CardType.POSSESSION) {
+                        for (ActionToTake possibleAction : possibleActions) {
+                            if (possibleAction instanceof PlayCardFromHandAction otherPlayCardAction) {
+                                if (otherPlayCardAction.getCard().getSelf().getBlueprint().getCardType() != CardType.POSSESSION) {
+                                    cardsToNotPlay.add(otherPlayCardAction.getCard().getSelf().getBlueprint().getFullName());
+                                }
+                            }
+                        }
+                    }
+                }
+
                 next.takeAction(next.getCurrentShadowPlayer(), action);
-                exploreShadowPhaseOptions(next, history, endStates);
+                exploreShadowPhaseOptions(next, history, endStates, cardsToNotPlay);
+            }
+
+            while (cardsToNotPlay.size() > sizeOfCardsToNotPlayBefore) {
+                cardsToNotPlay.removeLast();
             }
 
             history.removeLast();

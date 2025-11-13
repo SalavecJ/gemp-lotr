@@ -20,6 +20,10 @@ public abstract class Condition {
         return spotPlayableInDiscard(Target.and(Target.culture(culture), Target.race(race)));
     }
 
+    public static ConditionSpotPossessionPlayableInDiscardOn spotPossessionPlayableInDiscardOn(Predicate<BotCard> possessionPredicate, Predicate<BotCard> bearerPredicate) {
+        return new ConditionSpotPossessionPlayableInDiscardOn(possessionPredicate, bearerPredicate);
+    }
+
     public static ConditionSpot spot(Predicate<BotCard> target) {
         return new ConditionSpot(target);
     }

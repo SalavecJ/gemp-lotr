@@ -1024,6 +1024,21 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(true) // json card implementation sets this as non-optional trigger even though the text says spot, which is optional
+                            .condition(Condition.spotPossessionPlayableInDiscardOn(
+                                    Target.possessionClass(PossessionClass.HAND_WEAPON).or(Target.possessionClass(PossessionClass.RANGED_WEAPON)),
+                                    Target.culture(Culture.MORIA).and(Target.race(Race.ORC))
+                            ))
+                            .effect(Effect.playPossessionFromDiscardOn(
+                                    Target.possessionClass(PossessionClass.HAND_WEAPON).or(Target.possessionClass(PossessionClass.RANGED_WEAPON)),
+                                    Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
+                            .build();
+                }
             };
         }
         // 1_180 Goblin Scimitar - Bearer must be a [moria] Orc.<br>When you play this possession, you may draw a card.
@@ -1111,7 +1126,7 @@ public class BotCardFactory {
                 @Override
                 public EventAbility getEventAbility() {
                     return new EventAbilityBuilder()
-                            .effect(Effect.playFromDiscard(Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
+                            .effect(Effect.playMinionFromDiscard(Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
                             .build();
                 }
             };

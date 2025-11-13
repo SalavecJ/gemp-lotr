@@ -101,8 +101,12 @@ public abstract class Effect {
         return new EffectPlayWithBonusTwilightModification(target, twilightModification);
     }
 
-    public static EffectPlayFromDiscard playFromDiscard(Predicate<BotCard> target){
-        return new EffectPlayFromDiscard(target);
+    public static EffectPlayMinionFromDiscard playMinionFromDiscard(Predicate<BotCard> target){
+        return new EffectPlayMinionFromDiscard(target);
+    }
+
+    public static EffectPlayPossessionFromDiscardOn playPossessionFromDiscardOn(Predicate<BotCard> possessionPredicate, Predicate<BotCard> bearerPredicate){
+        return new EffectPlayPossessionFromDiscardOn(possessionPredicate, bearerPredicate);
     }
 
     public static EffectAddTwilight addTwilight(int amount){

@@ -2,6 +2,7 @@ package com.gempukku.lotro.bots.forge.plan.action;
 
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 public class ChooseTargetForEffectAction extends ChooseTargetAction {
     private final BotCard source;
@@ -19,6 +20,12 @@ public class ChooseTargetForEffectAction extends ChooseTargetAction {
 
     public EffectWithTarget getEffect() {
         return effect;
+    }
+
+    public boolean targetsTheSameTypeOfTarget(ChooseTargetForEffectAction other, PlannedBoardState plannedBoardState) {
+        return getTarget().getSelf().getBlueprint().getFullName().equals(other.getTarget().getSelf().getBlueprint().getFullName())
+                && plannedBoardState.getStrength(getTarget()) == plannedBoardState.getStrength(other.getTarget())
+                && plannedBoardState.getVitality(getTarget()) == plannedBoardState.getVitality(other.getTarget());
     }
 
     @Override
