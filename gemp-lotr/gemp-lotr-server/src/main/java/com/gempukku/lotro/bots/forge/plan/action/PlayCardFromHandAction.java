@@ -18,6 +18,10 @@ public class PlayCardFromHandAction extends ChooseCardAction {
         return "Action: Play " + getPhysicalCard().getBlueprint().getFullName() + " from hand";
     }
 
+    public boolean playsTheSameCard(PlayCardFromHandAction action) {
+        return this.getPhysicalCard().getBlueprintId().equals(action.getPhysicalCard().getBlueprintId());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -7,9 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class EffectWithTarget extends Effect{
-    public final void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        resolveWithTargets(player, plannedBoardState, List.of(target));
-    }
     public final void resolveWithTargets(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
         if (targets == null || targets.isEmpty()) {
             return;
@@ -58,6 +55,22 @@ public abstract class EffectWithTarget extends Effect{
             } else {
                 return getValueIfResolvedWithTarget(player, plannedBoardState, bestTarget);
             }
+        }
+    }
+
+    public final double getMinimumPossibleValue(String player, PlannedBoardState plannedBoardState) {
+        if (affectsAll()) {
+            return getValueIfResolvedWithTargets(player, plannedBoardState, getPotentialTargets(player, plannedBoardState));
+        } else {
+            BotCard worstTarget;
+            List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
+            if (potentialTargets.isEmpty()) {
+                return 0;
+            } else {
+                potentialTargets.sort((o1, o2) -> Double.compare(getValueIfResolvedWithTarget(player, plannedBoardState, o2), getValueIfResolvedWithTarget(player, plannedBoardState, o1)));
+                worstTarget = potentialTargets.getLast();
+            }
+            return getValueIfResolvedWithTarget(player, plannedBoardState, worstTarget);
         }
     }
 

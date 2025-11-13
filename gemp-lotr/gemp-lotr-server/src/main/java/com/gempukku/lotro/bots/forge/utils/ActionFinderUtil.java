@@ -220,7 +220,23 @@ public class ActionFinderUtil {
     }
 
     private static void exploreShadowPhaseOptions(PlannedBoardState plannedBoardState, ArrayList<ActionToTake> history, Set<ShadowPhaseEndState> endStates) {
-        List<ActionToTake> possibleActions = plannedBoardState.getAvailableActions(plannedBoardState.getCurrentShadowPlayer());
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        for (ActionToTake availableAction : plannedBoardState.getAvailableActions(plannedBoardState.getCurrentShadowPlayer())) {
+            if (availableAction instanceof PlayCardFromHandAction playCardFromHandAction) {
+                if (possibleActions.stream().noneMatch(action -> action instanceof PlayCardFromHandAction otherPlayCard && playCardFromHandAction.playsTheSameCard(otherPlayCard))) {
+                    possibleActions.add(availableAction);
+                } else {
+                    // Skip duplicate play card actions for the same card
+                }
+            } else if (availableAction instanceof OptionalTriggerDenyAction denyAction) {
+                if (!denyAction.getSource().getTriggeredAbility().goodToUseNoMatterWhat(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState)) {
+                    possibleActions.add(availableAction);
+                }
+            } else {
+                possibleActions.add(availableAction);
+            }
+        }
 
         for (ActionToTake action : possibleActions) {
             PlannedBoardState next = new PlannedBoardState(plannedBoardState);
