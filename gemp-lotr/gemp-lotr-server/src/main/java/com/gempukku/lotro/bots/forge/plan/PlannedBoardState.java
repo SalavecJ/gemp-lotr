@@ -75,7 +75,7 @@ public class PlannedBoardState {
         BotCard source;
         BotCard costTarget = null;
         boolean costTargetRequired = false;
-        BotCard effectTarget = null;
+        List<BotCard> effectTargets = null;
         boolean effectTargetRequired = false;
 
         Class<? extends Effect> effectClass = null;
@@ -301,7 +301,7 @@ public class PlannedBoardState {
 
         if (action instanceof ChooseTargetForAttachmentAction chooseTargetAction) {
             if (attachableWaitingForTarget != null) {
-                playCard(attachableWaitingForTarget, chooseTargetAction.getTarget());
+                playCard(attachableWaitingForTarget, List.of(chooseTargetAction.getTarget()));
                 attachableWaitingForTarget = null;
             } else {
                 throw new IllegalStateException("Not waiting for attachment target");
@@ -323,7 +323,7 @@ public class PlannedBoardState {
                 if (potentialBearers.isEmpty()) {
                     throw new IllegalStateException("No valid bearers found for attachable card: " + toBePlayed.getSelf().getBlueprint().getFullName());
                 } else if (potentialBearers.size() == 1) {
-                    playCard(toBePlayed, potentialBearers.getFirst());
+                    playCard(toBePlayed, List.of(potentialBearers.getFirst()));
                 } else {
                     attachableWaitingForTarget = toBePlayed;
                     pendingActions.computeIfAbsent(player, k -> new ArrayDeque<>());
@@ -835,7 +835,7 @@ public class PlannedBoardState {
         }
     }
 
-    private void playCardInternal(BotCard botCard, BotCard effectTarget, BotCard costTarget, int twilightModifier, CardZone zone) {
+    private void playCardInternal(BotCard botCard, List<BotCard> effectTargets, BotCard costTarget, int twilightModifier, CardZone zone) {
         // Check if it's a minion and calculate roaming cost
         if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
             int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
@@ -854,7 +854,7 @@ public class PlannedBoardState {
         if (!botCard.canBePlayed(this)) {
             throw new IllegalStateException("Cannot be played now: " + botCard.getSelf().getBlueprint().getFullName());
         }
-        if (botCard instanceof BotObjectAttachableCard attachableCard && (effectTarget == null || !attachableCard.isValidBearer(effectTarget, this))) {
+        if (botCard instanceof BotObjectAttachableCard attachableCard && (effectTargets == null || effectTargets.size() != 1 || !attachableCard.isValidBearer(effectTargets.getFirst(), this))) {
             throw new IllegalStateException("Invalid target for attachment: " + botCard.getSelf().getBlueprint().getFullName());
         }
         if (!isCardInZone(botCard, zone)) {
@@ -864,7 +864,7 @@ public class PlannedBoardState {
         removeCardFromZone(botCard, zone);
 
         if (botCard.getSelf().getBlueprint().getCardType().equals(CardType.EVENT)) {
-            if (effectTarget == null) {
+            if (!(botCard.getEventAbility().getEffect() instanceof EffectWithTarget)) {
                 if (costTarget == null) {
                     botCard.getEventAbility().resolveAbility(botCard.getSelf().getOwner(), this);
                 } else {
@@ -872,9 +872,9 @@ public class PlannedBoardState {
                 }
             } else {
                 if (costTarget == null) {
-                    botCard.getEventAbility().resolveAbilityOnTarget(botCard.getSelf().getOwner(), this, effectTarget);
+                    botCard.getEventAbility().resolveAbilityOnTargets(botCard.getSelf().getOwner(), this, effectTargets);
                 } else {
-                    botCard.getEventAbility().resolveAbilityOnTargetWithCostTarget(botCard.getSelf().getOwner(), this, effectTarget, costTarget);
+                    botCard.getEventAbility().resolveAbilityOnTargetsWithCostTarget(botCard.getSelf().getOwner(), this, effectTargets, costTarget);
                 }
             }
             discards.get(botCard.getSelf().getOwner()).add(botCard);
@@ -885,7 +885,7 @@ public class PlannedBoardState {
         }
 
         if (botCard instanceof BotObjectAttachableCard) {
-            attachedCards.computeIfAbsent(effectTarget, k -> new HashSet<>()).add(botCard);
+            attachedCards.computeIfAbsent(effectTargets.getFirst(), k -> new HashSet<>()).add(botCard);
         }
 
         payTwilight(totalCost, isFreePeoples);
@@ -955,16 +955,16 @@ public class PlannedBoardState {
         playCard(botCard, null, twilightModifier);
     }
 
-    public void playCard(BotCard botCard, BotCard target) {
-        playCard(botCard, target, 0);
+    public void playCard(BotCard botCard, List<BotCard> targets) {
+        playCard(botCard, targets, 0);
     }
 
-    public void playCard(BotCard botCard, BotCard target, int twilightModifier) {
-        playCardInternal(botCard, target, null, twilightModifier, CardZone.HAND);
+    public void playCard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
+        playCardInternal(botCard, targets, null, twilightModifier, CardZone.HAND);
     }
 
-    public void playCard(BotCard botCard, BotCard target, BotCard costTarget) {
-        playCardInternal(botCard, target, costTarget, 0, CardZone.HAND);
+    public void playCard(BotCard botCard, List<BotCard> targets, BotCard costTarget) {
+        playCardInternal(botCard, targets, costTarget, 0, CardZone.HAND);
     }
 
     public void playCardFromDiscard(BotCard botCard) {
@@ -975,12 +975,12 @@ public class PlannedBoardState {
         playCardFromDiscard(botCard, null, twilightModifier);
     }
 
-    public void playCardFromDiscard(BotCard botCard, BotCard target) {
-        playCardFromDiscard(botCard, target, 0);
+    public void playCardFromDiscard(BotCard botCard, List<BotCard> targets) {
+        playCardFromDiscard(botCard, targets, 0);
     }
 
-    public void playCardFromDiscard(BotCard botCard, BotCard target, int twilightModifier) {
-        playCardInternal(botCard, target, null, twilightModifier, CardZone.DISCARD);
+    public void playCardFromDiscard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
+        playCardInternal(botCard, targets, null, twilightModifier, CardZone.DISCARD);
     }
 
     public void activateAbility(BotCard botCard, Class<? extends Effect> effectClass, String player) {
@@ -991,7 +991,7 @@ public class PlannedBoardState {
         ability.resolveAbility(player, this);
     }
 
-    public void activateAbilityOnTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard target) {
+    public void activateAbilityOnTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> targets) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -999,7 +999,7 @@ public class PlannedBoardState {
         if (!(ability.getEffect() instanceof EffectWithTarget)) {
             throw new IllegalStateException("Ability does not require target: " + effectClass.getSimpleName());
         }
-        ability.resolveAbilityOnTarget(player, this, target);
+        ability.resolveAbilityOnTargets(player, this, targets);
     }
 
     public void activateAbilityWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard costTarget) {
@@ -1010,7 +1010,7 @@ public class PlannedBoardState {
         ability.resolveAbilityWithCostTarget(player, this, costTarget);
     }
 
-    public void activateAbilityOnTargetWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard effectTarget, BotCard costTarget) {
+    public void activateAbilityOnTargetWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> effectTargets, BotCard costTarget) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -1018,7 +1018,7 @@ public class PlannedBoardState {
         if (!(ability.getEffect() instanceof EffectWithTarget)) {
             throw new IllegalStateException("Ability does not require effect target: " + effectClass.getSimpleName());
         }
-        ability.resolveAbilityOnTargetWithCostTarget(player, this, effectTarget, costTarget);
+        ability.resolveAbilityOnTargetsWithCostTarget(player, this, effectTargets, costTarget);
     }
 
     public void activateTriggeredAbility(BotCard botCard, String player) {
@@ -1029,7 +1029,7 @@ public class PlannedBoardState {
         ability.resolveAbility(player, this);
     }
 
-    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, BotCard target) {
+    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, List<BotCard> targets) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1037,7 +1037,7 @@ public class PlannedBoardState {
         if (!(ability.getEffect() instanceof EffectWithTarget)) {
             throw new IllegalStateException("Triggered ability does not require target: " + botCard.getSelf().getBlueprint().getFullName());
         }
-        ability.resolveAbilityOnTarget(player, this, target);
+        ability.resolveAbilityOnTargets(player, this, targets);
     }
 
     public void activateTriggeredAbilityWithCostTarget(BotCard botCard, String player, BotCard costTarget) {
@@ -1048,7 +1048,7 @@ public class PlannedBoardState {
         ability.resolveAbilityWithCostTarget(player, this, costTarget);
     }
 
-    public void activateTriggeredAbilityOnTargetWithCostTarget(BotCard botCard, String player, BotCard effectTarget, BotCard costTarget) {
+    public void activateTriggeredAbilityOnTargetWithCostTarget(BotCard botCard, String player, List<BotCard> effectTargets, BotCard costTarget) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1056,7 +1056,7 @@ public class PlannedBoardState {
         if (!(ability.getEffect() instanceof EffectWithTarget)) {
             throw new IllegalStateException("Triggered ability does not require effect target: " + botCard.getSelf().getBlueprint().getFullName());
         }
-        ability.resolveAbilityOnTargetWithCostTarget(player, this, effectTarget, costTarget);
+        ability.resolveAbilityOnTargetsWithCostTarget(player, this, effectTargets, costTarget);
     }
 
     public void healByDiscard(BotCard discardedCard) {
@@ -1458,10 +1458,9 @@ public class PlannedBoardState {
 
     private static class TargetingInfo {
         BotCard costTarget = null;
-        BotCard effectTarget = null;
+        List<BotCard> effectTargets = null;
         boolean needToAskForCostTarget = false;
         boolean needToAskForEffectTarget = false;
-        boolean affectsAllTargets = false;
         List<BotCard> potentialCostTargets = null;
         List<BotCard> potentialEffectTargets = null;
     }
@@ -1485,18 +1484,17 @@ public class PlannedBoardState {
         if (effect instanceof EffectWithTarget effectWithTarget) {
             info.potentialEffectTargets = effectWithTarget.getPotentialTargets(player, this);
             if (effectWithTarget.affectsAll()) {
-                info.affectsAllTargets = true;
-                effectNeedsTarget = false; // No need to ask for target if effect affects all
+                info.effectTargets = new ArrayList<>(info.potentialEffectTargets);
             } else if (info.potentialEffectTargets.isEmpty()) {
-                info.effectTarget = null; // No effect target available
+                info.effectTargets = List.of(); // No effect target available
             } else if (info.potentialEffectTargets.size() == 1) {
-                info.effectTarget = info.potentialEffectTargets.getFirst();
+                info.effectTargets = List.of(info.potentialEffectTargets.getFirst());
             }
         }
 
         // Determine if we need to ask for targets
         info.needToAskForCostTarget = costNeedsTarget && info.costTarget == null;
-        info.needToAskForEffectTarget = effectNeedsTarget && info.potentialEffectTargets != null && !info.potentialEffectTargets.isEmpty() && info.effectTarget == null;
+        info.needToAskForEffectTarget = effectNeedsTarget && info.potentialEffectTargets != null && !info.potentialEffectTargets.isEmpty() && info.effectTargets == null;
 
         return info;
     }
@@ -1507,8 +1505,8 @@ public class PlannedBoardState {
         // First stage: cost target (if needed)
         if (info.needToAskForCostTarget) {
             waitingSource.costTargetRequired = true;
-            if (info.effectTarget != null) {
-                waitingSource.effectTarget = info.effectTarget;
+            if (info.effectTargets != null) {
+                waitingSource.effectTargets = info.effectTargets;
             }
             List<ActionToTake> costActions = new ArrayList<>();
             for (BotCard potentialCostTarget : info.potentialCostTargets) {
@@ -1541,8 +1539,8 @@ public class PlannedBoardState {
                 if (pendingActions.get(player).isEmpty()) {
                     throw new IllegalStateException("No pending actions for effect target after choosing cost target");
                 }
-            } else if (waitingEvent.effectTarget != null) {
-                playCard(event, waitingEvent.effectTarget, costTarget);
+            } else if (waitingEvent.effectTargets != null) {
+                playCard(event, waitingEvent.effectTargets, costTarget);
                 waitingEvent = null;
             } else {
                 playCard(event, null, costTarget);
@@ -1555,8 +1553,8 @@ public class PlannedBoardState {
                 if (pendingActions.get(player).isEmpty()) {
                     throw new IllegalStateException("No pending actions for effect target after choosing cost target");
                 }
-            } else if (waitingAbility.effectTarget != null) {
-                activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, waitingAbility.effectTarget, costTarget);
+            } else if (waitingAbility.effectTargets != null) {
+                activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, waitingAbility.effectTargets, costTarget);
                 waitingAbility = null;
             } else {
                 activateAbilityWithCostTarget(abilitySource, waitingAbility.effectClass, player, costTarget);
@@ -1573,17 +1571,17 @@ public class PlannedBoardState {
         if (waitingEvent != null) {
             BotCard event = waitingEvent.source;
             if (waitingEvent.costTarget != null) {
-                playCard(event, effectTarget, waitingEvent.costTarget);
+                playCard(event, List.of(effectTarget), waitingEvent.costTarget);
             } else {
-                playCard(event, effectTarget);
+                playCard(event, List.of(effectTarget));
             }
             waitingEvent = null;
         } else if (waitingAbility != null) {
             BotCard abilitySource = waitingAbility.source;
             if (waitingAbility.costTarget != null) {
-                activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, effectTarget, waitingAbility.costTarget);
+                activateAbilityOnTargetWithCostTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget), waitingAbility.costTarget);
             } else {
-                activateAbilityOnTarget(abilitySource, waitingAbility.effectClass, player, effectTarget);
+                activateAbilityOnTarget(abilitySource, waitingAbility.effectClass, player, List.of(effectTarget));
             }
             waitingAbility = null;
         } else {
@@ -1606,22 +1604,22 @@ public class PlannedBoardState {
     }
 
     private void playEventWithTargets(BotCard event, TargetingInfo info) {
-        boolean effectNeedsTarget = info.potentialEffectTargets != null && !info.affectsAllTargets;
+        boolean effectNeedsTarget = info.potentialEffectTargets != null;
         boolean noEffectTargetAvailable = info.potentialEffectTargets != null && info.potentialEffectTargets.isEmpty();
         boolean costNeedsTarget = info.potentialCostTargets != null;
 
         if (!effectNeedsTarget && !costNeedsTarget) {
             playCard(event);
         } else if (effectNeedsTarget && noEffectTargetAvailable && !costNeedsTarget) {
-            playCard(event, null);
-        } else if (effectNeedsTarget && info.effectTarget != null && !costNeedsTarget) {
-            playCard(event, info.effectTarget);
+            playCard(event, info.effectTargets);
+        } else if (effectNeedsTarget && info.effectTargets != null && !costNeedsTarget) {
+            playCard(event, info.effectTargets);
         } else if (!effectNeedsTarget && costNeedsTarget) {
-            playCard(event, null, info.costTarget);
+            playCard(event, info.effectTargets, info.costTarget);
         } else if (effectNeedsTarget && noEffectTargetAvailable && costNeedsTarget) {
-            playCard(event, null, info.costTarget);
-        } else if (effectNeedsTarget && info.effectTarget != null && costNeedsTarget) {
-            playCard(event, info.effectTarget, info.costTarget);
+            playCard(event, info.effectTargets, info.costTarget);
+        } else if (effectNeedsTarget && info.effectTargets != null && costNeedsTarget) {
+            playCard(event, info.effectTargets, info.costTarget);
         }
     }
 
@@ -1643,7 +1641,7 @@ public class PlannedBoardState {
     }
 
     private void activateAbilityWithTargets(BotCard card, Class<? extends Effect> effectClass, String player, TargetingInfo info) {
-        boolean effectNeedsTarget = info.potentialEffectTargets != null && !info.affectsAllTargets;
+        boolean effectNeedsTarget = info.potentialEffectTargets != null;
         boolean noEffectTargetAvailable = info.potentialEffectTargets != null && info.potentialEffectTargets.isEmpty();
         boolean costNeedsTarget = info.potentialCostTargets != null;
 
@@ -1651,14 +1649,14 @@ public class PlannedBoardState {
             activateAbility(card, effectClass, player);
         } else if (effectNeedsTarget && noEffectTargetAvailable && !costNeedsTarget) {
             activateAbilityOnTarget(card, effectClass, player, null);
-        } else if (effectNeedsTarget && info.effectTarget != null && !costNeedsTarget) {
-            activateAbilityOnTarget(card, effectClass, player, info.effectTarget);
+        } else if (effectNeedsTarget && info.effectTargets != null && !costNeedsTarget) {
+            activateAbilityOnTarget(card, effectClass, player, info.effectTargets);
         } else if (!effectNeedsTarget && costNeedsTarget) {
             activateAbilityWithCostTarget(card, effectClass, player, info.costTarget);
         } else if (effectNeedsTarget && noEffectTargetAvailable && costNeedsTarget) {
             activateAbilityOnTargetWithCostTarget(card, effectClass, player, null, info.costTarget);
-        } else if (effectNeedsTarget && info.effectTarget != null && costNeedsTarget) {
-            activateAbilityOnTargetWithCostTarget(card, effectClass, player, info.effectTarget, info.costTarget);
+        } else if (effectNeedsTarget && info.effectTargets != null && costNeedsTarget) {
+            activateAbilityOnTargetWithCostTarget(card, effectClass, player, info.effectTargets, info.costTarget);
         }
     }
 
@@ -1678,7 +1676,7 @@ public class PlannedBoardState {
 
     private void activateTriggeredAbilityWithTargets(BotCard card, String player, TargetingInfo info) {
         // Similar structure to activateAbilityWithTargets, but for triggered abilities
-        boolean effectNeedsTarget = info.potentialEffectTargets != null && !info.affectsAllTargets;
+        boolean effectNeedsTarget = info.potentialEffectTargets != null;
         boolean noEffectTargetAvailable = info.potentialEffectTargets != null && info.potentialEffectTargets.isEmpty();
         boolean costNeedsTarget = info.potentialCostTargets != null;
 
@@ -1686,14 +1684,14 @@ public class PlannedBoardState {
             activateTriggeredAbility(card, player);
         } else if (effectNeedsTarget && noEffectTargetAvailable && !costNeedsTarget) {
             activateTriggeredAbilityOnTarget(card, player, null);
-        } else if (effectNeedsTarget && info.effectTarget != null && !costNeedsTarget) {
-            activateTriggeredAbilityOnTarget(card, player, info.effectTarget);
+        } else if (effectNeedsTarget && info.effectTargets != null && !costNeedsTarget) {
+            activateTriggeredAbilityOnTarget(card, player, info.effectTargets);
         } else if (!effectNeedsTarget && costNeedsTarget) {
             activateTriggeredAbilityWithCostTarget(card, player, info.costTarget);
         } else if (effectNeedsTarget && noEffectTargetAvailable && costNeedsTarget) {
             activateTriggeredAbilityOnTargetWithCostTarget(card, player, null, info.costTarget);
-        } else if (effectNeedsTarget && info.effectTarget != null && costNeedsTarget) {
-            activateTriggeredAbilityOnTargetWithCostTarget(card, player, info.effectTarget, info.costTarget);
+        } else if (effectNeedsTarget && info.effectTargets != null && costNeedsTarget) {
+            activateTriggeredAbilityOnTargetWithCostTarget(card, player, info.effectTargets, info.costTarget);
         }
     }
 

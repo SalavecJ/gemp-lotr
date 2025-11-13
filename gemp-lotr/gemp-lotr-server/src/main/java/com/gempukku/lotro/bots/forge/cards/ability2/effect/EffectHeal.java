@@ -1,6 +1,5 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
-import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
 import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
@@ -33,14 +32,6 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
-        if (getPotentialTargets(player, plannedBoardState).isEmpty()) {
-            return null;
-        }
-        return BotTargetingMode.HEAL.chooseTarget(plannedBoardState, getPotentialTargets(player, plannedBoardState), false);
-    }
-
-    @Override
     public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
         if (targets.isEmpty()) {
             return "attempt to heal a character, but none can be chosen";
@@ -57,35 +48,12 @@ public class EffectHeal extends EffectWithTarget {
     }
 
     @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(player, plannedBoardState);
-        if (target == null) return;
-        resolveWithTarget(player, plannedBoardState, target);
+    protected void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        plannedBoardState.heal(target, amount);
     }
 
     @Override
-    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (target == null) {
-            return;
-        } else {
-            plannedBoardState.heal(target, amount);
-        }
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
-        BotCard toBeHealed = chooseTarget(player, plannedBoardState);
-        if (toBeHealed == null) return 0.0;
-
-        return getValueIfResolvedWithTarget(player, plannedBoardState, toBeHealed);
-    }
-
-    @Override
-    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (target == null) {
-            return 0;
-        } else {
-            return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, target, -amount);
-        }
+    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, target, -amount);
     }
 }

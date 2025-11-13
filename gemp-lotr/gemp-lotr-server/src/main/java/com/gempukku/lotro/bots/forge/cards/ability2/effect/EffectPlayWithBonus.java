@@ -14,25 +14,12 @@ public abstract class EffectPlayWithBonus extends EffectWithTarget {
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
+    public final ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
         return new ArrayList<>(plannedBoardState.getHand(player).stream().filter(targetPredicate).filter(botCard -> botCard.canBePlayed(plannedBoardState)).toList());
     }
 
     @Override
-    public boolean affectsAll() {
+    public final boolean affectsAll() {
         return false;
-    }
-
-    @Override
-    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
-        if (getPotentialTargets(player, plannedBoardState).isEmpty()) {
-            throw new IllegalStateException("No valid targets for EffectPlayWithBonus");
-        }
-        return getPotentialTargets(player, plannedBoardState).getFirst();
-    }
-
-    @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
-        throw new IllegalStateException("Cannot choose target automatically for EffectPlayWithBonus");
     }
 }

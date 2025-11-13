@@ -27,14 +27,16 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
     }
 
     @Override
-    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
-        if (potentialTargets.isEmpty()) {
-            return null;
-        } else {
-            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(o2, plannedBoardState), getValueOfTarget(o1, plannedBoardState)));
-            return potentialTargets.getFirst();
+    protected void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        plannedBoardState.moveFromDiscardIntoHand(target);
+    }
+
+    @Override
+    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        if (target == null) {
+            return 0;
         }
+        return HandValueUtil.cardValueInHand(target, plannedBoardState);
     }
 
     @Override
@@ -47,43 +49,5 @@ public class EffectTakeIntoHandFromDiscard extends EffectWithTarget{
                     .collect(Collectors.joining("; "));
             return  "take into hand card(s) from discard: " + joined;
         }
-    }
-
-    @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(player, plannedBoardState);
-        if (target == null) return;
-        resolveWithTarget(player, plannedBoardState, target);
-    }
-
-    @Override
-    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (target == null) {
-            return;
-        } else {
-            plannedBoardState.moveFromDiscardIntoHand(target);
-        }
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
-        BotCard target = chooseTarget(player, plannedBoardState);
-        return getValueIfResolvedWithTarget(player, plannedBoardState, target);
-    }
-
-    @Override
-    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (target == null || !plannedBoardState.ruleOfFourLimitOk()) {
-            return 0;
-        } else {
-            return getValueOfTarget(target, plannedBoardState);
-        }
-    }
-
-    public double getValueOfTarget(BotCard target, PlannedBoardState plannedBoardState) {
-        if (target == null) {
-            return 0;
-        }
-        return HandValueUtil.cardValueInHand(target, plannedBoardState);
     }
 }

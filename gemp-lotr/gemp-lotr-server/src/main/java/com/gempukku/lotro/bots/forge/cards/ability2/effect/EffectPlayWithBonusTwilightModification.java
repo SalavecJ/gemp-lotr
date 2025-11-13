@@ -15,17 +15,12 @@ public class EffectPlayWithBonusTwilightModification extends EffectPlayWithBonus
     }
 
     @Override
-    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    protected void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
         plannedBoardState.playCard(target, amount);
     }
 
     @Override
-    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        return 0.4 * amount * -1;
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
         return 0.4 * amount * -1;
     }
 

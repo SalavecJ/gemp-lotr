@@ -13,22 +13,13 @@ public class EffectPlayWithBonusDraw extends EffectPlayWithBonus {
     }
 
     @Override
-    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    protected void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
         plannedBoardState.playCard(target);
         plannedBoardState.drawCard(player);
     }
 
     @Override
-    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (plannedBoardState.ruleOfFourLimitOk()) {
-            return 0.6;
-        } else {
-            return 0.0;
-        }
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
         if (plannedBoardState.ruleOfFourLimitOk()) {
             return 0.6;
         } else {
@@ -41,7 +32,11 @@ public class EffectPlayWithBonusDraw extends EffectPlayWithBonus {
         if (targets.isEmpty()) {
             return "attempt to play card from hand with bonus draw, but none can be chosen";
         } else if (targets.size() == 1) {
-            return "play " + targets.getFirst().getSelf().getBlueprint().getFullName() + " from hand to draw a card: " + plannedBoardState.getTopCardOfDeck(player).getSelf().getBlueprint().getFullName();
+            if (plannedBoardState.ruleOfFourLimitOk()) {
+                return "play " + targets.getFirst().getSelf().getBlueprint().getFullName() + " from hand to draw a card: " + plannedBoardState.getTopCardOfDeck(player).getSelf().getBlueprint().getFullName();
+            } else {
+                return "play " + targets.getFirst().getSelf().getBlueprint().getFullName() + " from hand to draw a card, but Rule of Four limit reached";
+            }
         } else {
             throw new IllegalStateException("EffectPlayWithBonusDraw cannot be applied to multiple targets");
         }

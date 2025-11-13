@@ -5,7 +5,6 @@ import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
 
 public class CostDiscardCardFromHand extends CostWithTarget {
@@ -21,28 +20,8 @@ public class CostDiscardCardFromHand extends CostWithTarget {
     }
 
     @Override
-    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
-        List<BotCard> potentialTargets = getPotentialTargets(player, plannedBoardState);
-        if (potentialTargets.isEmpty()) {
-            return null;
-        } else {
-            potentialTargets.sort((o1, o2) -> Double.compare(getValueOfTarget(o2, plannedBoardState), getValueOfTarget(o1, plannedBoardState)));
-            return potentialTargets.getFirst();
-        }
-    }
-
-    @Override
     public String toString(String player, PlannedBoardState plannedBoardState, BotCard target) {
         return "discard card from hand: " + target.getSelf().getBlueprint().getFullName();
-    }
-
-    @Override
-    public void pay(String player, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(player, plannedBoardState)) {
-            throw new IllegalStateException("Cost cannot be payed");
-        }
-        BotCard target = chooseTarget(player, plannedBoardState);
-        payWithTarget(player, plannedBoardState, target);
     }
 
     @Override
@@ -51,25 +30,6 @@ public class CostDiscardCardFromHand extends CostWithTarget {
             throw new IllegalStateException("Cost cannot be payed");
         }
         plannedBoardState.discardFromHand(target);
-    }
-
-    @Override
-    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
-        return !getPotentialTargets(player, plannedBoardState).isEmpty();
-    }
-
-    @Override
-    public boolean canPayCostWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        return getPotentialTargets(player, plannedBoardState).contains(target);
-    }
-
-    @Override
-    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(player, plannedBoardState)) {
-            throw new IllegalStateException("Cost cannot be payed");
-        }
-        BotCard target = chooseTarget(player, plannedBoardState);
-        return getValueIfPayedWithTarget(player, plannedBoardState, target);
     }
 
     @Override

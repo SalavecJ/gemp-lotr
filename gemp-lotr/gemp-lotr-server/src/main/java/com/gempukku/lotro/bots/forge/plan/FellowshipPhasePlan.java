@@ -271,12 +271,12 @@ public class FellowshipPhasePlan {
         if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
             if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard
                     && botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-                return botEventCard.getEventAbility().getValueIfUsed(playerName, plannedBoardState);
+                return botEventCard.getEventAbility().getPossibleValue(playerName, plannedBoardState);
             }
         } else if (action instanceof UseCardAction useCardAction) {
             BotCard botCard = useCardAction.getCard();
             ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-            return activatedAbility.getValueIfUsed(playerName, plannedBoardState);
+            return activatedAbility.getPossibleValue(playerName, plannedBoardState);
         }
         return 0.0;
     }
@@ -286,7 +286,7 @@ public class FellowshipPhasePlan {
             if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
                 if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard) {
                     if (botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-                        double value = botEventCard.getEventAbility().getValueIfUsed(playerName, plannedBoardState);
+                        double value = botEventCard.getEventAbility().getPossibleValue(playerName, plannedBoardState);
                         return value >= 0.0; // play cards with 0 value to cycle hand
                     }
                 }
@@ -294,7 +294,7 @@ public class FellowshipPhasePlan {
                 BotCard botCard = useCardAction.getCard();
                 ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                 if (activatedAbility != null) {
-                    double value = activatedAbility.getValueIfUsed(playerName, plannedBoardState);
+                    double value = activatedAbility.getPossibleValue(playerName, plannedBoardState);
                     return value > 0.0;
                 }
             }

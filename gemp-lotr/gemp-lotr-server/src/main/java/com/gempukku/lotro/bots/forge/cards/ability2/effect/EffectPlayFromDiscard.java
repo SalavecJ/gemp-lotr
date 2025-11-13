@@ -40,28 +40,13 @@ public class EffectPlayFromDiscard extends EffectWithTarget {
     }
 
     @Override
-    public void resolveWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    public void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
         plannedBoardState.playCardFromDiscard(target);
     }
 
     @Override
-    public double getValueIfResolvedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        return 0;
-    }
-
-    @Override
-    public BotCard chooseTarget(String player, PlannedBoardState plannedBoardState) {
-        throw new IllegalStateException("Cannot choose target automatically for EffectFromDiscard");
-    }
-
-    @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
-        throw new IllegalStateException("Cannot choose target automatically for EffectFromDiscard");
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
-        throw new IllegalStateException("Cannot choose target automatically for EffectFromDiscard");
+    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+        return 0.1; // Playing a card from discard has some value, but hard to quantify
     }
 
     @Override

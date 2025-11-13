@@ -70,7 +70,7 @@ public class BetweenTurnsPlan {
             if (triggeredAbility == null) {
                 continue;
             }
-            double value = triggeredAbility.getValueIfUsed(playerName, plannedBoardState);
+            double value = triggeredAbility.getPossibleValue(playerName, plannedBoardState);
             if (value > maxValue) {
                 maxValue = value;
                 chosenCard = botCard;
@@ -147,9 +147,9 @@ public class BetweenTurnsPlan {
             }
 
             if (effectTargeting != null && costTargeting != null) {
-                plannedBoardState.activateTriggeredAbilityOnTargetWithCostTarget(chosenCard, playerName, effectTargeting.target(), costTargeting.target());
+                plannedBoardState.activateTriggeredAbilityOnTargetWithCostTarget(chosenCard, playerName, List.of(effectTargeting.target()), costTargeting.target());
             } else if (effectTargeting != null) {
-                plannedBoardState.activateTriggeredAbilityOnTarget(chosenCard, playerName, effectTargeting.target());
+                plannedBoardState.activateTriggeredAbilityOnTarget(chosenCard, playerName, List.of(effectTargeting.target()));
             } else if (costTargeting != null) {
                 plannedBoardState.activateTriggeredAbilityWithCostTarget(chosenCard, playerName, costTargeting.target());
             } else {

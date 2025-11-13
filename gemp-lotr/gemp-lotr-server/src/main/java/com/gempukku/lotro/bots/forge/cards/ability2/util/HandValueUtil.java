@@ -59,7 +59,7 @@ public class HandValueUtil {
                 // event cannot be played, no value
                 return 0;
             } else {
-                return ability.getValueIfUsed(botCard.getSelf().getOwner(), plannedBoardState);
+                return ability.getPossibleValue(botCard.getSelf().getOwner(), plannedBoardState);
             }
         } else {
             if (!botCard.canBePlayedNoMatterThePhase(plannedBoardState)) {
