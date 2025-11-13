@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.condition;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
@@ -18,7 +19,20 @@ public class ConditionSpotPlayableInDiscard extends Condition {
         return plannedBoardState.getDiscard(player).stream()
                 .filter(targetPredicate)
                 .filter(botCard -> botCard.canBePlayed(plannedBoardState))
-                .anyMatch(botCard -> botCard.getSelf().getBlueprint().getSide() == Side.FREE_PEOPLE ||
-                        plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost());
+                .anyMatch(botCard -> {
+                    if (botCard.getSelf().getBlueprint().getSide() == Side.FREE_PEOPLE)
+                        return true;
+
+                    int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
+                    if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
+                        int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+                        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+                        boolean roaming = minionSiteNumber > currentSiteNumber;
+                        if (roaming) {
+                            twilightCost += 2;
+                        }
+                    }
+                    return plannedBoardState.getTwilight() >= twilightCost;
+                });
     }
 }

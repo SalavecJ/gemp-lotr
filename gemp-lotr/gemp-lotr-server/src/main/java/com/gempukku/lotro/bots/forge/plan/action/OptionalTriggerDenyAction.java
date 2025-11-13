@@ -1,18 +1,22 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 public class OptionalTriggerDenyAction implements ActionToTake {
-    private final PhysicalCard toDeny;
+    private final BotCard toDeny;
 
-    public OptionalTriggerDenyAction(PhysicalCard toDeny) {
+    public OptionalTriggerDenyAction(BotCard toDeny) {
         this.toDeny = toDeny;
+    }
+
+    public BotCard getSource() {
+        return toDeny;
     }
 
     @Override
     public String toString() {
-        return "Action: Deny trigger of " + toDeny.getBlueprint().getFullName();
+        return "Action: Deny trigger of " + toDeny.getSelf().getBlueprint().getFullName();
     }
 
     @Override

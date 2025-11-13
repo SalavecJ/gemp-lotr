@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 /**
@@ -10,25 +10,25 @@ import com.gempukku.lotro.logic.decisions.AwaitingDecision;
  * skirmish to resolve.
  */
 public class ChooseSkirmishAction implements ActionToTake {
-    private final PhysicalCard fpCharacter;
+    private final BotCard fpCharacter;
 
-    public ChooseSkirmishAction(PhysicalCard fpCharacter) {
+    public ChooseSkirmishAction(BotCard fpCharacter) {
         this.fpCharacter = fpCharacter;
     }
 
-    public PhysicalCard getFpCharacter() {
+    public BotCard getFpCharacter() {
         return fpCharacter;
     }
 
     @Override
     public int carryOut(AwaitingDecision awaitingDecision) {
         // Return the physical card ID of the FP character whose skirmish to resolve
-        return fpCharacter.getCardId();
+        return fpCharacter.getSelf().getCardId();
     }
 
     @Override
     public String toString() {
-        return "Action: Choose skirmish for " + fpCharacter.getBlueprint().getFullName();
+        return "Action: Choose skirmish for " + fpCharacter.getSelf().getBlueprint().getFullName();
     }
 
     @Override
@@ -36,12 +36,12 @@ public class ChooseSkirmishAction implements ActionToTake {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ChooseSkirmishAction that = (ChooseSkirmishAction) o;
-        return fpCharacter.getCardId() == that.fpCharacter.getCardId();
+        return fpCharacter.getSelf().getCardId() == that.fpCharacter.getSelf().getCardId();
     }
 
     @Override
     public int hashCode() {
-        return fpCharacter.getCardId();
+        return fpCharacter.getSelf().getCardId();
     }
 }
 

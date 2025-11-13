@@ -34,7 +34,7 @@ public class BetweenTurnsPlan {
             System.out.println("New between turns phase plan - player " + playerName + " is about to play at site " + siteNumber);
         }
 
-        plannedBoardState = new PlannedBoardState(game);
+        plannedBoardState = new PlannedBoardState(game, playerName);
     }
 
     public boolean replanningNeeded() {

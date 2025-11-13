@@ -44,4 +44,19 @@ public enum Phase {
         }
         return null;
     }
+
+    public static Phase getPhaseBefore(Phase phase) {
+        return switch (phase) {
+            case PUT_RING_BEARER -> throw new IllegalArgumentException("No phase before Put_Ring_Bearer");
+            case PLAY_STARTING_FELLOWSHIP -> PUT_RING_BEARER;
+            case FELLOWSHIP -> PLAY_STARTING_FELLOWSHIP;
+            case SHADOW -> FELLOWSHIP;
+            case MANEUVER -> SHADOW;
+            case ARCHERY -> MANEUVER;
+            case ASSIGNMENT -> ARCHERY;
+            case SKIRMISH -> ASSIGNMENT;
+            case REGROUP -> SKIRMISH;
+            case BETWEEN_TURNS -> REGROUP;
+        };
+    }
 }

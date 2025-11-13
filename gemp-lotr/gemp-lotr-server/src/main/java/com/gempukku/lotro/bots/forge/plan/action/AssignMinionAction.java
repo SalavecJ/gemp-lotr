@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 
 import java.util.*;
@@ -9,25 +9,24 @@ import java.util.*;
  * Action representing assigning a specific minion to a specific FP character.
  * During assignment phase, the FP player assigns minions to companions/allies first,
  * then the Shadow player can assign remaining minions to existing skirmishes.
- *
  * This action is used during planning/minimax exploration to build up an assignment map.
  * It does NOT directly execute against an AwaitingDecision - instead, the complete
  * assignment map is built up in PlannedBoardState and submitted when both players pass.
  */
 public class AssignMinionAction implements ActionToTake {
-    private final PhysicalCard minion;
-    private final PhysicalCard fpCharacter;
+    private final BotCard minion;
+    private final BotCard fpCharacter;
 
-    public AssignMinionAction(PhysicalCard minion, PhysicalCard fpCharacter) {
+    public AssignMinionAction(BotCard minion, BotCard fpCharacter) {
         this.minion = minion;
         this.fpCharacter = fpCharacter;
     }
 
-    public PhysicalCard getMinion() {
+    public BotCard getMinion() {
         return minion;
     }
 
-    public PhysicalCard getFpCharacter() {
+    public BotCard getFpCharacter() {
         return fpCharacter;
     }
 
@@ -42,8 +41,8 @@ public class AssignMinionAction implements ActionToTake {
         Map<String, List<String>> assignmentMap = new HashMap<>();
 
         for (AssignMinionAction action : actions) {
-            String fpCharacterId = String.valueOf(action.getFpCharacter().getCardId());
-            String minionId = String.valueOf(action.getMinion().getCardId());
+            String fpCharacterId = String.valueOf(action.getFpCharacter().getSelf().getCardId());
+            String minionId = String.valueOf(action.getMinion().getSelf().getCardId());
 
             assignmentMap.computeIfAbsent(fpCharacterId, k -> new ArrayList<>()).add(minionId);
         }
@@ -62,8 +61,8 @@ public class AssignMinionAction implements ActionToTake {
 
     @Override
     public String toString() {
-        return "Action: Assign " + minion.getBlueprint().getFullName() +
-               " to " + fpCharacter.getBlueprint().getFullName();
+        return "Action: Assign " + minion.getSelf().getBlueprint().getFullName() +
+               " to " + fpCharacter.getSelf().getBlueprint().getFullName();
     }
 
     @Override
@@ -71,13 +70,13 @@ public class AssignMinionAction implements ActionToTake {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AssignMinionAction that = (AssignMinionAction) o;
-        return minion.getCardId() == that.minion.getCardId() &&
-               fpCharacter.getCardId() == that.fpCharacter.getCardId();
+        return minion.getSelf().getCardId() == that.minion.getSelf().getCardId() &&
+               fpCharacter.getSelf().getCardId() == that.fpCharacter.getSelf().getCardId();
     }
 
     @Override
     public int hashCode() {
-        return 31 * minion.getCardId() + fpCharacter.getCardId();
+        return 31 * minion.getSelf().getCardId() + fpCharacter.getSelf().getCardId();
     }
 }
 

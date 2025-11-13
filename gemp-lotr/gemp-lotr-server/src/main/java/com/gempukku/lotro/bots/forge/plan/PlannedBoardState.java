@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
 import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectPlayWithBonus;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
+import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.*;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
 import com.gempukku.lotro.bots.forge.plan.action.*;
@@ -49,6 +50,9 @@ public class PlannedBoardState {
     private boolean assignmentPhasePlayActionsCompleted = false; // True when both players have passed
     private boolean fpAssignmentCompleted = false; // True when FP has finished assigning
 
+    //Regroup phase state tracking
+    private boolean endOfTurnProceduresStarted = false;
+
     // Skirmish phase state tracking
     private BotCard currentSkirmish = null; // Currently active FP character's skirmish
 
@@ -64,7 +68,10 @@ public class PlannedBoardState {
     private WaitingSource waitingEvent = null;
     private WaitingSource waitingAbility = null;
 
-    class WaitingSource {
+    private final Map<String, ActionToTake> lastActionsTaken = new HashMap<>();
+    private String playerToAct;
+
+    static class WaitingSource {
         BotCard source;
         BotCard costTarget = null;
         boolean costTargetRequired = false;
@@ -79,7 +86,9 @@ public class PlannedBoardState {
         }
     }
 
-    public PlannedBoardState(LotroGame game) {
+    public PlannedBoardState(LotroGame game, String playerToAct) {
+        this.playerToAct = playerToAct;
+
         phase = game.getGameState().getCurrentPhase();
         currentPlayer = game.getGameState().getCurrentPlayerId();
         movesMade = game.getGameState().getMoveCount();
@@ -173,6 +182,8 @@ public class PlannedBoardState {
     }
 
     public PlannedBoardState(PlannedBoardState other) {
+        this.playerToAct = other.playerToAct;
+
         this.phase = other.phase;
         this.currentPlayer = other.currentPlayer;
         this.players.addAll(other.players);
@@ -198,6 +209,7 @@ public class PlannedBoardState {
 
         this.assignmentPhasePlayActionsCompleted = other.assignmentPhasePlayActionsCompleted;
         this.fpAssignmentCompleted = other.fpAssignmentCompleted;
+        this.endOfTurnProceduresStarted = other.endOfTurnProceduresStarted;
 
         this.twilight = other.twilight;
         this.ruleOfFourCount = other.ruleOfFourCount;
@@ -215,12 +227,22 @@ public class PlannedBoardState {
         this.attachableWaitingForTarget = other.attachableWaitingForTarget;
         this.waitingEvent = other.waitingEvent;
         this.waitingAbility = other.waitingAbility;
+
+        this.lastActionsTaken.putAll(other.lastActionsTaken);
     }
 
     /*
         AVAILABLE ACTIONS
      */
+    public String getPlayerToAct() {
+        return playerToAct;
+    }
+
     public List<ActionToTake> getAvailableActions(String player) {
+        if (!player.equals(playerToAct)) {
+            throw new IllegalStateException("It's not " + player + "'s turn to act");
+        }
+
         List<ActionToTake> possibleActions = new ArrayList<>();
         if (pendingActions.containsKey(player) && !pendingActions.get(player).isEmpty()) {
             return pendingActions.get(player).peekFirst();
@@ -229,8 +251,43 @@ public class PlannedBoardState {
             possibleActions.addAll(getHealCompanionsByDiscardActions());
             possibleActions.addAll(getPlayFellowshipCardsFromHandActions());
             possibleActions.addAll(getActivateAbilitiesActions(player));
-            possibleActions.add(new PassAction());
+        } else if (phase == Phase.SHADOW && player.equals(getCurrentShadowPlayer())) {
+            possibleActions.addAll(getPlayShadowCardsFromHandActions());
+        } else if (phase == Phase.MANEUVER) {
+
+        } else if (phase == Phase.ARCHERY) {
+
+        } else if (phase == Phase.ASSIGNMENT) {
+            if (!isAssignmentPhasePlayActionsCompleted()) {
+                // Still in the "play events and activate abilities" part
+            } else if (!isFpAssignmentCompleted() && player.equals(currentPlayer)) {
+                // Both players have passed, now FP assigns minions 1-on-1
+                List<ActionToTake> fpAssignmentActions = getFpAssignmentActions();
+                if (!fpAssignmentActions.isEmpty()) {
+                    return fpAssignmentActions;
+                }
+            } else if (isFpAssignmentCompleted() && player.equals(getCurrentShadowPlayer())) {
+                // FP has finished assigning, now Shadow assigns remaining unassigned minions
+                List<ActionToTake> shadowAssignmentActions = getShadowAssignmentActions();
+                if (!shadowAssignmentActions.isEmpty()) {
+                    return shadowAssignmentActions;
+                }
+            }
+        } else if (phase == Phase.SKIRMISH) {
+            if (getCurrentSkirmish() == null && player.equals(currentPlayer)) {
+                // FP needs to choose which skirmish to resolve next
+                List<ActionToTake> chooseSkirmishActions = getChooseSkirmishActions();
+                if (!chooseSkirmishActions.isEmpty()) {
+                    return chooseSkirmishActions;
+                }
+            } else {
+                // Inside a skirmish - can use skirmish abilities/events
+            }
+        } else if (phase == Phase.REGROUP) {
+
         }
+
+        possibleActions.add(new PassAction());
         return possibleActions;
     }
 
@@ -240,6 +297,7 @@ public class PlannedBoardState {
         }
 
         removePendingAction(player);
+        lastActionsTaken.put(player, action);
 
         if (action instanceof ChooseTargetForAttachmentAction chooseTargetAction) {
             if (attachableWaitingForTarget != null) {
@@ -282,7 +340,105 @@ public class PlannedBoardState {
             }
         } else if (action instanceof UseCardAction useCardAction) {
             handleAbilityActivation(player, useCardAction);
+        } else if (action instanceof OptionalTriggerDenyAction) {
+            return; // Nothing happens
+        } else if (action instanceof OptionalTriggerAcceptAction acceptAction) {
+            handleTriggeredAbilityActivation(player, acceptAction.getCard());
+        } else if (action instanceof ChooseSkirmishAction chooseSkirmishAction) {
+            setCurrentSkirmish(chooseSkirmishAction.getFpCharacter());
+        } else if (action instanceof AssignMinionAction assignMinionAction) {
+            assignMinion(assignMinionAction.getMinion(), assignMinionAction.getFpCharacter());
+        } else if (action instanceof PassAction) {
+            if (phase == Phase.FELLOWSHIP && player.equals(currentPlayer)) {
+                // FP passed during fellowship
+                // TODO move, shadow phase
+            } else if (phase == Phase.SHADOW && player.equals(getCurrentShadowPlayer())) {
+                // Shadow passed during shadow
+                moveToNextPhase();
+            } else {
+                boolean fpPassed = lastActionsTaken.get(currentPlayer) instanceof PassAction;
+                boolean shadowPassed = lastActionsTaken.get(getCurrentShadowPlayer()) instanceof PassAction;
+                if (fpPassed && shadowPassed) {
+                    // Both players have passed
+                    if (getCurrentPhase().equals(Phase.ASSIGNMENT) && !isAssignmentPhasePlayActionsCompleted()) {
+                        // Special case: In assignment phase, both players passing means we transition to assigning minions
+                        setAssignmentPhasePlayActionsCompleted(true);
+                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && isAssignmentPhasePlayActionsCompleted() && !isFpAssignmentCompleted()) {
+                        // Special case: FP is done assigning (no more valid assignments available)
+                        setFpAssignmentCompleted(true);
+                    } else if (getCurrentPhase().equals(Phase.SKIRMISH)) {
+                        if (getCurrentSkirmish() != null) {
+                            // Resolve the current skirmish
+                            resolveCurrentSkirmish();
+                            lastActionsTaken.clear();
+
+                            // Check if all skirmishes are done
+                            if (getAssignments().isEmpty()) {
+                                // Move to regroup phase - create terminal state
+                                moveToNextPhase();
+                            }
+                        } else {
+                            throw new IllegalStateException("Current skirmish is null when both players passed in skirmish phase");
+                        }
+                    } else if (getCurrentPhase().equals(Phase.REGROUP)) {
+                        startEndOfTurnProcedures();
+                    } else {
+                        moveToNextPhase();
+                    }
+                }
+            }
         }
+        changePlayerToActIfNeeded(action);
+    }
+
+    private void changePlayerToActIfNeeded(ActionToTake action) {
+        if (phase == Phase.FELLOWSHIP || phase == Phase.SHADOW) {
+            return; // No change in player to act during these phases
+        } else if (phase == Phase.SKIRMISH && getCurrentSkirmish() == null) {
+            playerToAct = currentPlayer; // FP chooses next skirmish
+        } else if (phase == Phase.SKIRMISH && action instanceof ChooseSkirmishAction) {
+            playerToAct = currentPlayer; // FP acts first after choosing skirmish
+        } else if (phase == Phase.ASSIGNMENT && isAssignmentPhasePlayActionsCompleted()) {
+            if (!isFpAssignmentCompleted()) {
+                playerToAct = currentPlayer; // FP assigns first
+            } else {
+                playerToAct = getCurrentShadowPlayer(); // Shadow assigns next
+            }
+        } else if (lastActionsTaken.get(currentPlayer) instanceof PassAction && lastActionsTaken.get(getCurrentShadowPlayer()) instanceof PassAction) {
+            playerToAct = currentPlayer;
+        } else {
+            if (playerToAct.equals(currentPlayer)) {
+                playerToAct = getCurrentShadowPlayer();
+            } else {
+                playerToAct = currentPlayer;
+            }
+        }
+    }
+
+    private Collection<ActionToTake> getPlayShadowCardsFromHandActions() {
+        List<ActionToTake> actions = new ArrayList<>();
+
+        List<BotCard> playableCardsInHand = hands.get(getCurrentShadowPlayer()).stream()
+                .filter(cardInHand -> cardInHand.canBePlayed(this))
+                .filter(botCard -> {
+                    int twilightCost = botCard.getSelf().getBlueprint().getTwilightCost();
+                    if (botCard.getSelf().getBlueprint().getCardType() == CardType.MINION) {
+                        int currentSiteNumber = getCurrentSite().getSelf().getBlueprint().getSiteNumber();
+                        int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
+                        boolean roaming = minionSiteNumber > currentSiteNumber;
+                        if (roaming) {
+                            twilightCost += 2;
+                        }
+                    }
+                    return getTwilight() >= twilightCost;
+                })
+                .toList();
+
+        for (BotCard botCard : playableCardsInHand) {
+            actions.add(new PlayCardFromHandAction(botCard));
+        }
+
+        return actions;
     }
 
     private Collection<ActionToTake> getPlayFellowshipCardsFromHandActions() {
@@ -316,6 +472,78 @@ public class PlannedBoardState {
         return actions;
     }
 
+    /**
+     * Gets all possible FP assignment actions (assigning minions 1-on-1 to companions/allies).
+     */
+    private List<ActionToTake> getFpAssignmentActions() {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        // Get all unassigned minions
+        List<BotCard> unassignedMinions = getUnassignedMinions();
+
+        // Get all FP characters that can be assigned to (companions and allies at home)
+        List<BotCard> validFpCharacters = BoardStateUtil.getCompanionsAndAlliesAtHome(this);
+
+        // Filter out FP characters that already have a minion assigned (FP can only assign 1-on-1)
+        validFpCharacters = validFpCharacters.stream()
+                .filter(fpChar -> !getAssignments().containsKey(fpChar) || getAssignments().get(fpChar).isEmpty())
+                .toList();
+
+        if (unassignedMinions.isEmpty() || validFpCharacters.isEmpty()) {
+            // FP is done, nothing can be assigned anymore
+            return possibleActions;
+        }
+
+        // For each unassigned minion, generate assignment actions to each valid FP character
+        BotCard minionToAssign = unassignedMinions.stream().max(Comparator.comparingInt(this::getStrength)).get();
+        for (BotCard fpCharacter : validFpCharacters) {
+            possibleActions.add(new AssignMinionAction(minionToAssign, fpCharacter));
+        }
+
+        return possibleActions;
+    }
+
+    /**
+     * Gets all possible Shadow assignment actions (assigning remaining minions).
+     */
+    private List<ActionToTake> getShadowAssignmentActions() {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        // Get all unassigned minions
+        List<BotCard> unassignedMinions = getUnassignedMinions();
+
+        if (unassignedMinions.isEmpty()) {
+            // No more minions to assign, Shadow is done
+            return possibleActions;
+        }
+
+        // Get all FP characters that can be assigned to
+        List<BotCard> validFpCharacters = BoardStateUtil.getCompanionsAndAlliesAtHome(this);
+
+        // For the FIRST unassigned minion, generate assignment actions to each valid FP character
+        BotCard minionToAssign = unassignedMinions.getFirst();
+
+        for (BotCard fpCharacter : validFpCharacters) {
+            possibleActions.add(new AssignMinionAction(minionToAssign, fpCharacter));
+        }
+        return possibleActions;
+    }
+
+    /**
+     * Gets all possible ChooseSkirmishAction options for FP.
+     * Returns one action for each FP character that has an assignment (unresolved skirmish).
+     */
+    private List<ActionToTake> getChooseSkirmishActions() {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        // Get all FP characters that have assignments (these are the unresolved skirmishes)
+        for (BotCard fpCharacter : getAssignments().keySet()) {
+            possibleActions.add(new ChooseSkirmishAction(fpCharacter));
+        }
+
+        return possibleActions;
+    }
+
     private Collection<ActionToTake> getActivateAbilitiesActions(String player) {
         List<ActionToTake> actions = new ArrayList<>();
 
@@ -346,21 +574,44 @@ public class PlannedBoardState {
         ruleOfFourCount = 0;
         assignmentPhasePlayActionsCompleted = false;
         fpAssignmentCompleted = false;
+        endOfTurnProceduresStarted = false;
+        lastActionsTaken.clear();
         if (phase == Phase.FELLOWSHIP) {
             phase = Phase.SHADOW;
         } else if (phase == Phase.SHADOW) {
-            phase = Phase.MANEUVER;
+            if (getMinions().isEmpty()) {
+                phase = Phase.REGROUP;
+            } else {
+                phase = Phase.MANEUVER;
+            }
         } else if (phase == Phase.MANEUVER) {
-            phase = Phase.ARCHERY;
+            if (getMinions().isEmpty()) {
+                phase = Phase.REGROUP;
+            } else {
+                phase = Phase.ARCHERY;
+            }
         } else if (phase == Phase.ARCHERY) {
-            phase = Phase.ASSIGNMENT;
+            if (getMinions().isEmpty()) {
+                phase = Phase.REGROUP;
+            } else {
+                phase = Phase.ASSIGNMENT;
+            }
         } else if (phase == Phase.ASSIGNMENT) {
-            phase = Phase.SKIRMISH;
+            if (getMinions().isEmpty()) {
+                phase = Phase.REGROUP;
+            } else {
+                phase = Phase.SKIRMISH;
+            }
         } else if (phase == Phase.SKIRMISH) {
             phase = Phase.REGROUP;
         } else {
             throw new IllegalStateException("Do not know how to move to next phase from " + phase);
         }
+    }
+
+    private void startEndOfTurnProcedures() {
+        // TODO later
+        endOfTurnProceduresStarted = true;
     }
 
     /**
@@ -398,6 +649,11 @@ public class PlannedBoardState {
     public boolean isFpAssignmentCompleted() {
         return fpAssignmentCompleted;
     }
+
+    public boolean isEndOfTurnProceduresStarted() {
+        return endOfTurnProceduresStarted;
+    }
+
     /**
      * Sets the current skirmish being resolved (the FP character in the skirmish).
      */
@@ -634,6 +890,27 @@ public class PlannedBoardState {
 
         payTwilight(totalCost, isFreePeoples);
         cardTokens.put(botCard, new HashMap<>());
+
+        if (botCard.getSelf().getBlueprint().getCardType() != CardType.EVENT) {
+            handleWhenPlayedTriggeredAbilities(botCard);
+        }
+    }
+
+    private void handleWhenPlayedTriggeredAbilities(BotCard botCard) {
+        TriggeredAbility triggeredAbility = botCard.getTriggeredAbility();
+        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED) {
+            if (triggeredAbility.resolvesWithoutActionNeeded()) {
+                activateTriggeredAbility(botCard, getCurrentShadowPlayer());
+            } else if (triggeredAbility.isOptionalTrigger()) {
+                pendingActions.computeIfAbsent(botCard.getSelf().getOwner(), k -> new ArrayDeque<>());
+                List<ActionToTake> triggerActions = new ArrayList<>();
+                triggerActions.add(new OptionalTriggerAcceptAction(botCard));
+                triggerActions.add(new OptionalTriggerDenyAction(botCard));
+                pendingActions.get(botCard.getSelf().getOwner()).addLast(triggerActions);
+            } else {
+                handleTriggeredAbilityActivation(botCard.getSelf().getOwner(), botCard);
+            }
+        }
     }
 
     private void payTwilight(int cost, boolean isFreePeoples) {
@@ -725,25 +1002,6 @@ public class PlannedBoardState {
         ability.resolveAbilityOnTarget(player, this, target);
     }
 
-    public void activateTriggeredAbility(BotCard botCard, String player) {
-        TriggeredAbility ability = botCard.getTriggeredAbility();
-        if (ability == null) {
-            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
-        }
-        ability.resolveAbility(player, this);
-    }
-
-    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, BotCard target) {
-        TriggeredAbility ability = botCard.getTriggeredAbility();
-        if (ability == null) {
-            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
-        }
-        if (!(ability.getEffect() instanceof EffectWithTarget)) {
-            throw new IllegalStateException("Triggered ability does not require target: " + botCard.getSelf().getBlueprint().getFullName());
-        }
-        ability.resolveAbilityOnTarget(player, this, target);
-    }
-
     public void activateAbilityWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, BotCard costTarget) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
@@ -761,6 +1019,25 @@ public class PlannedBoardState {
             throw new IllegalStateException("Ability does not require effect target: " + effectClass.getSimpleName());
         }
         ability.resolveAbilityOnTargetWithCostTarget(player, this, effectTarget, costTarget);
+    }
+
+    public void activateTriggeredAbility(BotCard botCard, String player) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbility(player, this);
+    }
+
+    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, BotCard target) {
+        TriggeredAbility ability = botCard.getTriggeredAbility();
+        if (ability == null) {
+            throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        if (!(ability.getEffect() instanceof EffectWithTarget)) {
+            throw new IllegalStateException("Triggered ability does not require target: " + botCard.getSelf().getBlueprint().getFullName());
+        }
+        ability.resolveAbilityOnTarget(player, this, target);
     }
 
     public void activateTriggeredAbilityWithCostTarget(BotCard botCard, String player, BotCard costTarget) {
@@ -1060,6 +1337,12 @@ public class PlannedBoardState {
         return getShadowCardsInPlay(getCurrentShadowPlayer()).stream()
                 .filter(card -> CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
                 .filter(minion -> !assigned.contains(minion))
+                .toList();
+    }
+
+    private List<BotCard> getMinions() {
+        return getShadowCardsInPlay(getCurrentShadowPlayer()).stream()
+                .filter(card -> CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
                 .toList();
     }
 
@@ -1376,6 +1659,41 @@ public class PlannedBoardState {
             activateAbilityOnTargetWithCostTarget(card, effectClass, player, null, info.costTarget);
         } else if (effectNeedsTarget && info.effectTarget != null && costNeedsTarget) {
             activateAbilityOnTargetWithCostTarget(card, effectClass, player, info.effectTarget, info.costTarget);
+        }
+    }
+
+    private void handleTriggeredAbilityActivation(String player, BotCard source) {
+        Effect effect = source.getTriggeredAbility().getEffect();
+        Cost cost = source.getTriggeredAbility().getCost();
+
+        TargetingInfo info = gatherTargets(player, effect, cost, source);
+
+        if (info.needToAskForCostTarget || info.needToAskForEffectTarget) {
+            waitingAbility = new WaitingSource(source);
+            setupTargetingActions(player, source, info, waitingAbility, cost, effect);
+        } else {
+            activateTriggeredAbilityWithTargets(source, player, info);
+        }
+    }
+
+    private void activateTriggeredAbilityWithTargets(BotCard card, String player, TargetingInfo info) {
+        // Similar structure to activateAbilityWithTargets, but for triggered abilities
+        boolean effectNeedsTarget = info.potentialEffectTargets != null && !info.affectsAllTargets;
+        boolean noEffectTargetAvailable = info.potentialEffectTargets != null && info.potentialEffectTargets.isEmpty();
+        boolean costNeedsTarget = info.potentialCostTargets != null;
+
+        if (!effectNeedsTarget && !costNeedsTarget) {
+            activateTriggeredAbility(card, player);
+        } else if (effectNeedsTarget && noEffectTargetAvailable && !costNeedsTarget) {
+            activateTriggeredAbilityOnTarget(card, player, null);
+        } else if (effectNeedsTarget && info.effectTarget != null && !costNeedsTarget) {
+            activateTriggeredAbilityOnTarget(card, player, info.effectTarget);
+        } else if (!effectNeedsTarget && costNeedsTarget) {
+            activateTriggeredAbilityWithCostTarget(card, player, info.costTarget);
+        } else if (effectNeedsTarget && noEffectTargetAvailable && costNeedsTarget) {
+            activateTriggeredAbilityOnTargetWithCostTarget(card, player, null, info.costTarget);
+        } else if (effectNeedsTarget && info.effectTarget != null && costNeedsTarget) {
+            activateTriggeredAbilityOnTargetWithCostTarget(card, player, info.effectTarget, info.costTarget);
         }
     }
 

@@ -36,7 +36,7 @@ public class FellowshipPhasePlan {
             System.out.println("Making new fellowship phase plan for site " + siteNumber);
         }
 
-        plannedBoardState = new PlannedBoardState(game);
+        plannedBoardState = new PlannedBoardState(game, playerName);
 //        makePlan();
         makePlan2();
     }
@@ -163,10 +163,6 @@ public class FellowshipPhasePlan {
                 action -> ((ChooseTargetForCostAction) action).getSource(),
                 "source");
 
-        List<BotCard> potentialTargets = possibleActions.stream()
-                .map(action -> ((ChooseTargetForCostAction) action).getTarget())
-                .toList();
-
         BotCard chosenTarget = cost.chooseTarget(playerName, plannedBoardState);
 
         return findActionWithTarget(possibleActions, chosenTarget,
@@ -187,10 +183,6 @@ public class FellowshipPhasePlan {
         verifyAllActionsShareSameCard(possibleActions,
                 action -> ((ChooseTargetForEffectAction) action).getSource(),
                 "source");
-
-        List<BotCard> potentialTargets = possibleActions.stream()
-                .map(action -> ((ChooseTargetForEffectAction) action).getTarget())
-                .toList();
 
         BotCard chosenTarget = effect.chooseTarget(playerName, plannedBoardState);
 
@@ -372,8 +364,9 @@ public class FellowshipPhasePlan {
             System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
             System.out.println(action.toString());
         }
+        int result = action.carryOut(awaitingDecision);
         nextStep++;
-        return action.carryOut(awaitingDecision);
+        return result;
     }
 
     public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
@@ -410,12 +403,8 @@ public class FellowshipPhasePlan {
     }
 
     private boolean isActive() {
-        boolean tbr =  game.getGameState().getCurrentPlayerId().equals(playerName)
+        return game.getGameState().getCurrentPlayerId().equals(playerName)
                 && game.getGameState().getCurrentPhase().equals(Phase.FELLOWSHIP)
                 && game.getGameState().getCurrentSiteNumber() == siteNumber;
-        if (printDebugMessages) {
-            System.out.println("Plan is active: " + tbr);
-        }
-        return tbr;
     }
 }

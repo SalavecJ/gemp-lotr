@@ -9,7 +9,6 @@ import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
-import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
 
 import java.util.*;
 
@@ -32,8 +31,8 @@ public class ShadowPhasePlan {
             System.out.println("Making new shadow phase plan for opponent's site " + siteNumber);
         }
 
-        plannedBoardState = new PlannedBoardState(game);
-        this.playerName = plannedBoardState.getOpponent(game.getGameState().getCurrentPlayerId());
+        this.playerName = game.getGameState().getPlayerNames().stream().filter(s -> !s.equals(game.getGameState().getCurrentPlayerId())).findFirst().orElseThrow();
+        plannedBoardState = new PlannedBoardState(game, playerName);
         makePlan();
     }
 
@@ -141,8 +140,9 @@ public class ShadowPhasePlan {
             System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
             System.out.println(action.toString());
         }
+        int result = action.carryOut(awaitingDecision);
         nextStep++;
-        return action.carryOut(awaitingDecision);
+        return result;
     }
 
     public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
@@ -164,43 +164,21 @@ public class ShadowPhasePlan {
             throw new IllegalStateException("No actions in plan");
         }
 
-        if (nextStep > actions.size()) {
-            if (printDebugMessages) {
-                System.out.println("All actions from plan already fully taken");
-            }
-            throw new IllegalStateException("All actions from plan already fully taken");
+        if (nextStep >= actions.size()) {
+            System.out.println("All actions from plan already taken");
+            throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep - 1);
+        ActionToTake action = actions.get(nextStep);
+        if (!(action instanceof ChooseTargetAction)) {
+            throw new IllegalStateException("Next action in plan is not target action");
+        }
         if (printDebugMessages) {
-            System.out.println("Last action");
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
             System.out.println(action.toString());
         }
-
-        if (action instanceof PlayCardFromHandWithTargetAction actionWithTarget) {
-            if (printDebugMessages) {
-                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget().getBlueprint().getFullName());
-            }
-            return List.of(actionWithTarget.getTarget());
-        } else if (action instanceof UseCardWithTargetAction actionWithTarget) {
-            List<Integer> physicalIds = new ArrayList<>();
-            if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.ARBITRARY_CARDS)) {
-                for (String physicalCard : awaitingDecision.getDecisionParameters().get("physicalId")) {
-                    physicalIds.add(Integer.parseInt(physicalCard));
-                }
-
-            } else if (awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)) {
-                for (String physicalCard : awaitingDecision.getDecisionParameters().get("cardId")) {
-                    physicalIds.add(Integer.parseInt(physicalCard));
-                }
-            }
-            if (printDebugMessages) {
-                System.out.println("Target chosen by plan: " + actionWithTarget.getTarget(physicalIds).getBlueprint().getFullName());
-            }
-            return List.of(actionWithTarget.getTarget(physicalIds));
-        } else {
-            throw new IllegalStateException("Last action should not trigger targeting");
-        }
+        nextStep++;
+        return List.of(((ChooseTargetAction) action).getTarget().getSelf());
     }
 
     public boolean replanningNeeded() {
@@ -208,12 +186,8 @@ public class ShadowPhasePlan {
     }
 
     private boolean isActive() {
-        boolean tbr =  !game.getGameState().getCurrentPlayerId().equals(playerName)
+        return !game.getGameState().getCurrentPlayerId().equals(playerName)
                 && game.getGameState().getCurrentSiteNumber() == siteNumber
                 && game.getGameState().getCurrentPhase().equals(Phase.SHADOW);
-        if (printDebugMessages) {
-            System.out.println("Plan is active: " + tbr);
-        }
-        return tbr;
     }
 }
