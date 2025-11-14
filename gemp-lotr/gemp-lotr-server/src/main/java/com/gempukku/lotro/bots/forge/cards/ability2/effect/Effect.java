@@ -29,6 +29,10 @@ public abstract class Effect {
         return new EffectPutFromDiscardToBottomOfDeck(target);
     }
 
+    public static EffectMillOpponent millOpponent(int amount) {
+        return new EffectMillOpponent(amount);
+    }
+
     public static EffectRemoveBurden removeBurden() {
         return removeBurden(1);
     }

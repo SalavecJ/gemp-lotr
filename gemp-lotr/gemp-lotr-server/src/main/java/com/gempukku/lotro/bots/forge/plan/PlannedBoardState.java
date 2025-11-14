@@ -754,6 +754,13 @@ public class PlannedBoardState {
         discards.get(botCard.getSelf().getOwner()).add(botCard);
     }
 
+    public void millCard(String player) {
+        if (decks.get(player).isEmpty()) {
+            return;
+        }
+        discards.get(player).add(decks.get(player).removeFirst());
+    }
+
     public void removeBurden(int amount) {
         BotCard ringBearer = ringBearers.get(currentPlayer);
         int burdensPlaced = getTokenCount(ringBearer, Token.BURDEN);

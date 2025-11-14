@@ -892,6 +892,15 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(true)
+                            .effect(Effect.millOpponent(1))
+                            .build();
+                }
             };
         }
         // 1_155
