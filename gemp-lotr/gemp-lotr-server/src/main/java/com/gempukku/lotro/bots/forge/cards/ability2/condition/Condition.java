@@ -24,6 +24,10 @@ public abstract class Condition {
         return new ConditionSpotPossessionPlayableInDiscardOn(possessionPredicate, bearerPredicate);
     }
 
+    public static ConditionSpotAmount spotAmount(Predicate<BotCard> target, int amount) {
+        return new ConditionSpotAmount(target, amount);
+    }
+
     public static ConditionSpot spot(Predicate<BotCard> target) {
         return new ConditionSpot(target);
     }

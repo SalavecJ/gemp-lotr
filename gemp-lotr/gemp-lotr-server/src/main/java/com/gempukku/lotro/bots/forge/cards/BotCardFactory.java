@@ -1038,7 +1038,7 @@ public class BotCardFactory {
                 public TriggeredAbility getTriggeredAbility() {
                     return new TriggeredAbilityBuilder()
                             .trigger(Trigger.WHEN_PLAYED)
-                            .optional(true) // json card implementation sets this as non-optional trigger even though the text says spot, which is optional
+                            .optional(true)
                             .condition(Condition.spotPossessionPlayableInDiscardOn(
                                     Target.possessionClass(PossessionClass.HAND_WEAPON).or(Target.possessionClass(PossessionClass.RANGED_WEAPON)),
                                     Target.culture(Culture.MORIA).and(Target.race(Race.ORC))
@@ -1695,6 +1695,24 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public List<ActivatedAbility> getActivatedAbilities() {
+                    return List.of(
+                            new ActivatedAbilityBuilder()
+                                    .phase(Phase.SHADOW)
+                                    .cost(Cost.removeTwilight(1))
+                                    .condition(Condition.spotPossessionPlayableInDiscardOn(
+                                            Target.side(Side.SHADOW).and(Target.possessionClass(PossessionClass.HAND_WEAPON).or(Target.possessionClass(PossessionClass.RANGED_WEAPON))),
+                                            botCard -> true
+                                    ))
+                                    .effect(Effect.playPossessionFromDiscardOn(
+                                            Target.side(Side.SHADOW).and(Target.possessionClass(PossessionClass.HAND_WEAPON).or(Target.possessionClass(PossessionClass.RANGED_WEAPON))),
+                                            botCard -> true
+                                    ))
+                                    .build()
+                    );
+                }
             };
         }
         // 1_346 Moria Lake - <b>Marsh</b>. When the fellowship moves to Moria Lake, Frodo or 2 other companions must exert.
@@ -1864,6 +1882,17 @@ public class BotCardFactory {
                                     .condition(phaseIs(Phase.SHADOW))
                                     .condition(spot(race(Race.ORC), 5))
                                     .effect(modifyMoveLimit(Integer.MIN_VALUE))
+                                    .build()
+                    );
+                }
+
+                @Override
+                public List<ActivatedAbility> getActivatedAbilities() {
+                    return List.of(
+                            new ActivatedAbilityBuilder()
+                                    .phase(Phase.SHADOW)
+                                    .condition(Condition.spotAmount(Target.race(Race.ORC), 5))
+                                    .effect(Effect.preventFellowshipFromMoving())
                                     .build()
                     );
                 }

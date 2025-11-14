@@ -57,4 +57,8 @@ public abstract class Cost {
     public static CostAddTwilight addTwilight(int amount) {
         return new CostAddTwilight(amount);
     }
+
+    public static CostRemoveTwilight removeTwilight(int amount) {
+        return new CostRemoveTwilight(amount);
+    }
 }

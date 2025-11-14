@@ -124,4 +124,8 @@ public abstract class Effect {
     public static EffectDrawCard drawCard(int amount){
         return new EffectDrawCard(amount);
     }
+
+    public static EffectPreventFellowshipFromMoving preventFellowshipFromMoving() {
+        return new EffectPreventFellowshipFromMoving();
+    }
 }

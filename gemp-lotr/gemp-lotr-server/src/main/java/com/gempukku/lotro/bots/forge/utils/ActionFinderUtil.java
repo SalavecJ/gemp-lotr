@@ -274,8 +274,7 @@ public class ActionFinderUtil {
                 ShadowPhaseEndState endState = new ShadowPhaseEndState(next, history);
                 endStates.add(endState);
             } else {
-
-                if(action instanceof PlayCardFromHandAction playCardFromHandAction) {
+                if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
                     // Play events first to avoid exploring unnecessary branches
                     if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.EVENT) {
                         for (ActionToTake possibleAction : possibleActions) {
@@ -286,7 +285,7 @@ public class ActionFinderUtil {
                             }
                         }
                     }
-                    // Play conditions at the first opportunity after events to avoid exploring unnecessary branches
+                    // Play conditions after events to avoid exploring unnecessary branches
                     if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.CONDITION
                             && playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.EVENT) {
                         for (ActionToTake possibleAction : possibleActions) {
@@ -305,6 +304,15 @@ public class ActionFinderUtil {
                                     cardsToNotPlay.add(otherPlayCardAction.getCard().getSelf().getBlueprint().getFullName());
                                 }
                             }
+                        }
+                    }
+                }
+
+                if (action instanceof UseCardAction) {
+                    // Activate abilities after playing cards to avoid branching too much
+                    for (ActionToTake possibleAction : possibleActions) {
+                        if (possibleAction instanceof PlayCardFromHandAction playCardAction) {
+                            cardsToNotPlay.add(playCardAction.getCard().getSelf().getBlueprint().getFullName());
                         }
                     }
                 }

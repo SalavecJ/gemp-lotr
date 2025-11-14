@@ -15,6 +15,7 @@ import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.logic.modifiers.ModifierFlag;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,6 +62,7 @@ public class PlannedBoardState {
 
     private int twilight;
     private int movesMade;
+    private boolean cantMove;
     private int ruleOfFourCount = 0;
 
     private final Map<String, Deque<List<ActionToTake>>> pendingActions = new HashMap<>();
@@ -94,6 +96,7 @@ public class PlannedBoardState {
         phase = game.getGameState().getCurrentPhase();
         currentPlayer = game.getGameState().getCurrentPlayerId();
         movesMade = game.getGameState().getMoveCount();
+        cantMove = game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE);
 
         // Player names
         players.addAll(game.getGameState().getPlayerOrder().getAllPlayers());
@@ -216,6 +219,7 @@ public class PlannedBoardState {
         this.twilight = other.twilight;
         this.ruleOfFourCount = other.ruleOfFourCount;
         this.movesMade = other.movesMade;
+        this.cantMove = other.cantMove;
         this.playerPosition.putAll(other.playerPosition);
         this.playerThreats.putAll(other.playerThreats);
 
@@ -256,6 +260,7 @@ public class PlannedBoardState {
             possibleActions.addAll(getActivateAbilitiesActions(player));
         } else if (phase == Phase.SHADOW && player.equals(getCurrentShadowPlayer())) {
             possibleActions.addAll(getPlayShadowCardsFromHandActions());
+            possibleActions.addAll(getActivateAbilitiesActions(player));
         } else if (phase == Phase.MANEUVER) {
 
         } else if (phase == Phase.ARCHERY) {
@@ -731,6 +736,11 @@ public class PlannedBoardState {
         twilight += amount;
     }
 
+    public void removeTwilight(int amount) {
+        int realAmount = Math.min(amount, twilight);
+        twilight -= realAmount;
+    }
+
     public void moveFromDiscardIntoHand(BotCard botCard) {
         if (ruleOfFourLimitOk()) {
             discards.get(botCard.getSelf().getOwner()).remove(botCard);
@@ -1187,6 +1197,14 @@ public class PlannedBoardState {
 
     public int getMovesMade() {
         return movesMade;
+    }
+
+    public boolean fellowshipCanMove() {
+        return movesMade < 2 && !cantMove;
+    }
+
+    public void preventFellowshipMovement() {
+        this.cantMove = true;
     }
 
     public int getCurrentPlayerPosition() {
