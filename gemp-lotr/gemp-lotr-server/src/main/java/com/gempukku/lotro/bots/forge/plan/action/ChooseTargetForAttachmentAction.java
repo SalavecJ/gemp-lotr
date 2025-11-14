@@ -1,24 +1,19 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 public class ChooseTargetForAttachmentAction extends ChooseTargetAction {
-    private final BotCard attachment;
+    private final BotObjectAttachableCard attachment;
 
-    public ChooseTargetForAttachmentAction(BotCard target, BotCard attachment) {
+    public ChooseTargetForAttachmentAction(BotCard target, BotObjectAttachableCard attachment) {
         super(target);
         this.attachment = attachment;
     }
 
-    public BotCard getAttachment() {
+    public BotObjectAttachableCard getAttachment() {
         return attachment;
-    }
-
-    public boolean targetsTheSameTypeOfBearer(ChooseTargetForAttachmentAction other, PlannedBoardState plannedBoardState) {
-        return getTarget().getSelf().getBlueprint().getFullName().equals(other.getTarget().getSelf().getBlueprint().getFullName())
-                && plannedBoardState.getStrength(getTarget()) == plannedBoardState.getStrength(other.getTarget())
-                && plannedBoardState.getVitality(getTarget()) == plannedBoardState.getVitality(other.getTarget());
     }
 
     @Override

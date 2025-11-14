@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.forge.cards;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
@@ -22,7 +23,8 @@ public enum BotTargetingMode {
     HEAL("Heal"),
     EXERT_SELF("Self-exerting targeting"),
     LOW_VALUE_CARD_IN_HAND_PREF_FP("Lowest value card in hand, preferably FP"),
-    LOW_VALUE_CARD_IN_HAND_PREF_SHADOW("Lowest value card in hand, preferably shadow");
+    LOW_VALUE_CARD_IN_HAND_PREF_SHADOW("Lowest value card in hand, preferably shadow"),
+    BASIC_SHADOW_WEAPON_TARGETING("Basic shadow weapon targeting");
 
     private final String humanReadable;
 
@@ -60,6 +62,7 @@ public enum BotTargetingMode {
                 case COMPANION_LOW_STRENGTH -> chooseLowestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
                 case COMPANION_NOT_DYING -> chooseCompanionLeastLikelyToDie(plannedBoardState, myOptions, printDebugMessages);
                 case HIGH_STRENGTH -> chooseHighestStrength(plannedBoardState, myOptions, printDebugMessages);
+                case BASIC_SHADOW_WEAPON_TARGETING -> chooseBasicShadowWeaponTarget(plannedBoardState, myOptions, printDebugMessages);
                 default -> throw new IllegalStateException("Targeting from enum for " + this + " is not implemented yet");
             };
             tbr.add(chosen);
@@ -67,6 +70,18 @@ public enum BotTargetingMode {
         }
 
         return tbr;
+    }
+
+    private BotCard chooseBasicShadowWeaponTarget(PlannedBoardState plannedBoardState, List<BotCard> myOptions, boolean printDebugMessages) {
+        int minionInPlay = BoardStateUtil.getMinionsInPlay(plannedBoardState).size();
+        int fpThatCanSkirmish = BoardStateUtil.getCompanionsAndAlliesAtHome(plannedBoardState).size();
+        boolean swarm = minionInPlay > fpThatCanSkirmish;
+
+        if (swarm) {
+            return chooseLowestStrength(plannedBoardState, myOptions, printDebugMessages);
+        } else {
+            return chooseHighestStrength(plannedBoardState, myOptions, printDebugMessages);
+        }
     }
 
     private BotCard chooseExertSelfTarget(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
@@ -207,7 +222,8 @@ public enum BotTargetingMode {
     private BotCard chooseLowestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
-                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
+                        .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
+                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
                         .thenComparingInt(card -> - plannedBoardState.getStrength(card))
                         .thenComparingInt(plannedBoardState::getVitality))
                 .orElseThrow();
@@ -222,10 +238,27 @@ public enum BotTargetingMode {
         return chosen;
     }
 
+    private BotCard chooseLowestStrength(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+        BotCard chosen =  options.stream()
+                .max(Comparator
+                        .comparingInt((ToIntFunction<BotCard>) card -> - plannedBoardState.getStrength(card))
+                        .thenComparingInt(plannedBoardState::getVitality))
+                .orElseThrow();
+
+        if (printDebugMessages) {
+            System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
+            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+        }
+
+        return chosen;
+    }
+
     private BotCard chooseCompanionLeastLikelyToDie(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen = options.stream()
                 .max(Comparator
-                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getRingBearers().contains(card) ? 1 : 0)
+                        .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
+                        .thenComparingInt(card -> plannedBoardState.getRingBearers().contains(card) ? 1 : 0)
                         .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
                         .thenComparingInt(plannedBoardState::getStrength)
                         .thenComparingInt(plannedBoardState::getVitality))

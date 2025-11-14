@@ -83,6 +83,7 @@ public class AiTargetController {
                 case EXERT_SELF -> chooseExertSelfTarget();
                 case LOW_VALUE_CARD_IN_HAND_PREF_FP -> chooseLowestValueCardInHand(Side.FREE_PEOPLE);
                 case LOW_VALUE_CARD_IN_HAND_PREF_SHADOW -> chooseLowestValueCardInHand(Side.SHADOW);
+                case BASIC_SHADOW_WEAPON_TARGETING -> chooseHighestStrength(); // As a basic implementation, choose highest strength target
             };
             tbr.add(chosen);
             options.remove(chosen);

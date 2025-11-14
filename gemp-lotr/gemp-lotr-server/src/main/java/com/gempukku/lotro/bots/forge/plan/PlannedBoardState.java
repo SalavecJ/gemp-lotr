@@ -335,7 +335,7 @@ public class PlannedBoardState {
                     pendingActions.computeIfAbsent(player, k -> new ArrayDeque<>());
                     List<ActionToTake> attachmentActions = new ArrayList<>();
                     for (BotCard potentialBearer : potentialBearers) {
-                        attachmentActions.add(new ChooseTargetForAttachmentAction(potentialBearer, toBePlayed));
+                        attachmentActions.add(new ChooseTargetForAttachmentAction(potentialBearer, attachableCard));
                     }
                     pendingActions.get(player).addLast(attachmentActions);
                 }
@@ -991,7 +991,7 @@ public class PlannedBoardState {
                 pendingActions.computeIfAbsent(botCard.getSelf().getOwner(), k -> new ArrayDeque<>());
                 List<ActionToTake> attachmentActions = new ArrayList<>();
                 for (BotCard potentialBearer : potentialBearers) {
-                    attachmentActions.add(new ChooseTargetForAttachmentAction(potentialBearer, botCard));
+                    attachmentActions.add(new ChooseTargetForAttachmentAction(potentialBearer, attachableCard));
                 }
                 pendingActions.get(botCard.getSelf().getOwner()).addLast(attachmentActions);
             }

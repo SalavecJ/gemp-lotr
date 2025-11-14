@@ -1,9 +1,12 @@
 package com.gempukku.lotro.bots.forge.cards.abstractcard;
 
 import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
+import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+
+import java.util.List;
 
 public abstract class BotObjectAttachableCard extends BotObjectCard {
     public BotObjectAttachableCard(PhysicalCard self) {
@@ -32,5 +35,9 @@ public abstract class BotObjectAttachableCard extends BotObjectCard {
         return super.getTargetingModeForDecision(game, decision);
     }
 
-    public abstract BotTargetingMode getAttachTargetingMode();
+    public BotCard chooseTargetToAttachTo(PlannedBoardState plannedBoardState, List<BotCard> possibleTargets) {
+        return getAttachTargetingMode().chooseTarget(plannedBoardState, possibleTargets, false);
+    }
+
+    protected abstract BotTargetingMode getAttachTargetingMode();
 }

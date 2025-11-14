@@ -1062,8 +1062,8 @@ public class BotCardFactory {
                 }
 
                 @Override
-                public BotTargetingMode getAttachTargetingMode() {
-                    return BotTargetingMode.HIGH_STRENGTH;
+                protected BotTargetingMode getAttachTargetingMode() {
+                    return BotTargetingMode.BASIC_SHADOW_WEAPON_TARGETING;
                 }
 
                 @Override

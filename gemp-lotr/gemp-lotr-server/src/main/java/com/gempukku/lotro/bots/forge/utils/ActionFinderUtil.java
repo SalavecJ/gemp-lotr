@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.forge.utils;
 
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.CombatOutcome;
 import com.gempukku.lotro.bots.forge.plan.CombatPath;
 import com.gempukku.lotro.bots.forge.plan.action.*;
@@ -222,9 +223,10 @@ public class ActionFinderUtil {
 
     private static void exploreShadowPhaseOptions(PlannedBoardState plannedBoardState, ArrayList<ActionToTake> history, Set<ShadowPhaseEndState> endStates,
                                                   List<String> cardsToNotPlay) {
+        List<ActionToTake> allActions = plannedBoardState.getAvailableActions(plannedBoardState.getCurrentShadowPlayer());
         List<ActionToTake> possibleActions = new ArrayList<>();
 
-        for (ActionToTake availableAction : plannedBoardState.getAvailableActions(plannedBoardState.getCurrentShadowPlayer())) {
+        for (ActionToTake availableAction : allActions) {
             switch (availableAction) {
                 case PlayCardFromHandAction playCardFromHandAction -> {
                     if (cardsToNotPlay.contains(playCardFromHandAction.getCard().getSelf().getBlueprint().getFullName())) {
@@ -244,8 +246,9 @@ public class ActionFinderUtil {
                     }
                 }
                 case ChooseTargetForAttachmentAction chooseTargetForAttachmentAction -> {
-                    if (possibleActions.stream().noneMatch(action -> action instanceof ChooseTargetForAttachmentAction otherChooseTarget
-                            && chooseTargetForAttachmentAction.targetsTheSameTypeOfBearer(otherChooseTarget, plannedBoardState))) {
+                    List<BotCard> allTargets = allActions.stream().map(action -> ((ChooseTargetForAttachmentAction) action).getTarget()).toList();
+                    BotCard targetToChoose = chooseTargetForAttachmentAction.getAttachment().chooseTargetToAttachTo(plannedBoardState, allTargets);
+                    if (chooseTargetForAttachmentAction.getTarget().equals(targetToChoose)) {
                         possibleActions.add(availableAction);
                     }
                 }
@@ -273,8 +276,19 @@ public class ActionFinderUtil {
             } else {
 
                 if(action instanceof PlayCardFromHandAction playCardFromHandAction) {
-                    // Play conditions at the first opportunity to avoid exploring unnecessary branches
-                    if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.CONDITION) {
+                    // Play events first to avoid exploring unnecessary branches
+                    if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.EVENT) {
+                        for (ActionToTake possibleAction : possibleActions) {
+                            if (possibleAction instanceof PlayCardFromHandAction otherPlayCardAction) {
+                                if (otherPlayCardAction.getCard().getSelf().getBlueprint().getCardType() == CardType.EVENT) {
+                                    cardsToNotPlay.add(otherPlayCardAction.getCard().getSelf().getBlueprint().getFullName());
+                                }
+                            }
+                        }
+                    }
+                    // Play conditions at the first opportunity after events to avoid exploring unnecessary branches
+                    if (playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.CONDITION
+                            && playCardFromHandAction.getCard().getSelf().getBlueprint().getCardType() != CardType.EVENT) {
                         for (ActionToTake possibleAction : possibleActions) {
                             if (possibleAction instanceof PlayCardFromHandAction otherPlayCardAction) {
                                 if (otherPlayCardAction.getCard().getSelf().getBlueprint().getCardType() == CardType.CONDITION) {

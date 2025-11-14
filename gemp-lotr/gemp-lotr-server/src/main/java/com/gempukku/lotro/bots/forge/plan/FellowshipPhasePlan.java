@@ -1,7 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.action.*;
-import com.gempukku.lotro.bots.forge.cards.BotTargetingMode;
 import com.gempukku.lotro.bots.forge.cards.ability2.ActivatedAbility;
 import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.*;
@@ -128,21 +127,16 @@ public class FellowshipPhasePlan {
                 "ChooseTargetForAttachmentAction"
         );
 
-        BotCard attachment = firstAction.getAttachment();
+        BotObjectAttachableCard attachment = firstAction.getAttachment();
         verifyAllActionsShareSameCard(possibleActions,
                 action -> ((ChooseTargetForAttachmentAction) action).getAttachment(),
                 "attachment");
-
-        if (!(attachment instanceof BotObjectAttachableCard attachableCard)) {
-            throw new IllegalStateException("Attachment is not a BotObjectAttachableCard: " + attachment.getSelf().getBlueprint().getFullName());
-        }
 
         List<BotCard> potentialTargets = possibleActions.stream()
                 .map(action -> ((ChooseTargetForAttachmentAction) action).getTarget())
                 .toList();
 
-        BotTargetingMode attachTargetingMode = attachableCard.getAttachTargetingMode();
-        BotCard chosenTarget = attachTargetingMode.chooseTarget(plannedBoardState, potentialTargets, false);
+        BotCard chosenTarget = attachment.chooseTargetToAttachTo(plannedBoardState, potentialTargets);
 
         return findActionWithTarget(possibleActions, chosenTarget,
                 action -> ((ChooseTargetForAttachmentAction) action).getTarget(),
@@ -392,7 +386,7 @@ public class FellowshipPhasePlan {
         }
         if (printDebugMessages) {
             System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
-            System.out.println(action.toString());
+            System.out.println(action);
         }
         nextStep++;
         return List.of(((ChooseTargetAction) action).getTarget().getSelf());
