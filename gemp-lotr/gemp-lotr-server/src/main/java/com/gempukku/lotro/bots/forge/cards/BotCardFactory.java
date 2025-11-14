@@ -1094,6 +1094,15 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .trigger(Trigger.WHEN_PLAYED)
+                            .optional(true)
+                            .effect(Effect.putFromDiscardToBottomOfDeck(Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
+                            .build();
+                }
             };
         }
         // 1_182

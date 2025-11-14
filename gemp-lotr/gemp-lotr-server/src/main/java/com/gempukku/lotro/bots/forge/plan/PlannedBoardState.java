@@ -744,6 +744,11 @@ public class PlannedBoardState {
         decks.get(botCard.getSelf().getOwner()).addLast(botCard);
     }
 
+    public void moveFromDiscardToBottomOfDeck(BotCard botCard) {
+        discards.get(botCard.getSelf().getOwner()).remove(botCard);
+        decks.get(botCard.getSelf().getOwner()).addLast(botCard);
+    }
+
     public void discardFromHand(BotCard botCard) {
         hands.get(botCard.getSelf().getOwner()).remove(botCard);
         discards.get(botCard.getSelf().getOwner()).add(botCard);
