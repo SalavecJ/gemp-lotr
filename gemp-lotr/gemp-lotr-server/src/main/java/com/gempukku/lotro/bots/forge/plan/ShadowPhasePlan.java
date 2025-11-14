@@ -105,11 +105,16 @@ public class ShadowPhasePlan {
     private Optional<ShadowPhaseEndState> findEndStateWithStrongestMinions(List<ShadowPhaseEndState> endStates, int numberOfMinions) {
         return endStates.stream()
                 .filter(shadowPhaseEndState -> countMinionsOnBoard(shadowPhaseEndState) == numberOfMinions)
-                .max(Comparator.comparingInt(this::countTotalStrengthOfMinionsOnBoard));
+                .max(Comparator.comparingInt(this::countTotalStrengthOfMinionsOnBoard)
+                        .thenComparingInt(this::countShadowConditionsOnBoard));
     }
 
     private int countMinionsOnBoard(ShadowPhaseEndState endState) {
         return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
+    }
+
+    private int countShadowConditionsOnBoard(ShadowPhaseEndState endState) {
+        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
     }
 
     private int countTotalStrengthOfMinionsOnBoard(ShadowPhaseEndState endState) {
