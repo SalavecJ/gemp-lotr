@@ -8,12 +8,14 @@ import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
 import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
+import java.util.List;
+
 public class TriggeredAbility extends Ability {
     protected final boolean optionalTrigger;
     protected final Trigger trigger;
 
-    protected TriggeredAbility(boolean optionalTrigger, Trigger trigger, Condition condition, Effect effect, Cost cost) {
-        super(effect, cost, condition);
+    protected TriggeredAbility(boolean optionalTrigger, Trigger trigger, List<Condition> conditions, Effect effect, Cost cost) {
+        super(effect, cost, conditions);
         this.optionalTrigger = optionalTrigger;
         this.trigger = trigger;
     }

@@ -13,12 +13,12 @@ import java.util.List;
 public abstract class Ability {
     protected final Effect effect;
     protected final Cost cost;
-    protected final Condition condition;
+    protected final List<Condition> conditions;
 
-    public Ability(Effect effect, Cost cost, Condition condition) {
+    public Ability(Effect effect, Cost cost, List<Condition> conditions) {
         this.effect = effect;
         this.cost = cost;
-        this.condition = condition;
+        this.conditions = conditions;
     }
 
     public final Effect getEffect() {
@@ -42,9 +42,9 @@ public abstract class Ability {
         effect.resolve(player, plannedBoardState);
     }
 
-    public final void resolveAbilityWithCostTarget(String player, PlannedBoardState plannedBoardState, BotCard costTarget) {
+    public final void resolveAbilityWithCostTargets(String player, PlannedBoardState plannedBoardState, List<BotCard> costTargets) {
         if (cost != null && cost instanceof CostWithTarget costWithTarget) {
-            costWithTarget.payWithTarget(player, plannedBoardState, costTarget);
+            costWithTarget.payWithTargets(player, plannedBoardState, costTargets);
             if (effect instanceof EffectWithTarget) {
                 throw new IllegalStateException("Effect requires target to resolve.");
             }
@@ -70,10 +70,10 @@ public abstract class Ability {
         }
     }
 
-    public final void resolveAbilityOnTargetsWithCostTarget(String player, PlannedBoardState plannedBoardState, List<BotCard> effectTargets, BotCard costTarget) {
+    public final void resolveAbilityOnTargetsWithCostTargets(String player, PlannedBoardState plannedBoardState, List<BotCard> effectTargets, List<BotCard> costTargets) {
         if (effect instanceof EffectWithTarget effectWithTarget) {
             if (cost != null && cost instanceof CostWithTarget costWithTarget) {
-                costWithTarget.payWithTarget(player, plannedBoardState, costTarget);
+                costWithTarget.payWithTargets(player, plannedBoardState, costTargets);
                 effectWithTarget.resolveWithTargets(player, plannedBoardState, effectTargets);
             } else {
                 if (cost == null)
@@ -107,9 +107,9 @@ public abstract class Ability {
         return tbr;
     }
 
-    public final boolean conditionOk(String player, PlannedBoardState plannedBoardState) {
-        if (condition == null) return true;
-        return condition.isOk(player, plannedBoardState);
+    public final boolean conditionsOk(String player, PlannedBoardState plannedBoardState) {
+        if (conditions == null || conditions.isEmpty()) return true;
+        return conditions.stream().allMatch(condition -> condition.isOk(player, plannedBoardState));
     }
 
 }

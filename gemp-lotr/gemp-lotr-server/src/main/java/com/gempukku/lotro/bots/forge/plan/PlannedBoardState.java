@@ -566,7 +566,7 @@ public class PlannedBoardState {
                     activatedAbilities.stream().filter(activatedAbility -> {
                         if (activatedAbility == null) return false;
                         if (activatedAbility.getPhase() != phase) return false;
-                        if (!activatedAbility.conditionOk(player, boardState)) return false;
+                        if (!activatedAbility.conditionsOk(player, boardState)) return false;
                         if (!activatedAbility.canPayCost(player, boardState)) return false;
                         if (activatedAbility.getEffect() instanceof EffectPlayWithBonus effectPlayWithBonus
                                 && effectPlayWithBonus.getPotentialTargets(player, boardState).isEmpty()) return false;
@@ -926,7 +926,7 @@ public class PlannedBoardState {
 
     private void handleWhenPlayedTriggeredAbilities(BotCard botCard) {
         TriggeredAbility triggeredAbility = botCard.getTriggeredAbility();
-        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED && triggeredAbility.conditionOk(botCard.getSelf().getOwner(), this)) {
+        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED && triggeredAbility.conditionsOk(botCard.getSelf().getOwner(), this)) {
             if (triggeredAbility.resolvesWithoutActionNeeded()) {
                 activateTriggeredAbility(botCard, getCurrentShadowPlayer());
             } else if (triggeredAbility.isOptionalTrigger()) {

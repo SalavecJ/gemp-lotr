@@ -4,11 +4,14 @@ import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
 import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class TriggeredAbilityBuilder {
     private Boolean optional;
     private Trigger trigger;
-    private Condition condition;
+    private List<Condition> conditions = new ArrayList<>();
     private Effect effect;
     private Cost cost;
 
@@ -32,10 +35,7 @@ public class TriggeredAbilityBuilder {
     }
 
     public TriggeredAbilityBuilder condition(Condition condition) {
-        if (this.condition != null) {
-            throw new IllegalStateException("Already has a condition");
-        }
-        this.condition = condition;
+        conditions.add(condition);
         return this;
     }
 
@@ -66,6 +66,6 @@ public class TriggeredAbilityBuilder {
         if (effect == null) {
             throw new IllegalStateException("Triggered abilities must have effect");
         }
-        return new TriggeredAbility(optional, trigger, condition, effect, cost);
+        return new TriggeredAbility(optional, trigger, conditions, effect, cost);
     }
 }
