@@ -51,4 +51,8 @@ public abstract class Condition {
     public static ConditionTwilight twilightGreaterThan(int amount) {
         return new ConditionTwilight(ConditionTwilight.TwilightState.GREATER_THAN, amount);
     }
+
+    public static ConditionFpCanMove fpCanMove() {
+        return new ConditionFpCanMove();
+    }
 }

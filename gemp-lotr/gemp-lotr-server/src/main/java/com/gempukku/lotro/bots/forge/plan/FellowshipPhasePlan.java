@@ -61,11 +61,11 @@ public class FellowshipPhasePlan {
             return getBestTargetForAttachment(possibleActions);
         }
         // Mandatory target choosing actions for cost
-        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForCostAction)) {
+        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsForCostAction)) {
             return getBestTargetForCost(possibleActions);
         }
         // Mandatory target choosing actions for effect
-        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForEffectAction)) {
+        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsForEffectAction)) {
             return getBestTargetForEffect(possibleActions);
         }
 
@@ -144,9 +144,9 @@ public class FellowshipPhasePlan {
     }
 
     private ActionToTake getBestTargetForCost(List<ActionToTake> possibleActions) {
-        ChooseTargetForCostAction firstAction = validateAndGetFirstAction(
+        ChooseTargetsForCostAction firstAction = validateAndGetFirstAction(
                 possibleActions,
-                ChooseTargetForCostAction.class,
+                ChooseTargetsForCostAction.class,
                 "ChooseTargetForCostAction"
         );
 
@@ -154,20 +154,20 @@ public class FellowshipPhasePlan {
         CostWithTarget cost = firstAction.getCost();
 
         verifyAllActionsShareSameCard(possibleActions,
-                action -> ((ChooseTargetForCostAction) action).getSource(),
+                action -> ((ChooseTargetsForCostAction) action).getSource(),
                 "source");
 
-        BotCard chosenTarget = cost.chooseTarget(playerName, plannedBoardState);
+        List<BotCard> chosenTargets = cost.chooseTargets(playerName, plannedBoardState);
 
-        return findActionWithTarget(possibleActions, chosenTarget,
-                action -> ((ChooseTargetForCostAction) action).getTarget(),
+        return findActionWithTargets(possibleActions, chosenTargets,
+                action -> ((ChooseTargetsForCostAction) action).getTargets(),
                 source.getSelf().getBlueprint().getFullName());
     }
 
     private ActionToTake getBestTargetForEffect(List<ActionToTake> possibleActions) {
-        ChooseTargetForEffectAction firstAction = validateAndGetFirstAction(
+        ChooseTargetsForEffectAction firstAction = validateAndGetFirstAction(
                 possibleActions,
-                ChooseTargetForEffectAction.class,
+                ChooseTargetsForEffectAction.class,
                 "ChooseTargetForEffectAction"
         );
 
@@ -175,13 +175,13 @@ public class FellowshipPhasePlan {
         EffectWithTarget effect = firstAction.getEffect();
 
         verifyAllActionsShareSameCard(possibleActions,
-                action -> ((ChooseTargetForEffectAction) action).getSource(),
+                action -> ((ChooseTargetsForEffectAction) action).getSource(),
                 "source");
 
         BotCard chosenTarget = effect.chooseTarget(playerName, plannedBoardState);
 
-        return findActionWithTarget(possibleActions, chosenTarget,
-                action -> ((ChooseTargetForEffectAction) action).getTarget(),
+        return findActionWithTargets(possibleActions, List.of(chosenTarget),
+                action -> ((ChooseTargetsForEffectAction) action).getTargets(),
                 source.getSelf().getBlueprint().getFullName());
     }
 
@@ -336,6 +336,33 @@ public class FellowshipPhasePlan {
                 .orElseThrow(() -> new IllegalStateException("Could not find action for chosen target"));
     }
 
+    private ActionToTake findActionWithTargets(
+            List<ActionToTake> possibleActions,
+            List<BotCard> chosenTargets,
+            Function<ActionToTake, List<BotCard>> targetsExtractor,
+            String sourceName) {
+        if (chosenTargets == null || chosenTargets.isEmpty()) {
+            throw new IllegalStateException("Could not find targets for " + sourceName);
+        }
+
+        // Sort chosen targets by card ID for consistent comparison
+        List<Integer> chosenTargetIds = chosenTargets.stream()
+                .map(card -> card.getSelf().getCardId())
+                .sorted()
+                .toList();
+
+        return possibleActions.stream()
+                .filter(action -> {
+                    List<Integer> actionTargetIds = targetsExtractor.apply(action).stream()
+                            .map(card -> card.getSelf().getCardId())
+                            .sorted()
+                            .toList();
+                    return actionTargetIds.equals(chosenTargetIds);
+                })
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Could not find action for chosen targets"));
+    }
+
     public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString());
@@ -381,7 +408,7 @@ public class FellowshipPhasePlan {
         }
 
         ActionToTake action = actions.get(nextStep);
-        if (!(action instanceof ChooseTargetAction)) {
+        if (!(action instanceof ChooseTargetsAction)) {
             throw new IllegalStateException("Next action in plan is not target action");
         }
         if (printDebugMessages) {
@@ -389,7 +416,8 @@ public class FellowshipPhasePlan {
             System.out.println(action);
         }
         nextStep++;
-        return List.of(((ChooseTargetAction) action).getTarget().getSelf());
+        List<BotCard> targets = ((ChooseTargetsAction) action).getTargets();
+        return targets.stream().map(BotCard::getSelf).toList();
     }
 
     public boolean replanningNeeded() {

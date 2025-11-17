@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan;
 
+import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
@@ -175,15 +176,16 @@ public class ShadowPhasePlan {
         }
 
         ActionToTake action = actions.get(nextStep);
-        if (!(action instanceof ChooseTargetAction)) {
+        if (!(action instanceof ChooseTargetsAction)) {
             throw new IllegalStateException("Next action in plan is not target action");
         }
         if (printDebugMessages) {
             System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
-            System.out.println(action.toString());
+            System.out.println(action);
         }
         nextStep++;
-        return List.of(((ChooseTargetAction) action).getTarget().getSelf());
+        List<BotCard> targets = ((ChooseTargetsAction) action).getTargets();
+        return targets.stream().map(BotCard::getSelf).toList();
     }
 
     public boolean replanningNeeded() {

@@ -6,7 +6,7 @@ import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class EffectWithTarget extends Effect{
+public abstract class EffectWithTarget extends Effect {
     public final void resolveWithTargets(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
         if (targets == null || targets.isEmpty()) {
             return;

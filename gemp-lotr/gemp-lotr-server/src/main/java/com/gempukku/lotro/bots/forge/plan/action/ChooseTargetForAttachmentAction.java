@@ -2,18 +2,23 @@ package com.gempukku.lotro.bots.forge.plan.action;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
-public class ChooseTargetForAttachmentAction extends ChooseTargetAction {
+import java.util.List;
+
+public class ChooseTargetForAttachmentAction extends ChooseTargetsAction {
     private final BotObjectAttachableCard attachment;
 
     public ChooseTargetForAttachmentAction(BotCard target, BotObjectAttachableCard attachment) {
-        super(target);
+        super(List.of(target));
         this.attachment = attachment;
     }
 
     public BotObjectAttachableCard getAttachment() {
         return attachment;
+    }
+
+    public BotCard getTarget() {
+        return super.getTargets().getFirst();
     }
 
     @Override

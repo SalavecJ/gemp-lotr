@@ -117,8 +117,8 @@ public class BetweenTurnsPlan {
             Cost cost = chosenCard.getTriggeredAbility().getCost();
             if (cost instanceof CostWithTarget costWithTarget) {
                 List<BotCard> potentialTargets = costWithTarget.getPotentialTargets(playerName, plannedBoardState);
-                BotCard target = costWithTarget.chooseTarget(playerName, plannedBoardState);
-                costTargeting = new UseCardWithTargetAction.Targeting(target, potentialTargets);
+                List<BotCard> targets = costWithTarget.chooseTargets(playerName, plannedBoardState);
+                costTargeting = new UseCardWithTargetAction.Targeting(targets.getFirst(), potentialTargets);
             }
 
             List<UseCardWithTargetAction.Targeting> targetings = new ArrayList<>();
@@ -131,7 +131,7 @@ public class BetweenTurnsPlan {
 
             if (cost != null) {
                 if (costTargeting != null) {
-                    System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, costTargeting.target()));
+                    System.out.println("Cost to pay: " + ((CostWithTarget) cost).toString(playerName, plannedBoardState, List.of(costTargeting.target())));
                 } else {
                     System.out.println("Cost to pay: " + cost.toString(playerName, plannedBoardState));
                 }
@@ -147,11 +147,11 @@ public class BetweenTurnsPlan {
             }
 
             if (effectTargeting != null && costTargeting != null) {
-                plannedBoardState.activateTriggeredAbilityOnTargetWithCostTarget(chosenCard, playerName, List.of(effectTargeting.target()), costTargeting.target());
+                plannedBoardState.activateTriggeredAbilityOnTargetWithCostTarget(chosenCard, playerName, List.of(effectTargeting.target()), List.of(costTargeting.target()));
             } else if (effectTargeting != null) {
                 plannedBoardState.activateTriggeredAbilityOnTarget(chosenCard, playerName, List.of(effectTargeting.target()));
             } else if (costTargeting != null) {
-                plannedBoardState.activateTriggeredAbilityWithCostTarget(chosenCard, playerName, costTargeting.target());
+                plannedBoardState.activateTriggeredAbilityWithCostTarget(chosenCard, playerName, List.of(costTargeting.target()));
             } else {
                 plannedBoardState.activateTriggeredAbility(chosenCard, playerName);
             }

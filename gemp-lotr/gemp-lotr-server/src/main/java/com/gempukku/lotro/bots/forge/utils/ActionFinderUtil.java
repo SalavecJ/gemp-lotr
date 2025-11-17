@@ -240,10 +240,15 @@ public class ActionFinderUtil {
                         // Skip duplicate play card actions for the same card
                     }
                 }
-                case OptionalTriggerDenyAction denyAction -> {
-                    if (!denyAction.getSource().getTriggeredAbility().goodToUseNoMatterWhat(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState)) {
-                        possibleActions.add(availableAction);
+                case OptionalTriggerAcceptAction acceptAction -> {
+                    possibleActions.add(acceptAction);
+                    if (!acceptAction.getCard().getTriggeredAbility().goodToUseNoMatterWhat(plannedBoardState.getCurrentShadowPlayer(), plannedBoardState)
+                            && possibleActions.contains(new OptionalTriggerDenyAction())) {
+                        possibleActions.add(new OptionalTriggerDenyAction());
                     }
+                }
+                case OptionalTriggerDenyAction ignored -> {
+                    // Skip, only add if triggers are not good to use
                 }
                 case ChooseTargetForAttachmentAction chooseTargetForAttachmentAction -> {
                     List<BotCard> allTargets = allActions.stream().map(action -> ((ChooseTargetForAttachmentAction) action).getTarget()).toList();
@@ -252,8 +257,32 @@ public class ActionFinderUtil {
                         possibleActions.add(availableAction);
                     }
                 }
-                case ChooseTargetForEffectAction chooseTargetForEffectAction -> {
-                    if (possibleActions.stream().noneMatch(action -> action instanceof ChooseTargetForEffectAction otherChooseTarget
+                case ChooseTargetsForCostAction chooseTargetsForCostAction -> {
+                    List<List<BotCard>> allTargetCombinations = allActions.stream()
+                            .filter(action -> action instanceof ChooseTargetsForCostAction)
+                            .map(action -> ((ChooseTargetsForCostAction) action).getTargets())
+                            .toList();
+                    List<BotCard> targetsToChoose = chooseTargetsForCostAction.getCost().chooseTargets(
+                            plannedBoardState.getCurrentShadowPlayer(), plannedBoardState, allTargetCombinations);
+
+                    if (targetsToChoose != null) {
+                        // Sort both lists by card ID for comparison
+                        List<Integer> chosenIds = targetsToChoose.stream()
+                                .map(card -> card.getSelf().getCardId())
+                                .sorted()
+                                .toList();
+                        List<Integer> actionIds = chooseTargetsForCostAction.getTargets().stream()
+                                .map(card -> card.getSelf().getCardId())
+                                .sorted()
+                                .toList();
+
+                        if (chosenIds.equals(actionIds)) {
+                            possibleActions.add(availableAction);
+                        }
+                    }
+                }
+                case ChooseTargetsForEffectAction chooseTargetForEffectAction -> {
+                    if (possibleActions.stream().noneMatch(action -> action instanceof ChooseTargetsForEffectAction otherChooseTarget
                             && chooseTargetForEffectAction.targetsTheSameTypeOfTarget(otherChooseTarget, plannedBoardState))) {
                         possibleActions.add(availableAction);
                     }

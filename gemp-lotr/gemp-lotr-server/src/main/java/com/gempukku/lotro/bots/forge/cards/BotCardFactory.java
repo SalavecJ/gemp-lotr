@@ -1200,6 +1200,18 @@ public class BotCardFactory {
                                     .build()
                     );
                 }
+
+                @Override
+                public List<ActivatedAbility> getActivatedAbilities() {
+                    return List.of(
+                            new ActivatedAbilityBuilder()
+                                    .phase(Phase.SHADOW)
+                                    .cost(Cost.discardFromHand(3))
+                                    .condition(Condition.spotPlayableInDiscard(Culture.MORIA, Race.ORC))
+                                    .effect(Effect.playMinionFromDiscard(Target.culture(Culture.MORIA).and(Target.race(Race.ORC))))
+                                    .build()
+                    );
+                }
             };
         }
         // 1_197

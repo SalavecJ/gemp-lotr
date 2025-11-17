@@ -5,7 +5,9 @@ import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CostExert extends CostWithTarget {
     protected final Predicate<BotCard> targetPredicate;
@@ -25,17 +27,25 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets ) {
+        String joined = targets.stream()
+                .map(t -> t.getSelf().getBlueprint().getFullName())
+                .collect(Collectors.joining("; "));
         if (amount == 1) {
-            return "exert " + target.getSelf().getBlueprint().getFullName();
+            return "exert " + joined;
         } else {
 
-            return "exert " + amount + " times " + target.getSelf().getBlueprint().getFullName();
+            return "exert " + amount + " times " + joined;
         }
     }
 
     @Override
-    public void payWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    public int getNumberOfTargetsRequired() {
+        return 1;
+    }
+
+    @Override
+    public void payWith(String player, PlannedBoardState plannedBoardState, BotCard target) {
         if (!canPayCostWithTarget(player, plannedBoardState, target)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
@@ -43,7 +53,7 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public double getValueIfPayedWithTarget(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    public double getValueIfPayedWith(String player, PlannedBoardState plannedBoardState, BotCard target) {
         if (!canPayCostWithTarget(player, plannedBoardState, target)) {
             throw new IllegalStateException("Cost cannot be payed");
         }

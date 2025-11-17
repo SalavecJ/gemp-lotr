@@ -51,7 +51,15 @@ public abstract class Cost {
     }
 
     public static CostDiscardCardFromHand discardFromHand(Predicate<BotCard> target) {
-        return new CostDiscardCardFromHand(target);
+        return discardFromHand(target, 1);
+    }
+
+    public static CostDiscardCardFromHand discardFromHand(int howMany) {
+        return new CostDiscardCardFromHand(botCard -> true, howMany);
+    }
+
+    public static CostDiscardCardFromHand discardFromHand(Predicate<BotCard> target, int howMany) {
+        return new CostDiscardCardFromHand(target, howMany);
     }
 
     public static CostAddTwilight addTwilight(int amount) {
