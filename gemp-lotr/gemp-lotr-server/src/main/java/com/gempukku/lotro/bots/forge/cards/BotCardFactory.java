@@ -1892,6 +1892,7 @@ public class BotCardFactory {
                             new ActivatedAbilityBuilder()
                                     .phase(Phase.SHADOW)
                                     .condition(Condition.spotAmount(Target.race(Race.ORC), 5))
+                                    .condition(Condition.fpCanMove())
                                     .effect(Effect.preventFellowshipFromMoving())
                                     .build()
                     );
