@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
+import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -81,13 +82,15 @@ public class ShadowPhasePlan {
             return allEndStates;
         }
 
+        int minionsAtStart = BoardStateUtil.getMinionsInPlay(plannedBoardState).size();
+
         Set<ShadowPhaseEndState> selected = new LinkedHashSet<>();
 
         // Strategy 1: Do nothing (save everything for next turn)
         findEndStateWithNoActions(allEndStates).ifPresent(selected::add);
 
         // Strategy 2: Play the strongest board with given number of minions
-        for (int i = 0; true; i++) {
+        for (int i = minionsAtStart; true; i++) {
             Optional<ShadowPhaseEndState> endState = findEndStateWithStrongestMinions(allEndStates, i);
             if (endState.isPresent()) {
                 selected.add(endState.get());
