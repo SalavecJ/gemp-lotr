@@ -1,10 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.endstate.ArcheryPhaseEndState;
-import com.gempukku.lotro.bots.forge.plan.endstate.AssignmentPhaseEndState;
-import com.gempukku.lotro.bots.forge.plan.endstate.ManeuverPhaseEndState;
-import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
-import com.gempukku.lotro.bots.forge.plan.endstate.SkirmishPhaseEndState;
+import com.gempukku.lotro.bots.forge.plan.endstate.*;
 
 /**
  * Container for the complete combat path from a shadow phase end state.
@@ -60,10 +56,36 @@ public class CombatPath {
     }
 
     /**
-     * Gets the combat outcome by comparing the initial board state with the final regroup state.
+     * Gets the combat outcome by comparing the initial board state with the final phase state.
+     * If the game ended early (e.g., ring bearer died), uses the last available phase end state.
      */
     public CombatOutcome getCombatOutcome() {
-        return new CombatOutcome(initialBoardState, regroupPhaseEndState);
+        PlannedBoardState finalBoardState = getLatestPhaseEndState().getBoardState();
+        return new CombatOutcome(initialBoardState, finalBoardState);
+    }
+
+    /**
+     * Gets the latest non-null phase end state.
+     * Checks phases in reverse order: Regroup -> Skirmish -> Assignment -> Archery -> Maneuver
+     * @return The latest phase end state that is not null
+     */
+    private PhaseEndState getLatestPhaseEndState() {
+        if (regroupPhaseEndState != null) {
+            return regroupPhaseEndState;
+        }
+        if (skirmishPhaseEndState != null) {
+            return skirmishPhaseEndState;
+        }
+        if (assignmentPhaseEndState != null) {
+            return assignmentPhaseEndState;
+        }
+        if (archeryPhaseEndState != null) {
+            return archeryPhaseEndState;
+        }
+        if (maneuverPhaseEndState != null) {
+            return maneuverPhaseEndState;
+        }
+        throw new IllegalStateException("CombatPath has no phase end states");
     }
 
     /**

@@ -107,9 +107,9 @@ public class ActionFinderUtil {
                 Map<Phase, PhaseEndState> newPhaseEndStates = new HashMap<>(phaseEndStates);
                 newPhaseEndStates.put(phaseJustEnded, endState);
 
-                if (phaseJustEnded == Phase.REGROUP) {
+                if (phaseJustEnded == Phase.REGROUP || endState.getBoardState().isGameOver()) {
                     // We've reached the end - evaluate the final outcome
-                    CombatOutcome outcome = new CombatOutcome(afterShadowPhaseState, (RegroupPhaseEndState) endState);
+                    CombatOutcome outcome = new CombatOutcome(afterShadowPhaseState, endState.getBoardState());
                     double value = outcome.evaluateOutcome();
                     endState.setValue(value);
                     result = new CombatPathResult(newPhaseEndStates, value);
@@ -122,10 +122,23 @@ public class ActionFinderUtil {
                     endState.setValue(result.value);
                 }
             } else {
-                // Same phase - continue exploring
-                boolean fpToActNext = nextState.getPlayerToAct().equals(nextState.getCurrentFpPlayer());
-                result = exploreCombatPhases(nextState, afterShadowPhaseState, phaseEndStates,
-                        fpActions, shadowActions, fpToActNext, alpha, beta);
+                if (nextState.isGameOver()) {
+                    PhaseEndState endState = createPhaseEndState(beforeAction, nextState, new ArrayList<>(fpActions), new ArrayList<>(shadowActions));
+                    // Add to our accumulated phase end states
+                    Map<Phase, PhaseEndState> newPhaseEndStates = new HashMap<>(phaseEndStates);
+                    newPhaseEndStates.put(beforeAction, endState);
+                    // We've reached the end - evaluate the final outcome
+                    CombatOutcome outcome = new CombatOutcome(afterShadowPhaseState, endState.getBoardState());
+                    double value = outcome.evaluateOutcome();
+                    endState.setValue(value);
+                    result = new CombatPathResult(newPhaseEndStates, value);
+
+                } else {
+                    // Same phase - continue exploring
+                    boolean fpToActNext = nextState.getPlayerToAct().equals(nextState.getCurrentFpPlayer());
+                    result = exploreCombatPhases(nextState, afterShadowPhaseState, phaseEndStates,
+                            fpActions, shadowActions, fpToActNext, alpha, beta);
+                }
             }
 
             bestResult = updateBestCombatPathResult(bestResult, result, isFpTurn);

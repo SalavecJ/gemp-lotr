@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 public class PlannedBoardState {
     private Phase phase;
     private String currentPlayer;
+    private boolean gameOver;
     private final List<String> players = new ArrayList<>();
     private final Map<String, BotCard> ringBearers = new HashMap<>();
 
@@ -46,6 +47,11 @@ public class PlannedBoardState {
 
     // Assignment tracking: FP character -> Set of minions assigned to them
     private final Map<BotCard, Set<BotCard>> assignments = new HashMap<>();
+
+    // Archery phase state tracking
+    private boolean archeryPhasePlayActionsCompleted = false; // True when both players have passed
+    private int remainingFpArcheryWounds = 0; // How many wounds FP still needs to assign
+    private int remainingShadowArcheryWounds = 0; // How many wounds Shadow still needs to assign
 
     // Assignment phase state tracking
     private boolean assignmentPhasePlayActionsCompleted = false; // True when both players have passed
@@ -93,6 +99,7 @@ public class PlannedBoardState {
     public PlannedBoardState(LotroGame game, String playerToAct) {
         this.playerToAct = playerToAct;
 
+        gameOver = game.getWinnerPlayerId() != null;
         phase = game.getGameState().getCurrentPhase();
         currentPlayer = game.getGameState().getCurrentPlayerId();
         movesMade = game.getGameState().getMoveCount();
@@ -212,9 +219,14 @@ public class PlannedBoardState {
 
         this.currentSkirmish = other.currentSkirmish;
 
+        this.archeryPhasePlayActionsCompleted = other.archeryPhasePlayActionsCompleted;
+        this.remainingFpArcheryWounds = other.remainingFpArcheryWounds;
+        this.remainingShadowArcheryWounds = other.remainingShadowArcheryWounds;
+
         this.assignmentPhasePlayActionsCompleted = other.assignmentPhasePlayActionsCompleted;
         this.fpAssignmentCompleted = other.fpAssignmentCompleted;
         this.endOfTurnProceduresStarted = other.endOfTurnProceduresStarted;
+        this.gameOver = other.gameOver;
 
         this.twilight = other.twilight;
         this.ruleOfFourCount = other.ruleOfFourCount;
@@ -242,10 +254,17 @@ public class PlannedBoardState {
         AVAILABLE ACTIONS
      */
     public String getPlayerToAct() {
+        if (gameOver) {
+            throw new IllegalStateException("Game is over");
+        }
         return playerToAct;
     }
 
     public List<ActionToTake> getAvailableActions(String player) {
+        if (gameOver) {
+            throw new IllegalStateException("Game is over");
+        }
+
         if (!player.equals(playerToAct)) {
             throw new IllegalStateException("It's not " + player + "'s turn to act");
         }
@@ -264,7 +283,29 @@ public class PlannedBoardState {
         } else if (phase == Phase.MANEUVER) {
 
         } else if (phase == Phase.ARCHERY) {
-
+            if (!isArcheryPhasePlayActionsCompleted()) {
+                // Still in the "play archery events and activate archery abilities" part
+            } else if (remainingFpArcheryWounds > 0 && player.equals(currentPlayer)) {
+                // Both players have passed, now FP assigns wounds from shadow archery
+                List<ActionToTake> fpArcheryWoundActions = getFpArcheryWoundActions();
+                if (!fpArcheryWoundActions.isEmpty()) {
+                    return fpArcheryWoundActions;
+                } else {
+                    // No valid targets to assign wounds to, set remaining wounds to 0 so we can move on
+                    remainingFpArcheryWounds = 0;
+                    return getAvailableActions(player);
+                }
+            } else if (remainingFpArcheryWounds <= 0 && player.equals(getCurrentShadowPlayer())) {
+                // FP has finished assigning wounds, now Shadow assigns wounds to minions
+                List<ActionToTake> shadowArcheryWoundActions = getShadowArcheryWoundActions();
+                if (!shadowArcheryWoundActions.isEmpty()) {
+                    return shadowArcheryWoundActions;
+                } else {
+                    // No valid targets to assign wounds to, set remaining wounds to 0 so we can move on
+                    remainingShadowArcheryWounds = 0;
+                    return getAvailableActions(player);
+                }
+            }
         } else if (phase == Phase.ASSIGNMENT) {
             if (!isAssignmentPhasePlayActionsCompleted()) {
                 // Still in the "play events and activate abilities" part
@@ -359,6 +400,12 @@ public class PlannedBoardState {
             setCurrentSkirmish(chooseSkirmishAction.getFpCharacter());
         } else if (action instanceof AssignMinionAction assignMinionAction) {
             assignMinion(assignMinionAction.getMinion(), assignMinionAction.getFpCharacter());
+        } else if (action instanceof ChooseTargetForArcheryWoundAction archeryWoundAction) {
+            applyArcheryWound(archeryWoundAction.getTarget());
+            if (remainingFpArcheryWounds == 0 && remainingShadowArcheryWounds == 0) {
+                // No more wounds to assign, move to the next phase
+                moveToNextPhase();
+            }
         } else if (action instanceof PassAction) {
             if (phase == Phase.FELLOWSHIP && player.equals(currentPlayer)) {
                 // FP passed during fellowship
@@ -371,7 +418,17 @@ public class PlannedBoardState {
                 boolean shadowPassed = lastActionsTaken.get(getCurrentShadowPlayer()) instanceof PassAction;
                 if (fpPassed && shadowPassed) {
                     // Both players have passed
-                    if (getCurrentPhase().equals(Phase.ASSIGNMENT) && !isAssignmentPhasePlayActionsCompleted()) {
+                    if (getCurrentPhase().equals(Phase.ARCHERY) && !isArcheryPhasePlayActionsCompleted()) {
+                        // Special case: In archery phase, both players passing means we transition to assigning wounds
+                        setArcheryPhasePlayActionsCompleted(true);
+                        // Calculate archery totals now that both players have passed
+                        remainingFpArcheryWounds = getShadowArcheryTotal();
+                        remainingShadowArcheryWounds = getFpArcheryTotal();
+                        if (remainingFpArcheryWounds == 0 && remainingShadowArcheryWounds == 0) {
+                            // No wounds to assign, move to the next phase immediately
+                            moveToNextPhase();
+                        }
+                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && !isAssignmentPhasePlayActionsCompleted()) {
                         // Special case: In assignment phase, both players passing means we transition to assigning minions
                         setAssignmentPhasePlayActionsCompleted(true);
                     } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && isAssignmentPhasePlayActionsCompleted() && !isFpAssignmentCompleted()) {
@@ -409,6 +466,12 @@ public class PlannedBoardState {
             playerToAct = currentPlayer; // FP chooses next skirmish
         } else if (phase == Phase.SKIRMISH && action instanceof ChooseSkirmishAction) {
             playerToAct = currentPlayer; // FP acts first after choosing skirmish
+        } else if (phase == Phase.ARCHERY && isArcheryPhasePlayActionsCompleted()) {
+            if (remainingFpArcheryWounds > 0) {
+                playerToAct = currentPlayer; // FP assigns wounds first
+            } else {
+                playerToAct = getCurrentShadowPlayer(); // Shadow assigns wounds next
+            }
         } else if (phase == Phase.ASSIGNMENT && isAssignmentPhasePlayActionsCompleted()) {
             if (!isFpAssignmentCompleted()) {
                 playerToAct = currentPlayer; // FP assigns first
@@ -555,6 +618,48 @@ public class PlannedBoardState {
         return possibleActions;
     }
 
+    /**
+     * Gets all possible FP archery wound assignment actions.
+     * Returns one action for each valid FP character (companions and participating allies).
+     */
+    private List<ActionToTake> getFpArcheryWoundActions() {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        if (remainingFpArcheryWounds <= 0) {
+            return possibleActions;
+        }
+
+        // Get all companions and allies that can receive wounds
+        List<BotCard> validTargets = BoardStateUtil.getCompanionsAndAlliesAtHome(this);
+
+        for (BotCard target : validTargets) {
+            possibleActions.add(new ChooseTargetForArcheryWoundAction(target));
+        }
+
+        return possibleActions;
+    }
+
+    /**
+     * Gets all possible Shadow archery wound assignment actions.
+     * Returns one action for each minion in play.
+     */
+    private List<ActionToTake> getShadowArcheryWoundActions() {
+        List<ActionToTake> possibleActions = new ArrayList<>();
+
+        if (remainingShadowArcheryWounds <= 0) {
+            return possibleActions;
+        }
+
+        // Get all minions that can receive wounds
+        List<BotCard> minions = getMinions();
+
+        for (BotCard minion : minions) {
+            possibleActions.add(new ChooseTargetForArcheryWoundAction(minion));
+        }
+
+        return possibleActions;
+    }
+
     private Collection<ActionToTake> getActivateAbilitiesActions(String player) {
         List<ActionToTake> actions = new ArrayList<>();
 
@@ -582,7 +687,13 @@ public class PlannedBoardState {
         ALTER BOARD STATE
      */
     public void moveToNextPhase() {
+        if (gameOver) {
+            return;
+        }
         ruleOfFourCount = 0;
+        archeryPhasePlayActionsCompleted = false;
+        remainingFpArcheryWounds = 0;
+        remainingShadowArcheryWounds = 0;
         assignmentPhasePlayActionsCompleted = false;
         fpAssignmentCompleted = false;
         endOfTurnProceduresStarted = false;
@@ -679,8 +790,50 @@ public class PlannedBoardState {
         return fpAssignmentCompleted;
     }
 
+    /**
+     * Marks that both players have passed in archery phase and we're now in the "assigning wounds" phase.
+     */
+    public void setArcheryPhasePlayActionsCompleted(boolean completed) {
+        this.archeryPhasePlayActionsCompleted = completed;
+    }
+
+    /**
+     * Returns true if both players have passed and we're in the "assigning wounds" phase of archery.
+     */
+    public boolean isArcheryPhasePlayActionsCompleted() {
+        return archeryPhasePlayActionsCompleted;
+    }
+
+
+    /**
+     * Applies an archery wound to the specified target and decrements the remaining wound counter.
+     * Automatically determines whether it's FP or Shadow assigning the wound based on the target's side.
+     */
+    public void applyArcheryWound(BotCard target) {
+        // Apply the wound
+        wound(target, 1);
+
+        // Decrement the appropriate counter
+        if (target.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
+            // FP is assigning wounds to their own characters
+            remainingFpArcheryWounds--;
+        } else if (target.getSelf().getBlueprint().getSide().equals(Side.SHADOW)) {
+            // Shadow is assigning wounds to minions
+            remainingShadowArcheryWounds--;
+        } else {
+            throw new IllegalStateException("Cannot apply archery wound to target with unknown side: " + target.getSelf().getBlueprint().getFullName());
+        }
+    }
+
     public boolean isEndOfTurnProceduresStarted() {
         return endOfTurnProceduresStarted;
+    }
+
+    /**
+     * Returns true if the game has ended (e.g., ring bearer died).
+     */
+    public boolean isGameOver() {
+        return gameOver;
     }
 
     /**
@@ -840,6 +993,12 @@ public class PlannedBoardState {
         } else if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
             inPlayFpCards.get(botCard.getSelf().getOwner()).remove(botCard);
             deadPiles.get(botCard.getSelf().getOwner()).add(botCard);
+
+            // Check if the ring bearer has died - game over immediately
+            BotCard ringBearer = ringBearers.get(botCard.getSelf().getOwner());
+            if (ringBearer != null && ringBearer.getSelf().equals(botCard.getSelf())) {
+                gameOver = true;
+            }
         } else {
             throw new IllegalStateException("Unknown side for card: " + botCard.getSelf().getBlueprint().getFullName());
         }
@@ -1302,6 +1461,22 @@ public class PlannedBoardState {
         }
 
         return false;
+    }
+
+    public int getFpArcheryTotal() {
+        int total = 0;
+        for (BotCard botCard : getFpCardsInPlay(currentPlayer)) {
+            total += botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0 ? 1 : 0;
+        }
+        return total;
+    }
+
+    public int getShadowArcheryTotal() {
+        int total = 0;
+        for (BotCard botCard : getShadowCardsInPlay(getCurrentShadowPlayer())) {
+            total += botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0 ? 1 : 0;
+        }
+        return total;
     }
 
     public List<BotCard> getAttachedCards(BotCard card) {
@@ -1866,7 +2041,7 @@ public class PlannedBoardState {
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(phase, currentPlayer, players, twilight, ruleOfFourCount, movesMade, assignmentPhasePlayActionsCompleted, fpAssignmentCompleted, playerPosition, playerThreats);
+        int result = Objects.hash(phase, currentPlayer, players, twilight, ruleOfFourCount, movesMade, assignmentPhasePlayActionsCompleted, fpAssignmentCompleted, playerPosition, playerThreats, gameOver);
         result = 31 * result + (currentSkirmish != null ? getCardFullName(currentSkirmish).hashCode() : 0);
         result = 31 * result + hashCardMapByFullName(adventureDecks);
         result = 31 * result + hashCardMapByFullName(decks);

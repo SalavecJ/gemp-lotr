@@ -1,9 +1,9 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.endstate.RegroupPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
 
 import java.util.List;
@@ -16,9 +16,9 @@ public class CombatOutcome {
     private final PlannedBoardState initialBoardState;
     private final PlannedBoardState finalBoardState;
 
-    public CombatOutcome(PlannedBoardState initialBoardState, RegroupPhaseEndState regroupPhaseEndState) {
+    public CombatOutcome(PlannedBoardState initialBoardState, PlannedBoardState finalBoardState) {
         this.initialBoardState = new PlannedBoardState(initialBoardState);
-        this.finalBoardState = new PlannedBoardState(regroupPhaseEndState.getBoardState());
+        this.finalBoardState = new PlannedBoardState(finalBoardState);
     }
 
     public PlannedBoardState getInitialBoardState() {
@@ -290,6 +290,15 @@ public class CombatOutcome {
      */
     public double evaluateOutcome() {
         double score = 0.0;
+
+        // Deter fp decisions from losing the game earlier than needed
+        if (finalBoardState.getCurrentPhase() == Phase.ARCHERY) {
+            score += 600.0; // Make fp player not kill the ring bearer in archery phase if possible
+        }
+
+        if (finalBoardState.getCurrentPhase() == Phase.SKIRMISH && !finalBoardState.getAssignments().isEmpty()) {
+            score += 300.0; // Make fp player kill the ring bearer in skirmish phase as late as possible if needed
+        }
 
         if (winsTheGame()) {
             score += 1000.0;

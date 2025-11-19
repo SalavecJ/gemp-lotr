@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Keyword;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
@@ -53,7 +54,10 @@ public class ShadowPhasePlan {
         }
 
         // Check for winning play
-        interestingEndStates.stream().filter(ShadowPhaseEndState::hasPotentialToWinTheGame).max(Comparator.comparingInt(value -> Math.toIntExact(value.getBoardState().getShadowCardsInPlay(value.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> botCard.getSelf().getBlueprint().getCardType() == CardType.MINION).count()))).ifPresent(shadowPhaseEndState -> {
+        interestingEndStates.stream().filter(ShadowPhaseEndState::hasPotentialToWinTheGame)
+                .max(Comparator.comparingInt(this::fpLosesBeforeSkirmish) // Prefer winning before skirmish
+                        .thenComparingInt(this::countMinionsOnBoard)) // Prefer winning with more minions on board
+                .ifPresent(shadowPhaseEndState -> {
             actions = shadowPhaseEndState.getShadowActions();
             if (printDebugMessages) {
                 System.out.println("Chosen shadow plan leading to potential win:");
@@ -99,6 +103,10 @@ public class ShadowPhasePlan {
             }
         }
 
+        // Strategy 3: Play archers
+        findEndStateWithMostArchery(allEndStates).ifPresent(selected::add);
+
+
         return new ArrayList<>(selected);
     }
 
@@ -113,12 +121,31 @@ public class ShadowPhasePlan {
                         .thenComparingInt(this::countShadowConditionsOnBoard));
     }
 
+    private Optional<ShadowPhaseEndState> findEndStateWithMostArchery(List<ShadowPhaseEndState> endStates) {
+        return endStates.stream()
+                .filter(shadowPhaseEndState -> countArcherMinionsOnBoard(shadowPhaseEndState) > 0)
+                .max(Comparator.comparingInt(this::countArcherMinionsOnBoard)
+                        .thenComparingInt(this::countShadowConditionsOnBoard));
+    }
+
     private int countMinionsOnBoard(ShadowPhaseEndState endState) {
         return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
     }
 
+    private int countArcherMinionsOnBoard(ShadowPhaseEndState endState) {
+        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()) && botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0).count());
+    }
+
     private int countShadowConditionsOnBoard(ShadowPhaseEndState endState) {
         return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
+    }
+
+    private int fpLosesBeforeSkirmish(ShadowPhaseEndState endState) {
+        if (endState.getCombatPath().getSkirmishPhaseEndState() == null
+                && endState.getCombatPath().getRegroupPhaseEndState() == null) {
+            return 1;
+        }
+        return 0;
     }
 
     private int countTotalStrengthOfMinionsOnBoard(ShadowPhaseEndState endState) {
