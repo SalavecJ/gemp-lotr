@@ -200,17 +200,13 @@ public class CombatOutcome {
         double score = 0.0;
 
         // Persistent shadow cards (conditions, possessions not on minions) are valuable for future turns
-        int initialPersistentShadowCards = BoardStateUtil.getPersistentShadowCards(initialBoardState).size();
         int finalPersistentShadowCards = BoardStateUtil.getPersistentShadowCards(finalBoardState).size();
-        int persistentShadowCardsChange = finalPersistentShadowCards - initialPersistentShadowCards;
-        score += persistentShadowCardsChange * 5.0;
+        score += finalPersistentShadowCards * 5.0;
 
         // FP non-companion cards lost (possessions, allies, conditions) are valuable for Shadow
         // Companions excluded as they're counted in damage value
-        int initialFpNonCompanionCards = BoardStateUtil.getFpNonCompanionCards(initialBoardState).size();
         int finalFpNonCompanionCards = BoardStateUtil.getFpNonCompanionCards(finalBoardState).size();
-        int fpCardsLost = initialFpNonCompanionCards - finalFpNonCompanionCards;
-        score += fpCardsLost * 4.0;
+        score -= finalFpNonCompanionCards * 4.0;
 
         // Ally vitality loss is valuable (reduces their ability to use exert abilities)
         int totalAllyVitalityLost = getTotalAllyVitalityLost();
@@ -482,6 +478,20 @@ public class CombatOutcome {
             sb.append("none");
         } else {
             sb.append(String.join(", ", survivingMinions));
+        }
+        sb.append("\n");
+
+        // Persistent shadow cards analysis
+        List<String> persistentShadowCards = BoardStateUtil.getPersistentShadowCards(finalBoardState).stream()
+                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .toList();
+
+
+        sb.append("Persistent shadow cards: ");
+        if (persistentShadowCards.isEmpty()) {
+            sb.append("none");
+        } else {
+            sb.append(String.join(", ", persistentShadowCards));
         }
 
         return sb.toString();
