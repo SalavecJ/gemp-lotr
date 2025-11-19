@@ -141,8 +141,8 @@ public class CombatOutcome {
      * @return Higher score means better outcome for Shadow in terms of stopping FP
      */
     public double getStoppingValue() {
-        // If FP has already made 2 moves this turn, stopping is irrelevant
-        if (finalBoardState.getMovesMade() >= 2) {
+        // Stopping is irrelevant
+        if (!finalBoardState.fellowshipCanMove()) {
             return 0.0;
         }
 
@@ -307,8 +307,8 @@ public class CombatOutcome {
 
         // Adjust weights based on game state context
 
-        // If FP has already moved twice, stopping is irrelevant
-        if (finalBoardState.getMovesMade() >= 2) {
+        // Stopping is irrelevant
+        if (!finalBoardState.fellowshipCanMove()) {
             stoppingWeight = 0.0;
         }
 

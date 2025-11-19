@@ -744,7 +744,7 @@ public class AiController {
             if (betweenTurnsPlan == null || betweenTurnsPlan.replanningNeeded()) {
                 betweenTurnsPlan = new BetweenTurnsPlan(printDebugMessages, game);
             }
-            return betweenTurnsPlan.chooseActionToTakeOrPass(awaitingDecision);
+            return betweenTurnsPlan.chooseActionToTakeOrPass(awaitingDecision, game);
         } else {
             throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
         }

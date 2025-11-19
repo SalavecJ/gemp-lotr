@@ -283,7 +283,7 @@ public class PlannedBoardState {
         } else if (phase == Phase.MANEUVER) {
 
         } else if (phase == Phase.ARCHERY) {
-            if (!isArcheryPhasePlayActionsCompleted()) {
+            if (!archeryPhasePlayActionsCompleted) {
                 // Still in the "play archery events and activate archery abilities" part
             } else if (remainingFpArcheryWounds > 0 && player.equals(currentPlayer)) {
                 // Both players have passed, now FP assigns wounds from shadow archery
@@ -307,15 +307,15 @@ public class PlannedBoardState {
                 }
             }
         } else if (phase == Phase.ASSIGNMENT) {
-            if (!isAssignmentPhasePlayActionsCompleted()) {
+            if (!assignmentPhasePlayActionsCompleted) {
                 // Still in the "play events and activate abilities" part
-            } else if (!isFpAssignmentCompleted() && player.equals(currentPlayer)) {
+            } else if (!fpAssignmentCompleted && player.equals(currentPlayer)) {
                 // Both players have passed, now FP assigns minions 1-on-1
                 List<ActionToTake> fpAssignmentActions = getFpAssignmentActions();
                 if (!fpAssignmentActions.isEmpty()) {
                     return fpAssignmentActions;
                 }
-            } else if (isFpAssignmentCompleted() && player.equals(getCurrentShadowPlayer())) {
+            } else if (fpAssignmentCompleted && player.equals(getCurrentShadowPlayer())) {
                 // FP has finished assigning, now Shadow assigns remaining unassigned minions
                 List<ActionToTake> shadowAssignmentActions = getShadowAssignmentActions();
                 if (!shadowAssignmentActions.isEmpty()) {
@@ -323,7 +323,7 @@ public class PlannedBoardState {
                 }
             }
         } else if (phase == Phase.SKIRMISH) {
-            if (getCurrentSkirmish() == null && player.equals(currentPlayer)) {
+            if (currentSkirmish == null && player.equals(currentPlayer)) {
                 // FP needs to choose which skirmish to resolve next
                 List<ActionToTake> chooseSkirmishActions = getChooseSkirmishActions();
                 if (!chooseSkirmishActions.isEmpty()) {
@@ -418,9 +418,9 @@ public class PlannedBoardState {
                 boolean shadowPassed = lastActionsTaken.get(getCurrentShadowPlayer()) instanceof PassAction;
                 if (fpPassed && shadowPassed) {
                     // Both players have passed
-                    if (getCurrentPhase().equals(Phase.ARCHERY) && !isArcheryPhasePlayActionsCompleted()) {
+                    if (getCurrentPhase().equals(Phase.ARCHERY) && !archeryPhasePlayActionsCompleted) {
                         // Special case: In archery phase, both players passing means we transition to assigning wounds
-                        setArcheryPhasePlayActionsCompleted(true);
+                        archeryPhasePlayActionsCompleted = true;
                         // Calculate archery totals now that both players have passed
                         remainingFpArcheryWounds = getShadowArcheryTotal();
                         remainingShadowArcheryWounds = getFpArcheryTotal();
@@ -428,14 +428,14 @@ public class PlannedBoardState {
                             // No wounds to assign, move to the next phase immediately
                             moveToNextPhase();
                         }
-                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && !isAssignmentPhasePlayActionsCompleted()) {
+                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && !assignmentPhasePlayActionsCompleted) {
                         // Special case: In assignment phase, both players passing means we transition to assigning minions
-                        setAssignmentPhasePlayActionsCompleted(true);
-                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && isAssignmentPhasePlayActionsCompleted() && !isFpAssignmentCompleted()) {
+                        assignmentPhasePlayActionsCompleted = true;
+                    } else if (getCurrentPhase().equals(Phase.ASSIGNMENT) && assignmentPhasePlayActionsCompleted && !fpAssignmentCompleted) {
                         // Special case: FP is done assigning (no more valid assignments available)
-                        setFpAssignmentCompleted(true);
+                        fpAssignmentCompleted = true;
                     } else if (getCurrentPhase().equals(Phase.SKIRMISH)) {
-                        if (getCurrentSkirmish() != null) {
+                        if (currentSkirmish != null) {
                             // Resolve the current skirmish
                             resolveCurrentSkirmish();
                             lastActionsTaken.clear();
@@ -462,18 +462,18 @@ public class PlannedBoardState {
     private void changePlayerToActIfNeeded(ActionToTake action) {
         if (phase == Phase.FELLOWSHIP || phase == Phase.SHADOW) {
             return; // No change in player to act during these phases
-        } else if (phase == Phase.SKIRMISH && getCurrentSkirmish() == null) {
+        } else if (phase == Phase.SKIRMISH && currentSkirmish == null) {
             playerToAct = currentPlayer; // FP chooses next skirmish
         } else if (phase == Phase.SKIRMISH && action instanceof ChooseSkirmishAction) {
             playerToAct = currentPlayer; // FP acts first after choosing skirmish
-        } else if (phase == Phase.ARCHERY && isArcheryPhasePlayActionsCompleted()) {
+        } else if (phase == Phase.ARCHERY && archeryPhasePlayActionsCompleted) {
             if (remainingFpArcheryWounds > 0) {
                 playerToAct = currentPlayer; // FP assigns wounds first
             } else {
                 playerToAct = getCurrentShadowPlayer(); // Shadow assigns wounds next
             }
-        } else if (phase == Phase.ASSIGNMENT && isAssignmentPhasePlayActionsCompleted()) {
-            if (!isFpAssignmentCompleted()) {
+        } else if (phase == Phase.ASSIGNMENT && assignmentPhasePlayActionsCompleted) {
+            if (!fpAssignmentCompleted) {
                 playerToAct = currentPlayer; // FP assigns first
             } else {
                 playerToAct = getCurrentShadowPlayer(); // Shadow assigns next
@@ -686,7 +686,7 @@ public class PlannedBoardState {
     /*
         ALTER BOARD STATE
      */
-    public void moveToNextPhase() {
+    private void moveToNextPhase() {
         if (gameOver) {
             return;
         }
@@ -736,80 +736,19 @@ public class PlannedBoardState {
         endOfTurnProceduresStarted = true;
     }
 
-
-    private void handleStartOfTurnTriggeredAbilities(BotCard botCard) {
-        TriggeredAbility triggeredAbility = botCard.getTriggeredAbility();
-        if (triggeredAbility != null && triggeredAbility.getTrigger() == Trigger.WHEN_PLAYED && triggeredAbility.conditionsOk(botCard.getSelf().getOwner(), this)) {
-            if (triggeredAbility.resolvesWithoutActionNeeded()) {
-                activateTriggeredAbility(botCard, getCurrentShadowPlayer());
-            } else if (triggeredAbility.isOptionalTrigger()) {
-                pendingActions.computeIfAbsent(botCard.getSelf().getOwner(), k -> new ArrayDeque<>());
-                List<ActionToTake> triggerActions = new ArrayList<>();
-                triggerActions.add(new OptionalTriggerAcceptAction(botCard));
-                triggerActions.add(new OptionalTriggerDenyAction());
-                pendingActions.get(botCard.getSelf().getOwner()).addLast(triggerActions);
-            } else {
-                handleTriggeredAbilityActivation(botCard.getSelf().getOwner(), botCard);
-            }
-        }
-    }
-
     /**
      * Assigns a minion to an FP character.
      * Can be called multiple times to assign multiple minions to the same character (for Shadow player stacking).
      */
-    public void assignMinion(BotCard minion, BotCard fpCharacter) {
+    private void assignMinion(BotCard minion, BotCard fpCharacter) {
         assignments.computeIfAbsent(fpCharacter, k -> new HashSet<>()).add(minion);
     }
-
-    /**
-     * Marks that both players have passed in assignment phase and we're now in the "assigning minions" phase.
-     */
-    public void setAssignmentPhasePlayActionsCompleted(boolean completed) {
-        this.assignmentPhasePlayActionsCompleted = completed;
-    }
-
-    /**
-     * Returns true if both players have passed and we're in the "assigning minions" phase.
-     */
-    public boolean isAssignmentPhasePlayActionsCompleted() {
-        return assignmentPhasePlayActionsCompleted;
-    }
-
-    /**
-     * Marks that FP has completed their assignment (they assign first, 1-on-1).
-     */
-    public void setFpAssignmentCompleted(boolean completed) {
-        this.fpAssignmentCompleted = completed;
-    }
-
-    /**
-     * Returns true if FP has completed their assignment.
-     */
-    public boolean isFpAssignmentCompleted() {
-        return fpAssignmentCompleted;
-    }
-
-    /**
-     * Marks that both players have passed in archery phase and we're now in the "assigning wounds" phase.
-     */
-    public void setArcheryPhasePlayActionsCompleted(boolean completed) {
-        this.archeryPhasePlayActionsCompleted = completed;
-    }
-
-    /**
-     * Returns true if both players have passed and we're in the "assigning wounds" phase of archery.
-     */
-    public boolean isArcheryPhasePlayActionsCompleted() {
-        return archeryPhasePlayActionsCompleted;
-    }
-
 
     /**
      * Applies an archery wound to the specified target and decrements the remaining wound counter.
      * Automatically determines whether it's FP or Shadow assigning the wound based on the target's side.
      */
-    public void applyArcheryWound(BotCard target) {
+    private void applyArcheryWound(BotCard target) {
         // Apply the wound
         wound(target, 1);
 
@@ -839,7 +778,7 @@ public class PlannedBoardState {
     /**
      * Sets the current skirmish being resolved (the FP character in the skirmish).
      */
-    public void setCurrentSkirmish(BotCard fpCharacter) {
+    private void setCurrentSkirmish(BotCard fpCharacter) {
         if (!assignments.containsKey(fpCharacter)) {
             throw new IllegalStateException("Cannot set current skirmish: no minions assigned to " + fpCharacter.getSelf().getBlueprint().getFullName());
         }
@@ -847,17 +786,10 @@ public class PlannedBoardState {
     }
 
     /**
-     * Gets the current skirmish being resolved (the FP character in the skirmish).
-     */
-    public BotCard getCurrentSkirmish() {
-        return currentSkirmish;
-    }
-
-    /**
      * Resolves the current skirmish by comparing strengths and dealing damage.
      * Throws an exception if no skirmish is currently active.
      */
-    public void resolveCurrentSkirmish() {
+    private void resolveCurrentSkirmish() {
         if (currentSkirmish == null) {
             throw new IllegalStateException("Cannot resolve skirmish: no current skirmish is set");
         }
@@ -951,20 +883,12 @@ public class PlannedBoardState {
         }
     }
 
-    public void heal(BotCard botCard) {
-        heal(botCard, 1);
-    }
-
     public void heal(BotCard botCard, int amount) {
         int realAmount = Math.min(amount, getWounds(botCard));
 
         if (cardTokens.get(botCard).containsKey(Token.WOUND)) {
             cardTokens.get(botCard).put(Token.WOUND, cardTokens.get(botCard).get(Token.WOUND) - realAmount);
         }
-    }
-
-    public void exert(BotCard botCard) {
-        exert(botCard, 1);
     }
 
     public void exert(BotCard botCard, int amount) {
@@ -987,7 +911,7 @@ public class PlannedBoardState {
         }
     }
 
-    public void kill(BotCard botCard) {
+    private void kill(BotCard botCard) {
         if (botCard.getSelf().getBlueprint().getSide().equals(Side.SHADOW)) {
             discardFromPlay(botCard);
         } else if (botCard.getSelf().getBlueprint().getSide().equals(Side.FREE_PEOPLE)) {
@@ -1160,15 +1084,15 @@ public class PlannedBoardState {
         playCard(botCard, null, twilightModifier);
     }
 
-    public void playCard(BotCard botCard, List<BotCard> targets) {
+    private void playCard(BotCard botCard, List<BotCard> targets) {
         playCard(botCard, targets, 0);
     }
 
-    public void playCard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
+    private void playCard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
         playCardInternal(botCard, targets, null, twilightModifier, CardZone.HAND);
     }
 
-    public void playCard(BotCard botCard, List<BotCard> targets, List<BotCard> costTargets) {
+    private void playCard(BotCard botCard, List<BotCard> targets, List<BotCard> costTargets) {
         playCardInternal(botCard, targets, costTargets, 0, CardZone.HAND);
     }
 
@@ -1198,19 +1122,19 @@ public class PlannedBoardState {
         playCardFromDiscard(botCard, 0);
     }
 
-    public void playCardFromDiscard(BotCard botCard, int twilightModifier) {
+    private void playCardFromDiscard(BotCard botCard, int twilightModifier) {
         playCardFromDiscard(botCard, null, twilightModifier);
     }
 
-    public void playCardFromDiscard(BotCard botCard, List<BotCard> targets) {
+    private void playCardFromDiscard(BotCard botCard, List<BotCard> targets) {
         playCardFromDiscard(botCard, targets, 0);
     }
 
-    public void playCardFromDiscard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
+    private void playCardFromDiscard(BotCard botCard, List<BotCard> targets, int twilightModifier) {
         playCardInternal(botCard, targets, null, twilightModifier, CardZone.DISCARD);
     }
 
-    public void activateAbility(BotCard botCard, Class<? extends Effect> effectClass, String player) {
+    private void activateAbility(BotCard botCard, Class<? extends Effect> effectClass, String player) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -1218,7 +1142,7 @@ public class PlannedBoardState {
         ability.resolveAbility(player, this);
     }
 
-    public void activateAbilityOnTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> targets) {
+    private void activateAbilityOnTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> targets) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -1229,7 +1153,7 @@ public class PlannedBoardState {
         ability.resolveAbilityOnTargets(player, this, targets);
     }
 
-    public void activateAbilityWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> costTargets) {
+    private void activateAbilityWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> costTargets) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -1237,7 +1161,7 @@ public class PlannedBoardState {
         ability.resolveAbilityWithCostTargets(player, this, costTargets);
     }
 
-    public void activateAbilityOnTargetWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> effectTargets, List<BotCard> costTargets) {
+    private void activateAbilityOnTargetWithCostTarget(BotCard botCard, Class<? extends Effect> effectClass, String player, List<BotCard> effectTargets, List<BotCard> costTargets) {
         ActivatedAbility ability = botCard.getActivatedAbility(effectClass);
         if (ability == null) {
             throw new IllegalStateException("Card does not have ability for effect class: " + effectClass.getSimpleName());
@@ -1248,7 +1172,7 @@ public class PlannedBoardState {
         ability.resolveAbilityOnTargetsWithCostTargets(player, this, effectTargets, costTargets);
     }
 
-    public void activateTriggeredAbility(BotCard botCard, String player) {
+    private void activateTriggeredAbility(BotCard botCard, String player) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1256,7 +1180,7 @@ public class PlannedBoardState {
         ability.resolveAbility(player, this);
     }
 
-    public void activateTriggeredAbilityOnTarget(BotCard botCard, String player, List<BotCard> targets) {
+    private void activateTriggeredAbilityOnTarget(BotCard botCard, String player, List<BotCard> targets) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1267,7 +1191,7 @@ public class PlannedBoardState {
         ability.resolveAbilityOnTargets(player, this, targets);
     }
 
-    public void activateTriggeredAbilityWithCostTarget(BotCard botCard, String player, List<BotCard> costTargets) {
+    private void activateTriggeredAbilityWithCostTarget(BotCard botCard, String player, List<BotCard> costTargets) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1275,7 +1199,7 @@ public class PlannedBoardState {
         ability.resolveAbilityWithCostTargets(player, this, costTargets);
     }
 
-    public void activateTriggeredAbilityOnTargetWithCostTarget(BotCard botCard, String player, List<BotCard> effectTargets, List<BotCard> costTargets) {
+    private void activateTriggeredAbilityOnTargetWithCostTarget(BotCard botCard, String player, List<BotCard> effectTargets, List<BotCard> costTargets) {
         TriggeredAbility ability = botCard.getTriggeredAbility();
         if (ability == null) {
             throw new IllegalStateException("Card does not have triggered ability: " + botCard.getSelf().getBlueprint().getFullName());
@@ -1286,12 +1210,12 @@ public class PlannedBoardState {
         ability.resolveAbilityOnTargetsWithCostTargets(player, this, effectTargets, costTargets);
     }
 
-    public void healByDiscard(BotCard discardedCard) {
+    private void healByDiscard(BotCard discardedCard) {
         AtomicBoolean healed = new AtomicBoolean(false);
         inPlayFpCards.values().forEach(lists -> lists.forEach(botCard -> {
             if (discardedCard.getSelf().getBlueprint().getTitle().equals(botCard.getSelf().getBlueprint().getTitle())
                     && discardedCard.getSelf().getOwner().equals(botCard.getSelf().getOwner())) {
-                heal(botCard);
+                heal(botCard, 1);
                 hands.get(botCard.getSelf().getOwner()).remove(discardedCard);
                 discards.get(botCard.getSelf().getOwner()).add(discardedCard);
                 revealedHands.get(botCard.getSelf().getOwner()).remove(botCard);
@@ -1370,10 +1294,6 @@ public class PlannedBoardState {
 
     public Phase getCurrentPhase() {
         return phase;
-    }
-
-    public int getMovesMade() {
-        return movesMade;
     }
 
     public boolean fellowshipCanMove() {
@@ -1463,7 +1383,7 @@ public class PlannedBoardState {
         return false;
     }
 
-    public int getFpArcheryTotal() {
+    private int getFpArcheryTotal() {
         int total = 0;
         for (BotCard botCard : getFpCardsInPlay(currentPlayer)) {
             total += botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0 ? 1 : 0;
@@ -1471,7 +1391,7 @@ public class PlannedBoardState {
         return total;
     }
 
-    public int getShadowArcheryTotal() {
+    private int getShadowArcheryTotal() {
         int total = 0;
         for (BotCard botCard : getShadowCardsInPlay(getCurrentShadowPlayer())) {
             total += botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0 ? 1 : 0;
@@ -1573,7 +1493,7 @@ public class PlannedBoardState {
      * Gets all minions that have been assigned to any FP character.
      * @return Set of assigned minions
      */
-    public Set<BotCard> getAssignedMinions() {
+    private Set<BotCard> getAssignedMinions() {
         Set<BotCard> assignedMinions = new HashSet<>();
         assignments.values().forEach(assignedMinions::addAll);
         return assignedMinions;
@@ -1583,7 +1503,7 @@ public class PlannedBoardState {
      * Gets all unassigned minions currently in play.
      * @return List of unassigned minions
      */
-    public List<BotCard> getUnassignedMinions() {
+    private List<BotCard> getUnassignedMinions() {
         Set<BotCard> assigned = getAssignedMinions();
         return getShadowCardsInPlay(getCurrentShadowPlayer()).stream()
                 .filter(card -> CardType.MINION.equals(card.getSelf().getBlueprint().getCardType()))
@@ -1608,49 +1528,6 @@ public class PlannedBoardState {
                 .anyMatch(predicate);
 
     }
-
-    public boolean canSpot(String owner, String title) {
-        return canSpot(owner, card -> card.getSelf().getBlueprint().getTitle().equals(title));
-    }
-
-    public boolean canSpot(String owner, Race race) {
-        return canSpot(owner, card -> race.equals(card.getSelf().getBlueprint().getRace()));
-    }
-
-    public boolean canSpot(String owner, CardType cardType) {
-        return canSpot(owner, card -> cardType.equals(card.getSelf().getBlueprint().getCardType()));
-    }
-
-    public boolean canSpot(String owner, Race race, CardType cardType) {
-        return canSpot(owner, card -> cardType.equals(card.getSelf().getBlueprint().getCardType()) && race.equals(card.getSelf().getBlueprint().getRace()));
-    }
-
-    /*
-        EXERT CHECKS
-     */
-    public boolean canExert(String owner, Predicate<BotCard> predicate) {
-        return Stream.concat(
-                        inPlayFpCards.values().stream().flatMap(List::stream),
-                        inPlayShadowCards.values().stream().flatMap(List::stream))
-                .filter(this::hasVitalityToExert)
-                .filter(card -> card.getSelf().getOwner().equals(owner))
-                .anyMatch(predicate);
-    }
-
-    public boolean canExert(String owner, String title) {
-        return canExert(owner, card -> card.getSelf().getBlueprint().getTitle().equals(title));
-    }
-
-    public boolean canExert(String owner, Race race) {
-        return canExert(owner, card -> race.equals(card.getSelf().getBlueprint().getRace()));
-    }
-
-    public boolean canExert(String owner, Race race, CardType cardType) {
-        return canExert(owner, card -> cardType.equals(card.getSelf().getBlueprint().getCardType()) && race.equals(card.getSelf().getBlueprint().getRace()));
-    }
-
-
-
 
     public String getOpponent(String player) {
         for (String s : players) {
