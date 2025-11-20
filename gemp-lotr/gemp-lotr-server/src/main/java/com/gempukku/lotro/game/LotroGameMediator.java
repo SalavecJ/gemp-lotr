@@ -410,7 +410,7 @@ public class LotroGameMediator {
                     if (awaitingDecision != null) {
                         if (awaitingDecision.getAwaitingDecisionId() == decisionId && !_lotroGame.isFinished()) {
                             try {
-                                _userFeedback.participantDecided(playerName);
+                                _userFeedback.participantDecided(playerName, answer);
                                 awaitingDecision.decisionMade(answer);
 
                                 // Decision successfully made, add the time to user clock
@@ -456,7 +456,7 @@ public class LotroGameMediator {
                     }
 
                     try {
-                        _userFeedback.participantDecided(botName);
+                        _userFeedback.participantDecided(botName, answer);
                         awaitingDecision.decisionMade(answer);
 
                         // Decision successfully made, add the time to user clock

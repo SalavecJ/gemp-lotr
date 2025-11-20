@@ -359,7 +359,7 @@ public abstract class AbstractAtTest {
 
     public void playerDecided(String player, String answer) throws DecisionResultInvalidException {
         AwaitingDecision decision = _userFeedback.getAwaitingDecision(player);
-        _userFeedback.participantDecided(player);
+        _userFeedback.participantDecided(player, answer);
         try {
             decision.decisionMade(answer);
         } catch (DecisionResultInvalidException exp) {

@@ -344,7 +344,7 @@ public class VirtualTableScenario implements TestBase, Actions, AdHocEffects, Ca
      */
     public void PlayerDecided(String player, String answer) throws DecisionResultInvalidException {
         var decision = userFeedback().getAwaitingDecision(player);
-        userFeedback().participantDecided(player);
+        userFeedback().participantDecided(player, answer);
         try {
             decision.decisionMade(answer);
         } catch (DecisionResultInvalidException exp) {

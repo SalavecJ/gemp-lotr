@@ -13,15 +13,18 @@ public class DefaultUserFeedback implements UserFeedback {
 
     private LotroGame _game;
 
+    @Override
     public void setGame(LotroGame game) {
         _game = game;
     }
 
-    public void participantDecided(String playerId) {
+    @Override
+    public void participantDecided(String playerId, String answer) {
         _awaitingDecisionMap.remove(playerId);
-        _game.getGameState().playerDecisionFinished(playerId);
+        _game.getGameState().playerDecisionFinished(playerId, answer);
     }
 
+    @Override
     public AwaitingDecision getAwaitingDecision(String playerId) {
         return _awaitingDecisionMap.get(playerId);
     }

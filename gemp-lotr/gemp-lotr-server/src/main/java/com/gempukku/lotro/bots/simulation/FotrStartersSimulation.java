@@ -81,7 +81,7 @@ public class FotrStartersSimulation implements Simulation {
         AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(bot1.getName());
         String action = bot1.chooseAction(lotroGame, awaitingDecision);
         try {
-            userFeedback.participantDecided(bot1.getName());
+            userFeedback.participantDecided(bot1.getName(), action);
             awaitingDecision.decisionMade(action);
             lotroGame.carryOutPendingActionsUntilDecisionNeeded();
         } catch (DecisionResultInvalidException e) {

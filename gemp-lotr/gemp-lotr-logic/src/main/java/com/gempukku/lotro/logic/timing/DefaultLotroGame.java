@@ -10,6 +10,8 @@ import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.PreGameInfo;
 import com.gempukku.lotro.game.state.actions.DefaultActionsEnvironment;
 import com.gempukku.lotro.logic.PlayerOrder;
+import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 import com.gempukku.lotro.logic.modifiers.ModifiersEnvironment;
 import com.gempukku.lotro.logic.modifiers.ModifiersLogic;
 import com.gempukku.lotro.logic.modifiers.ModifiersQuerying;
@@ -45,6 +47,8 @@ public class DefaultLotroGame implements LotroGame {
 
     private final Set<String> _requestedCancel = new HashSet<>();
     private final LotroCardBlueprintLibrary _library;
+
+    private final Map<String, LotroDeck> _decks;
 
     public DefaultLotroGame(LotroFormat format, Map<String, LotroDeck> decks, UserFeedback userFeedback, final LotroCardBlueprintLibrary library) {
         this(format, decks, userFeedback, library, "No timer", false, "Test Match");
@@ -127,6 +131,117 @@ public class DefaultLotroGame implements LotroGame {
         ruleSet.applyRuleSet();
 
         _adventure.applyAdventureRules(this, _actionsEnvironment, _modifiersLogic);
+
+        // For copying the game
+        _decks = decks;
+    }
+
+    public DefaultLotroGame getCopyForSimulation(UserFeedback userFeedback) {
+        DefaultLotroGame copy = new DefaultLotroGame(_format, _decks, userFeedback, _library);
+        userFeedback.setGame(copy);
+
+        copy.getGameState().setSeedsToUseToShuffle(_gameState.getSeedsUsedToShuffle());
+
+        copy.startGame();
+
+        List<GameState.DecisionInfo> decisions = _gameState.getDecisionsMade();
+        decisions.removeIf(decision -> decision.getAnswer() == null);
+
+
+        for (int i = 0; i < decisions.size(); i++) {
+            GameState.DecisionInfo decision = decisions.get(i);
+            AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(decision.getPlayer());
+            System.out.println("Executing decision " + (i + 1) + " of " + decisions.size());
+            System.out.println("Original: " + decision.getDecisionJson());
+            if (awaitingDecision == null) {
+                System.out.println("User feedback pending decisions: " + userFeedback.hasPendingDecisions());
+                throw new IllegalStateException("No decision pending for player " + decision.getPlayer());
+            }
+            System.out.println("Copy:     " + awaitingDecision.toJson().toString());
+            if (decisionsMatch(decision.getDecisionJson(), awaitingDecision.toJson().toString())) {
+                String answer = decision.getAnswer();
+                userFeedback.participantDecided(decision.getPlayer(), answer);
+                try {
+                    awaitingDecision.decisionMade(answer);
+                } catch (DecisionResultInvalidException e) {
+                    throw new IllegalStateException("Decision made in original game is invalid in copied game");
+                }
+                copy.carryOutPendingActionsUntilDecisionNeeded();
+            } else {
+                throw new IllegalStateException("Decisions do not match when copying the game state");
+            }
+        }
+
+        return copy;
+    }
+
+    /**
+     * Compares two decision JSON strings, ignoring the order of elements in arrays.
+     * This is necessary because card collections may have different iteration orders
+     * but represent the same decision.
+     */
+    private boolean decisionsMatch(String json1, String json2) {
+        // Quick check - if they're exactly equal, we're done
+        if (json1.equals(json2)) {
+            return true;
+        }
+
+        // Parse and normalize the JSON strings by sorting array values
+        return normalizeDecisionJson(json1).equals(normalizeDecisionJson(json2));
+    }
+
+    /**
+     * Normalizes a decision JSON by sorting all array values (like physicalCards, freeCharacters, minions, etc.).
+     * This allows order-independent comparison.
+     */
+    private String normalizeDecisionJson(String json) {
+        StringBuilder result = new StringBuilder();
+        int pos = 0;
+
+        // Find all arrays in the JSON and sort them
+        while (pos < json.length()) {
+            int arrayStart = json.indexOf(":[", pos);
+            if (arrayStart == -1) {
+                // No more arrays, append the rest
+                result.append(json.substring(pos));
+                break;
+            }
+
+            // Append everything up to and including the opening bracket
+            result.append(json, pos, arrayStart + 2);
+
+            // Find the closing bracket
+            int arrayEnd = json.indexOf(']', arrayStart + 2);
+            if (arrayEnd == -1) {
+                // Malformed JSON, append the rest as-is
+                result.append(json.substring(arrayStart + 2));
+                break;
+            }
+
+            // Extract array content
+            String arrayContent = json.substring(arrayStart + 2, arrayEnd);
+
+            // Only sort if it's a non-empty array with string elements (contains quotes)
+            if (!arrayContent.trim().isEmpty() && arrayContent.contains("\"")) {
+                // Split by comma and sort
+                String[] elements = arrayContent.split(",");
+                Arrays.sort(elements);
+
+                // Append sorted elements
+                for (int i = 0; i < elements.length; i++) {
+                    if (i > 0) result.append(',');
+                    result.append(elements[i]);
+                }
+            } else {
+                // Not a string array or empty, keep as-is
+                result.append(arrayContent);
+            }
+
+            // Move past the closing bracket
+            pos = arrayEnd;
+        }
+
+        return result.toString();
     }
 
 

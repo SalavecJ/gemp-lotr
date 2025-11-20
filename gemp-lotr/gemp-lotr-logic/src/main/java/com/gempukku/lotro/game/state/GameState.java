@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -62,6 +61,44 @@ public class GameState {
     private final Map<String, PhysicalCard> _maps = new HashMap<>();
 
     private final Map<String, AwaitingDecision> _playerDecisions = new HashMap<>();
+
+    public static class DecisionInfo {
+        private final String player;
+        private final String decisionJson;
+        private String answer;
+        public DecisionInfo(String player, String decisionJson) {
+            this.player = player;
+            this.decisionJson = decisionJson;
+        }
+
+        public void setAnswer(String answer) {
+            this.answer = answer;
+        }
+
+        public String getPlayer() {
+            return player;
+        }
+
+        public String getDecisionJson() {
+            return decisionJson;
+        }
+
+        public String getAnswer() {
+            return answer;
+        }
+
+        @Override
+        public String toString() {
+            return "DecisionInfo{\n" +
+                    "player='" + player + "'\n" +
+                    ", decisionJson='" + decisionJson + "'\n" +
+                    ", answer='" + answer + '\'' +
+                    '}';
+        }
+    }
+    private final List<DecisionInfo> _decisionsMade = new ArrayList<>();
+    private final List<Long> _seedsUsedToShuffle = new ArrayList<>();
+    private final List<Long> _seedsToUseToShuffle = new ArrayList<>();
 
     private final List<Assignment> _assignments = new LinkedList<>();
     private Skirmish _skirmish = null;
@@ -351,12 +388,34 @@ public class GameState {
 
     public void playerDecisionStarted(String playerId, AwaitingDecision awaitingDecision) {
         _playerDecisions.put(playerId, awaitingDecision);
+        _decisionsMade.add(new DecisionInfo(playerId, awaitingDecision.toJson().toString()));
         for (GameStateListener listener : getAllGameStateListeners())
             listener.decisionRequired(playerId, awaitingDecision);
     }
 
-    public void playerDecisionFinished(String playerId) {
+    public void playerDecisionFinished(String playerId, String answer) {
         _playerDecisions.remove(playerId);
+        // Find the last decision made by this specific player
+        for (int i = _decisionsMade.size() - 1; i >= 0; i--) {
+            DecisionInfo decision = _decisionsMade.get(i);
+            if (decision.getPlayer().equals(playerId) && decision.getAnswer() == null) {
+                decision.setAnswer(answer);
+                break;
+            }
+        }
+    }
+
+    public List<DecisionInfo> getDecisionsMade() {
+        return new ArrayList<>(_decisionsMade);
+    }
+
+    public List<Long> getSeedsUsedToShuffle() {
+        return new ArrayList<>(_seedsUsedToShuffle);
+    }
+
+    public void setSeedsToUseToShuffle(List<Long> seeds) {
+        _seedsToUseToShuffle.clear();
+        _seedsToUseToShuffle.addAll(seeds);
     }
 
     public void transferCard(PhysicalCard card, PhysicalCard transferTo) {
@@ -1215,7 +1274,17 @@ public class GameState {
 
     public void shuffleDeck(String player) {
         List<PhysicalCardImpl> deck = _decks.get(player);
-        Collections.shuffle(deck, ThreadLocalRandom.current());
+        long seed;
+        if (_seedsToUseToShuffle.isEmpty()) {
+            // Generate a new random seed
+            seed = new Random().nextLong();
+        } else {
+            // Use a pre-determined seed for replay
+            seed = _seedsToUseToShuffle.removeFirst();
+        }
+        _seedsUsedToShuffle.add(seed);
+        // Create a new Random with the seed each time to ensure reproducibility
+        Collections.shuffle(deck, new Random(seed));
     }
 
     public void sendGameStats(GameStats gameStats) {
