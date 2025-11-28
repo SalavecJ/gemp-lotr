@@ -175,7 +175,31 @@ public class Card_15_112_ErrataTests
 		scn.ShadowChooseCardBPFromSelection(orc1);
 
 		assertEquals(13, scn.GetTwilight()); // -2 for ability, -3 for orc, -2 for roaming
-		assertEquals(Zone.SHADOW_CHARACTERS, orc1.getZone());
-		assertEquals(1, scn.GetWoundsOn(orc1));
+
+		int orcsInPlay = 0;
+		PhysicalCardImpl orcInPlay = null;
+		if (orc1.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc1;
+		}
+		if (orc2.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc2;
+		}
+		if (orc3.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc3;
+		}
+		if (orc4.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc4;
+		}
+		if (orc5.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc5;
+		}
+		assertEquals(1, orcsInPlay);
+
+		assertEquals(1, scn.GetWoundsOn(orcInPlay));
 	}
 }

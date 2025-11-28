@@ -33,4 +33,12 @@ public class AfterSkirmishesGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        AfterSkirmishesGameProcess copy = new AfterSkirmishesGameProcess();
+        if (_followingGameProcess != null)
+            copy._followingGameProcess = _followingGameProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

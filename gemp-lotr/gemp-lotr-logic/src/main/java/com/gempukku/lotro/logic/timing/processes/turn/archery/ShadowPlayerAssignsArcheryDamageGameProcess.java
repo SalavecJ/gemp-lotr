@@ -51,4 +51,9 @@ public class ShadowPlayerAssignsArcheryDamageGameProcess implements GameProcess 
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new ShadowPlayerAssignsArcheryDamageGameProcess(_playerId, _woundsToAssign, _followingGameProcess.copyThisForNewGame(game));
+    }
 }

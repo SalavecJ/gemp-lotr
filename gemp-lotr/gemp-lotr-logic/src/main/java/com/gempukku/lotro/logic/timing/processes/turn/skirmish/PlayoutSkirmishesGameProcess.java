@@ -71,7 +71,7 @@ public class PlayoutSkirmishesGameProcess implements GameProcess {
                 chooseNextSkirmishAction.appendEffect(chooseNextSkirmish);
 
                 game.getActionsEnvironment().addActionToStack(chooseNextSkirmishAction);
-                _nextProcess = this;
+                _nextProcess = new PlayoutSkirmishesGameProcess();
             } else {
                 _nextProcess = new AfterSkirmishesGameProcess();
             }
@@ -89,5 +89,13 @@ public class PlayoutSkirmishesGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return _nextProcess;
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        PlayoutSkirmishesGameProcess copy = new PlayoutSkirmishesGameProcess();
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
     }
 }

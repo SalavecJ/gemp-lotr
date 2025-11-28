@@ -25,4 +25,9 @@ public class DiscardAllMinionsGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new DiscardAllMinionsGameProcess(_followingGameProcess.copyThisForNewGame(game));
+    }
 }

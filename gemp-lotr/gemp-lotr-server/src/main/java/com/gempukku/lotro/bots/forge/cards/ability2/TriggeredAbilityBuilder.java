@@ -1,29 +1,18 @@
 package com.gempukku.lotro.bots.forge.cards.ability2;
-import com.gempukku.lotro.bots.forge.cards.ability2.condition.Condition;
+
 import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
-import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.function.BiFunction;
 
 public class TriggeredAbilityBuilder {
     private Boolean optional;
-    private Trigger trigger;
-    private List<Condition> conditions = new ArrayList<>();
     private Effect effect;
     private Cost cost;
+    private BiFunction<String, DefaultLotroGame, Boolean> goodToUseFunction;
 
     public TriggeredAbilityBuilder() {
-    }
-
-    public TriggeredAbilityBuilder trigger(Trigger trigger) {
-        if (this.trigger != null) {
-            throw new IllegalStateException("Already has a trigger");
-        }
-        this.trigger = trigger;
-        return this;
     }
 
     public TriggeredAbilityBuilder cost(Cost cost) {
@@ -31,11 +20,6 @@ public class TriggeredAbilityBuilder {
             throw new IllegalStateException("Already has a cost");
         }
         this.cost = cost;
-        return this;
-    }
-
-    public TriggeredAbilityBuilder condition(Condition condition) {
-        conditions.add(condition);
         return this;
     }
 
@@ -56,16 +40,27 @@ public class TriggeredAbilityBuilder {
         return this;
     }
 
-    public TriggeredAbility build() {
-        if (trigger == null) {
-            throw new IllegalStateException("Triggered abilities must have trigger");
+    public TriggeredAbilityBuilder goodToUseFunction(BiFunction<String, DefaultLotroGame, Boolean> goodToUseFunction) {
+        if (this.goodToUseFunction != null) {
+            throw new IllegalStateException("Already has goodToUseFunction set");
         }
+        this.goodToUseFunction = goodToUseFunction;
+        return this;
+    }
+
+    public TriggeredAbility build() {
         if (optional == null) {
             throw new IllegalStateException("Triggered abilities must be explicitly set as optional or not");
         }
         if (effect == null) {
             throw new IllegalStateException("Triggered abilities must have effect");
         }
-        return new TriggeredAbility(optional, trigger, conditions, effect, cost);
+        if (goodToUseFunction == null && optional) {
+            throw new IllegalStateException("Optional triggered abilities must have goodToUseFunction to be determined when to use");
+        }
+        if (goodToUseFunction != null && !optional) {
+            throw new IllegalStateException("Non-optional triggered abilities cannot have goodToUseFunction");
+        }
+        return new TriggeredAbility(optional, effect, cost, goodToUseFunction);
     }
 }

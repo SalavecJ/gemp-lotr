@@ -49,4 +49,12 @@ public class PlayerPlaysPhaseActionsUntilPassesGameProcess implements GameProces
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        PlayerPlaysPhaseActionsUntilPassesGameProcess copy = new PlayerPlaysPhaseActionsUntilPassesGameProcess(_playerId, _followingGameProcess.copyThisForNewGame(game));
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

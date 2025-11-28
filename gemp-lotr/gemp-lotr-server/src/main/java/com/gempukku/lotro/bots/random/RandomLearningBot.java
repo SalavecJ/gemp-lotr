@@ -7,8 +7,8 @@ import com.gempukku.lotro.bots.rl.learning.ReplayBuffer;
 import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.state.GameState;
-import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,7 @@ public class RandomLearningBot extends RandomDecisionBot implements LearningBotP
     }
 
     @Override
-    public String chooseAction(LotroGame game, AwaitingDecision decision) {
+    public String chooseAction(DefaultLotroGame game, AwaitingDecision decision) {
         double[] stateVector = features.extractFeatures(game.getGameState(), decision, getName());
 
         SemanticAction action = pickSemanticAction(decision, game);
@@ -37,7 +37,7 @@ public class RandomLearningBot extends RandomDecisionBot implements LearningBotP
         return action.toDecisionString(decision, game.getGameState());
     }
 
-    private SemanticAction pickSemanticAction(AwaitingDecision decision, LotroGame game) {
+    private SemanticAction pickSemanticAction(AwaitingDecision decision, DefaultLotroGame game) {
         String action = super.chooseAction(game, decision);
 
         return switch (decision.getDecisionType()) {

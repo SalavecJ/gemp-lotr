@@ -9,12 +9,14 @@ public abstract class PlayerAssignMinionsDecision extends AbstractAwaitingDecisi
     private final List<PhysicalCard> _freeCharacters;
     private final List<PhysicalCard> _minions;
 
-    public PlayerAssignMinionsDecision(int id, String text, Collection<PhysicalCard> freeCharacters, Collection<PhysicalCard> minions) {
+    public PlayerAssignMinionsDecision(int id, String text, Collection<PhysicalCard> freeCharacters, Collection<PhysicalCard> minions,
+                                       boolean fpAssignment) {
         super(id, text, AwaitingDecisionType.ASSIGN_MINIONS);
         _freeCharacters = new LinkedList<>(freeCharacters);
         _minions = new LinkedList<>(minions);
         setParam("freeCharacters", getCardIds(_freeCharacters));
         setParam("minions", getCardIds(_minions));
+        setParam("player", fpAssignment ? "fp" : "shadow");
     }
 
     public PlayerAssignMinionsDecision(int id, String text, List<String> freeCharacterIds, List<String> minionIds) {
@@ -27,7 +29,7 @@ public abstract class PlayerAssignMinionsDecision extends AbstractAwaitingDecisi
 
     protected Map<PhysicalCard, Set<PhysicalCard>> getAssignmentsBasedOnResponse(String response) throws DecisionResultInvalidException {
         Map<PhysicalCard, Set<PhysicalCard>> assignments = new HashMap<>();
-        if (response.equals(""))
+        if (response.isEmpty())
             return assignments;
 
         Set<PhysicalCard> assignedMinions = new HashSet<>();

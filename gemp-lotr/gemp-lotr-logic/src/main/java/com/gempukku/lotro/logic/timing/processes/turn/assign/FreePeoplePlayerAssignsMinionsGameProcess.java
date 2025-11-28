@@ -56,7 +56,7 @@ public class FreePeoplePlayerAssignsMinionsGameProcess implements GameProcess {
 
 
                             game.getUserFeedback().sendAwaitingDecision(gameState.getCurrentPlayerId(),
-                                    new PlayerAssignMinionsDecision(1, "Assign minions to companions or allies at home", freePeopleTargets, minions) {
+                                    new PlayerAssignMinionsDecision(1, "Assign minions to companions or allies at home", freePeopleTargets, minions, true) {
                                         @Override
                                         public void decisionMade(String result) throws DecisionResultInvalidException {
                                             Map<PhysicalCard, Set<PhysicalCard>> assignments = getAssignmentsBasedOnResponse(result);
@@ -106,5 +106,20 @@ public class FreePeoplePlayerAssignsMinionsGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return _game.getFormat().getAdventure().getAfterFellowshipAssignmentGameProcess(_leftoverMinions, _followingAssignments);
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        FreePeoplePlayerAssignsMinionsGameProcess copy = new FreePeoplePlayerAssignsMinionsGameProcess(_followingAssignments.copyThisForNewGame(game));
+        copy._game = game;
+        if (_leftoverMinions != null) {
+            Set<PhysicalCard> unassignedMinions = new HashSet<>();
+            for (PhysicalCard minion : _leftoverMinions) {
+                PhysicalCard minionInNewGame = game.getGameState().findCardById(minion.getCardId());
+                unassignedMinions.add(minionInNewGame);
+            }
+            copy._leftoverMinions = unassignedMinions;
+        }
+        return copy;
     }
 }

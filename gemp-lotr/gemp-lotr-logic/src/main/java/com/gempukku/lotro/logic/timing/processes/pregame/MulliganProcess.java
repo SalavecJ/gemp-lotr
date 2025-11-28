@@ -9,7 +9,7 @@ import com.gempukku.lotro.logic.decisions.MultipleChoiceAwaitingDecision;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
 import com.gempukku.lotro.logic.timing.processes.turn.EndOfTurnGameProcess;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class MulliganProcess implements GameProcess {
@@ -34,7 +34,7 @@ public class MulliganProcess implements GameProcess {
                             if (index == 1) {
                                 final GameState gameState = game.getGameState();
                                 gameState.sendMessage(nextPlayer + " mulligans");
-                                Set<PhysicalCard> hand = new HashSet<>(gameState.getHand(nextPlayer));
+                                Set<PhysicalCard> hand = new LinkedHashSet<>(gameState.getHand(nextPlayer));
                                 gameState.removeCardsFromZone(nextPlayer, hand);
                                 for (PhysicalCard card : hand)
                                     gameState.addCardToZone(game, card, Zone.DECK);
@@ -56,5 +56,13 @@ public class MulliganProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return _nextProcess;
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        MulliganProcess copy = new MulliganProcess(new PlayOrder(_playOrder));
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
     }
 }

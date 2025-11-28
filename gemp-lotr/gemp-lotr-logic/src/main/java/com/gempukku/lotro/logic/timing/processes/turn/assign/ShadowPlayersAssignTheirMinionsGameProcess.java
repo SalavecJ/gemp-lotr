@@ -6,6 +6,7 @@ import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.PlayOrder;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class ShadowPlayersAssignTheirMinionsGameProcess implements GameProcess {
@@ -31,5 +32,15 @@ public class ShadowPlayersAssignTheirMinionsGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return new ShadowPlayerAssignsHisMinionsGameProcess(_shadowOrder, _firstShadowPlayer, _leftoverMinions, _followingProcess);
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        ShadowPlayersAssignTheirMinionsGameProcess copy = new ShadowPlayersAssignTheirMinionsGameProcess(_followingProcess.copyThisForNewGame(game), new HashSet<>(_leftoverMinions));
+        if (_shadowOrder != null) {
+            copy._shadowOrder = new PlayOrder(_shadowOrder);
+            copy._firstShadowPlayer = _firstShadowPlayer;
+        }
+        return copy;
     }
 }

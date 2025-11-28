@@ -18,4 +18,9 @@ public class BetweenTurnsProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return new StartOfTurnGameProcess();
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new BetweenTurnsProcess();
+    }
 }

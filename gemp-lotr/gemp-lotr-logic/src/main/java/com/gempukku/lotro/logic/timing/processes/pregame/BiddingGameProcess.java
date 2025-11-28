@@ -14,10 +14,12 @@ public class BiddingGameProcess implements GameProcess {
     private final Set<String> _players;
     private final PlayerOrderFeedback _playerOrderFeedback;
     private final Map<String, Integer> _bids = new LinkedHashMap<>();
+    private final long _seedToResolveBiddingTie;
 
-    public BiddingGameProcess(Set<String> players, PlayerOrderFeedback playerOrderFeedback) {
+    public BiddingGameProcess(Set<String> players, PlayerOrderFeedback playerOrderFeedback, long seedToResolveBiddingTie) {
         _players = players;
         _playerOrderFeedback = playerOrderFeedback;
+        _seedToResolveBiddingTie = seedToResolveBiddingTie;
     }
 
     @Override
@@ -46,6 +48,11 @@ public class BiddingGameProcess implements GameProcess {
 
     @Override
     public GameProcess getNextProcess() {
-        return new ChooseSeatingOrderGameProcess(_bids, _playerOrderFeedback);
+        return new ChooseSeatingOrderGameProcess(_bids, _playerOrderFeedback, _seedToResolveBiddingTie);
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        throw new UnsupportedOperationException("Initial process cannot be copied for new game. Use game replay method instead.");
     }
 }

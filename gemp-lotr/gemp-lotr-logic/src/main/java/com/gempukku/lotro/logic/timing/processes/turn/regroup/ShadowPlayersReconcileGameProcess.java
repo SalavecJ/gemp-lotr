@@ -30,4 +30,9 @@ public class ShadowPlayersReconcileGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new ShadowPlayersReconcileGameProcess(_followingGameProcess.copyThisForNewGame(game));
+    }
 }

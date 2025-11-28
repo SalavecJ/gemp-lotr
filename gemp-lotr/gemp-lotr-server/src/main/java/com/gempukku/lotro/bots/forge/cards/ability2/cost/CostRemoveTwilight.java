@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.cost;
 
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class CostRemoveTwilight extends Cost {
     protected final int amount;
@@ -10,19 +11,14 @@ public class CostRemoveTwilight extends Cost {
     }
 
     @Override
-    public void pay(String player, PlannedBoardState plannedBoardState) {
-        plannedBoardState.removeTwilight(amount);
+    public boolean canPayCost(String player, DefaultLotroGame game) {
+        return game.getGameState().getTwilightPool() >= amount;
     }
 
     @Override
-    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getTwilight() >= amount;
-    }
-
-    @Override
-    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
+    public double getValueIfPayed(String player, DefaultLotroGame game) {
         double returnValue = (double) amount * 0.4;
-        if (player.equals(plannedBoardState.getCurrentShadowPlayer())) {
+        if (player.equals(game.getGameState().getCurrentShadowPlayer())) {
             returnValue *= -1;
         }
 
@@ -30,7 +26,7 @@ public class CostRemoveTwilight extends Cost {
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState) {
+    public String toString(String player, DefaultLotroGame game) {
         return "remove " + amount + " twilight";
     }
 }

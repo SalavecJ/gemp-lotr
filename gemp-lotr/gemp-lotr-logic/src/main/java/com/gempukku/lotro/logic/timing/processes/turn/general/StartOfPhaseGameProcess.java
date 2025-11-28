@@ -60,4 +60,9 @@ public class StartOfPhaseGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new StartOfPhaseGameProcess(_phase, _playerId, _followingGameProcess.copyThisForNewGame(game));
+    }
 }

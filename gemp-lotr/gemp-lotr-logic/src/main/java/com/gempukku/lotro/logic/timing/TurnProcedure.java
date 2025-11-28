@@ -13,6 +13,8 @@ import com.gempukku.lotro.logic.decisions.ActionSelectionDecision;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
 import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
+import com.gempukku.lotro.logic.timing.processes.turn.*;
+import com.gempukku.lotro.logic.timing.processes.turn.skirmish.PlayoutSkirmishesGameProcess;
 import com.gempukku.lotro.logic.timing.results.DiscardCardsFromPlayResult;
 import com.gempukku.lotro.logic.timing.results.KilledResult;
 import com.gempukku.lotro.logic.timing.results.ReturnCardsToHandResult;
@@ -26,7 +28,7 @@ import java.util.*;
 // Decision is also an Effect.
 public class TurnProcedure {
     private final UserFeedback _userFeedback;
-    private final LotroGame _game;
+    private final DefaultLotroGame _game;
     private final ActionStack _actionStack;
     private final CharacterDeathRule _characterDeathRule;
     private GameProcess _gameProcess;
@@ -34,9 +36,9 @@ public class TurnProcedure {
     private final GameStats _gameStats;
     private final InitiativeChangeRule _initiativeChangeRule = new InitiativeChangeRule();
 
-    public TurnProcedure(LotroGame lotroGame, Set<String> players, final UserFeedback userFeedback, ActionStack actionStack,
+    public TurnProcedure(DefaultLotroGame lotroGame, Set<String> players, final UserFeedback userFeedback, ActionStack actionStack,
             final PlayerOrderFeedback playerOrderFeedback, final PregameSetupFeedback pregameSetupFeedback,
-            CharacterDeathRule characterDeathRule) {
+            CharacterDeathRule characterDeathRule, long seedToResolveBiddingTie) {
         _userFeedback = userFeedback;
         _game = lotroGame;
         _actionStack = actionStack;
@@ -45,11 +47,27 @@ public class TurnProcedure {
         _gameStats = new GameStats();
 
         _gameProcess = lotroGame.getFormat().getAdventure()
-                .getStartingGameProcess(players, playerOrderFeedback, pregameSetupFeedback);
+                .getStartingGameProcess(players, playerOrderFeedback, pregameSetupFeedback, seedToResolveBiddingTie);
     }
 
     public GameStats getGameStats() {
         return _gameStats;
+    }
+
+    public GameProcess getGameProcess() {
+        return _gameProcess;
+    }
+
+    /**
+     * Sets the current game process. Use with caution! State dependant method!
+     * @param gameProcess the new game process
+     */
+    public void setGameProcess(GameProcess gameProcess) {
+        _gameProcess = gameProcess;
+    }
+
+    public void updateGameStats() {
+        _gameStats.updateGameStats(_game);
     }
 
     public void carryOutPendingActionsUntilDecisionNeeded() {
@@ -67,6 +85,9 @@ public class TurnProcedure {
                         _gameProcess = _gameProcess.getNextProcess();
                         _playedGameProcess = false;
                     } else {
+                        // New game process starting, possibly game could make a checkpoint
+                        checkProcessAndSignalCopyIfNeeded();
+
                         _gameProcess.process(_game);
                         if (_gameStats.updateGameStats(_game))
                             _game.getGameState().sendGameStats(_gameStats);
@@ -91,6 +112,20 @@ public class TurnProcedure {
                 _game.getGameState().sendGameStats(_gameStats);
 
             _game.checkRingBearerCorruption();
+        }
+    }
+
+    private void checkProcessAndSignalCopyIfNeeded() {
+        boolean checkpoint = _gameProcess instanceof FellowshipGameProcess
+                || _gameProcess instanceof ShadowPhaseOfPlayerGameProcess
+                || _gameProcess instanceof ManeuverGameProcess
+                || _gameProcess instanceof ArcheryGameProcess
+                || _gameProcess instanceof AssignmentGameProcess
+                || _gameProcess instanceof PlayoutSkirmishesGameProcess
+                || _gameProcess instanceof RegroupGameProcess;
+
+        if (checkpoint) {
+            _game.newPhaseProcessAboutToStart();
         }
     }
 

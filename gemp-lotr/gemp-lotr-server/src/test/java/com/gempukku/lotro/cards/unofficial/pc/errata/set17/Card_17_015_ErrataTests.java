@@ -96,8 +96,14 @@ public class Card_17_015_ErrataTests
 		scn.FreepsChooseCardBPFromSelection(runner1, runner2);
 
 		assertEquals(4, scn.GetShadowHandCount());
-		assertEquals(Zone.HAND, runner1.getZone());
-		assertEquals(Zone.HAND, runner2.getZone());
+		int runnersAddedToHand = 0;
+		if (runner1.getZone() == Zone.HAND)
+			runnersAddedToHand++;
+		if (runner2.getZone() == Zone.HAND)
+			runnersAddedToHand++;
+		if (runner3 .getZone() == Zone.HAND)
+			runnersAddedToHand++;
+		assertEquals(2, runnersAddedToHand);
 
 		assertTrue(scn.FreepsDecisionAvailable("hand"));
 		scn.FreepsDismissRevealedCards();

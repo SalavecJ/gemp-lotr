@@ -2,9 +2,12 @@ package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.modifiers.ModifierFlag;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
+import com.gempukku.lotro.logic.timing.RuleUtils;
 
 import java.util.List;
 
@@ -13,53 +16,38 @@ import java.util.List;
  * for evaluating the outcome of combat without needing to know the action history.
  */
 public class CombatOutcome {
-    private final PlannedBoardState initialBoardState;
-    private final PlannedBoardState finalBoardState;
+    private final DefaultLotroGame initialBoardState;
+    private final DefaultLotroGame finalBoardState;
 
-    public CombatOutcome(PlannedBoardState initialBoardState, PlannedBoardState finalBoardState) {
-        this.initialBoardState = new PlannedBoardState(initialBoardState);
-        this.finalBoardState = new PlannedBoardState(finalBoardState);
-    }
-
-    public PlannedBoardState getInitialBoardState() {
-        return initialBoardState;
-    }
-
-    public PlannedBoardState getFinalBoardState() {
-        return finalBoardState;
+    public CombatOutcome(DefaultLotroGame initialBoardState, DefaultLotroGame finalBoardState) {
+        this.initialBoardState = initialBoardState;
+        this.finalBoardState = finalBoardState;
     }
 
     // ========== Win Condition Analysis ==========
 
     public boolean winsTheGame() {
-        BotCard ringBearer = finalBoardState.getRingBearer(finalBoardState.getCurrentFpPlayer());
-        if (ringBearer == null || finalBoardState.getDeadPile(finalBoardState.getCurrentFpPlayer()).contains(ringBearer)) {
-            return true; // Ring bearer is dead
-        } else if (finalBoardState.getBurdens() >= finalBoardState.getResistance()) {
-            return true; // Ring bearer corrupted
-        }
-
-        return false;
+        return finalBoardState.getWinnerPlayerId() != null && finalBoardState.getWinnerPlayerId().equals(initialBoardState.getGameState().getCurrentShadowPlayer());
     }
 
     // ========== Casualty Analysis ==========
 
     public int getCompanionsCasualties() {
-        List<BotCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
-        List<BotCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
+        List<PhysicalCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
+        List<PhysicalCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
         return initialCompanions.size() - finalCompanions.size();
     }
 
     public int getMinionsCasualties() {
-        List<BotCard> initialMinions = BoardStateUtil.getMinionsInPlay(initialBoardState);
-        List<BotCard> finalMinions = BoardStateUtil.getMinionsInPlay(finalBoardState);
+        List<PhysicalCard> initialMinions = BoardStateUtil.getMinionsInPlay(initialBoardState);
+        List<PhysicalCard> finalMinions = BoardStateUtil.getMinionsInPlay(finalBoardState);
         return initialMinions.size() - finalMinions.size();
     }
 
     // ========== Damage Analysis ==========
 
-    private int getWoundCount(PlannedBoardState state, BotCard card) {
-        return state.getWounds(card);
+    private int getWoundCount(DefaultLotroGame game, PhysicalCard card) {
+        return game.getGameState().getWounds(card);
     }
 
     // ========== Board Position Evaluation ==========
@@ -87,16 +75,16 @@ public class CombatOutcome {
 
     private double getTotalWoundsValueDealtToCompanions() {
         double totalValue = 0.0;
-        String shadowPlayer = finalBoardState.getCurrentShadowPlayer();
+        String shadowPlayer = initialBoardState.getGameState().getCurrentShadowPlayer();
 
         // Get all companions from initial state (to include those that died)
-        List<BotCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
-        List<BotCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
+        List<PhysicalCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
+        List<PhysicalCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
 
-        for (BotCard initialCompanion : initialCompanions) {
+        for (PhysicalCard initialCompanion : initialCompanions) {
             // Find the same companion in the final state (match by card ID)
-            BotCard finalCompanion = finalCompanions.stream()
-                    .filter(card -> card.getSelf().getCardId() == initialCompanion.getSelf().getCardId())
+            PhysicalCard finalCompanion = finalCompanions.stream()
+                    .filter(card -> card.getCardId() == initialCompanion.getCardId())
                     .findFirst()
                     .orElse(null);
 
@@ -118,7 +106,7 @@ public class CombatOutcome {
                 }
             } else {
                 // Companion died - evaluate the vitality lost (all wounds that led to death)
-                int initialVitality = initialBoardState.getVitality(initialCompanion);
+                int initialVitality = initialBoardState.getModifiersQuerying().getVitality(initialBoardState, initialCompanion);
                 if (initialVitality > 0) {
                     // Evaluate the wounds that killed the companion
                     double woundValue = WoundsValueUtil.evaluateWoundsChangeValue(
@@ -142,8 +130,11 @@ public class CombatOutcome {
      */
     public double getStoppingValue() {
         // Stopping is irrelevant
-        if (!finalBoardState.fellowshipCanMove()) {
-            return 0.0;
+        if (finalBoardState.getModifiersQuerying().hasFlagActive(finalBoardState, ModifierFlag.CANT_MOVE)) {
+            return 0;
+        }
+        if (finalBoardState.getGameState().getMoveCount() >= RuleUtils.calculateMoveLimit(finalBoardState)) {
+            return 0;
         }
 
         double score = 0.0;
@@ -177,10 +168,10 @@ public class CombatOutcome {
 
     private int getShadowCardsAttachedToMinions() {
         int total = 0;
-        List<BotCard> minions = BoardStateUtil.getMinionsInPlay(finalBoardState);
-        for (BotCard minion : minions) {
-            total += (int) finalBoardState.getAttachedCards(minion).stream()
-                    .filter(card -> card.getSelf().getBlueprint().getSide() == Side.SHADOW)
+        List<PhysicalCard> minions = BoardStateUtil.getMinionsInPlay(finalBoardState);
+        for (PhysicalCard minion : minions) {
+            total += (int) finalBoardState.getGameState().getAttachedCards(minion).stream()
+                    .filter(card -> card.getBlueprint().getSide() == Side.SHADOW)
                     .count();
         }
         return total;
@@ -192,7 +183,7 @@ public class CombatOutcome {
      * @return Higher score means better setup for Shadow for future turns
      */
     public double getSetupValue() {
-        if (finalBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber() == 9) {
+        if (finalBoardState.getGameState().getCurrentSite().getBlueprint().getSiteNumber() == 9) {
             // At site 9, setup is irrelevant as the game ends
             return 0.0;
         }
@@ -219,20 +210,20 @@ public class CombatOutcome {
         int totalVitalityLost = 0;
 
         // Get all allies from the initial state
-        List<BotCard> initialAllies = BoardStateUtil.getAlliesInPlay(initialBoardState);
-        List<BotCard> finalAllies = BoardStateUtil.getAlliesInPlay(finalBoardState);
+        List<PhysicalCard> initialAllies = BoardStateUtil.getAlliesInPlay(initialBoardState);
+        List<PhysicalCard> finalAllies = BoardStateUtil.getAlliesInPlay(finalBoardState);
 
-        for (BotCard initialAlly : initialAllies) {
+        for (PhysicalCard initialAlly : initialAllies) {
             // Find the same ally in the final state (match by card ID)
-            BotCard finalAlly = finalAllies.stream()
-                    .filter(card -> card.getSelf().getCardId() == initialAlly.getSelf().getCardId())
+            PhysicalCard finalAlly = finalAllies.stream()
+                    .filter(card -> card.getCardId() == initialAlly.getCardId())
                     .findFirst()
                     .orElse(null);
 
-            int initialVitality = initialBoardState.getVitality(initialAlly);
+            int initialVitality = initialBoardState.getModifiersQuerying().getVitality(initialBoardState, initialAlly);
             if (finalAlly != null) {
                 // Ally survived - count vitality lost from wounds
-                int finalVitality = finalBoardState.getVitality(finalAlly);
+                int finalVitality = finalBoardState.getModifiersQuerying().getVitality(finalBoardState, finalAlly);
                 int vitalityLost = initialVitality - finalVitality;
 
                 if (vitalityLost > 0) {
@@ -247,29 +238,29 @@ public class CombatOutcome {
         return totalVitalityLost;
     }
 
-    private int getTotalNonRingbearerVitality(PlannedBoardState plannedBoardState) {
-        BotCard ringBearer = plannedBoardState.getRingBearer(plannedBoardState.getCurrentFpPlayer());
-        List<BotCard> companions = BoardStateUtil.getCompanionsInPlay(plannedBoardState);
+    private int getTotalNonRingbearerVitality(DefaultLotroGame game) {
+        PhysicalCard ringBearer =game.getGameState().getRingBearer(game.getGameState().getCurrentPlayerId());
+        List<PhysicalCard> companions = BoardStateUtil.getCompanionsInPlay(game);
 
         int totalVitality = 0;
-        for (BotCard companion : companions) {
+        for (PhysicalCard companion : companions) {
             // Skip the ring bearer
-            if (ringBearer != null && companion.getSelf().getCardId() == ringBearer.getSelf().getCardId()) {
+            if (ringBearer != null && companion.getCardId() == ringBearer.getCardId()) {
                 continue;
             }
 
-            totalVitality += plannedBoardState.getVitality(companion);
+            totalVitality += game.getModifiersQuerying().getVitality(game, companion);
         }
 
         return totalVitality;
     }
 
-    private int getTotalWoundsOnCompanions(PlannedBoardState plannedBoardState) {
-        List<BotCard> companions = BoardStateUtil.getCompanionsInPlay(plannedBoardState);
+    private int getTotalWoundsOnCompanions(DefaultLotroGame game) {
+        List<PhysicalCard> companions = BoardStateUtil.getCompanionsInPlay(game);
         int totalWounds = 0;
 
-        for (BotCard companion : companions) {
-            totalWounds += getWoundCount(plannedBoardState, companion);
+        for (PhysicalCard companion : companions) {
+            totalWounds += getWoundCount(game, companion);
         }
 
         return totalWounds;
@@ -288,11 +279,11 @@ public class CombatOutcome {
         double score = 0.0;
 
         // Deter fp decisions from losing the game earlier than needed
-        if (finalBoardState.getCurrentPhase() == Phase.ARCHERY) {
+        if (finalBoardState.getGameState().getCurrentPhase() == Phase.ARCHERY) {
             score += 600.0; // Make fp player not kill the ring bearer in archery phase if possible
         }
 
-        if (finalBoardState.getCurrentPhase() == Phase.SKIRMISH && !finalBoardState.getAssignments().isEmpty()) {
+        if (finalBoardState.getGameState().getCurrentPhase() == Phase.SKIRMISH && !finalBoardState.getGameState().getAssignments().isEmpty()) {
             score += 300.0; // Make fp player kill the ring bearer in skirmish phase as late as possible if needed
         }
 
@@ -308,7 +299,11 @@ public class CombatOutcome {
         // Adjust weights based on game state context
 
         // Stopping is irrelevant
-        if (!finalBoardState.fellowshipCanMove()) {
+
+        if (finalBoardState.getModifiersQuerying().hasFlagActive(finalBoardState, ModifierFlag.CANT_MOVE)) {
+            stoppingWeight = 0.0;
+        }
+        if (finalBoardState.getGameState().getMoveCount() >= RuleUtils.calculateMoveLimit(finalBoardState)) {
             stoppingWeight = 0.0;
         }
 
@@ -329,7 +324,7 @@ public class CombatOutcome {
         // Only applies if no companions were killed and total wounds are 5 or less
         if (getCompanionsCasualties() == 0
                 && getTotalWoundsOnCompanions(finalBoardState) <= 5
-                && finalBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber() == 3 || finalBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber() == 6) {
+                && finalBoardState.getGameState().getCurrentSite().getBlueprint().getSiteNumber() == 3 || finalBoardState.getGameState().getCurrentSite().getBlueprint().getSiteNumber() == 6) {
             damageWeight = 0.0;
         }
 
@@ -346,21 +341,21 @@ public class CombatOutcome {
         StringBuilder sb = new StringBuilder();
 
         // Companions analysis
-        List<BotCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
-        List<BotCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
+        List<PhysicalCard> initialCompanions = BoardStateUtil.getCompanionsInPlay(initialBoardState);
+        List<PhysicalCard> finalCompanions = BoardStateUtil.getCompanionsInPlay(finalBoardState);
 
         // Find killed companions
         List<String> killedCompanions = initialCompanions.stream()
                 .filter(initialComp -> finalCompanions.stream()
-                        .noneMatch(finalComp -> finalComp.getSelf().getCardId() == initialComp.getSelf().getCardId()))
-                .map(card -> card.getSelf().getBlueprint().getFullName())
+                        .noneMatch(finalComp -> finalComp.getCardId() == initialComp.getCardId()))
+                .map(card -> card.getBlueprint().getFullName())
                 .toList();
 
         // Find wounded companions (survived but took damage)
         List<String> woundedCompanions = initialCompanions.stream()
                 .filter(initialComp -> {
-                    BotCard finalComp = finalCompanions.stream()
-                            .filter(fc -> fc.getSelf().getCardId() == initialComp.getSelf().getCardId())
+                    PhysicalCard finalComp = finalCompanions.stream()
+                            .filter(fc -> fc.getCardId() == initialComp.getCardId())
                             .findFirst()
                             .orElse(null);
                     if (finalComp == null) return false; // Dead, not wounded
@@ -370,14 +365,14 @@ public class CombatOutcome {
                     return finalWounds > initialWounds;
                 })
                 .map(card -> {
-                    BotCard finalComp = finalCompanions.stream()
-                            .filter(fc -> fc.getSelf().getCardId() == card.getSelf().getCardId())
+                    PhysicalCard finalComp = finalCompanions.stream()
+                            .filter(fc -> fc.getCardId() == card.getCardId())
                             .findFirst()
                             .orElseThrow();
                     int initialWounds = getWoundCount(initialBoardState, card);
                     int finalWounds = getWoundCount(finalBoardState, finalComp);
                     int woundsDealt = finalWounds - initialWounds;
-                    return card.getSelf().getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
+                    return card.getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
                 })
                 .toList();
 
@@ -398,21 +393,21 @@ public class CombatOutcome {
         sb.append("\n");
 
         // Allies analysis
-        List<BotCard> initialAllies = BoardStateUtil.getAlliesInPlay(initialBoardState);
-        List<BotCard> finalAllies = BoardStateUtil.getAlliesInPlay(finalBoardState);
+        List<PhysicalCard> initialAllies = BoardStateUtil.getAlliesInPlay(initialBoardState);
+        List<PhysicalCard> finalAllies = BoardStateUtil.getAlliesInPlay(finalBoardState);
 
         // Find killed allies
         List<String> killedAllies = initialAllies.stream()
                 .filter(initialAlly -> finalAllies.stream()
-                        .noneMatch(finalAlly -> finalAlly.getSelf().getCardId() == initialAlly.getSelf().getCardId()))
-                .map(card -> card.getSelf().getBlueprint().getFullName())
+                        .noneMatch(finalAlly -> finalAlly.getCardId() == initialAlly.getCardId()))
+                .map(card -> card.getBlueprint().getFullName())
                 .toList();
 
         // Find wounded allies (survived but took damage)
         List<String> woundedAllies = initialAllies.stream()
                 .filter(initialAlly -> {
-                    BotCard finalAlly = finalAllies.stream()
-                            .filter(fa -> fa.getSelf().getCardId() == initialAlly.getSelf().getCardId())
+                    PhysicalCard finalAlly = finalAllies.stream()
+                            .filter(fa -> fa.getCardId() == initialAlly.getCardId())
                             .findFirst()
                             .orElse(null);
                     if (finalAlly == null) return false; // Dead, not wounded
@@ -422,14 +417,14 @@ public class CombatOutcome {
                     return finalWounds > initialWounds;
                 })
                 .map(card -> {
-                    BotCard finalAlly = finalAllies.stream()
-                            .filter(fa -> fa.getSelf().getCardId() == card.getSelf().getCardId())
+                    PhysicalCard finalAlly = finalAllies.stream()
+                            .filter(fa -> fa.getCardId() == card.getCardId())
                             .findFirst()
                             .orElseThrow();
                     int initialWounds = getWoundCount(initialBoardState, card);
                     int finalWounds = getWoundCount(finalBoardState, finalAlly);
                     int woundsDealt = finalWounds - initialWounds;
-                    return card.getSelf().getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
+                    return card.getBlueprint().getFullName() + " (+" + woundsDealt + " wound" + (woundsDealt > 1 ? "s" : "") + ")";
                 })
                 .toList();
 
@@ -450,19 +445,19 @@ public class CombatOutcome {
         sb.append("\n");
 
         // Minions analysis
-        List<BotCard> initialMinions = BoardStateUtil.getMinionsInPlay(initialBoardState);
-        List<BotCard> finalMinions = BoardStateUtil.getMinionsInPlay(finalBoardState);
+        List<PhysicalCard> initialMinions = BoardStateUtil.getMinionsInPlay(initialBoardState);
+        List<PhysicalCard> finalMinions = BoardStateUtil.getMinionsInPlay(finalBoardState);
 
         // Find killed minions
         List<String> killedMinions = initialMinions.stream()
                 .filter(initialMin -> finalMinions.stream()
-                        .noneMatch(finalMin -> finalMin.getSelf().getCardId() == initialMin.getSelf().getCardId()))
-                .map(card -> card.getSelf().getBlueprint().getFullName())
+                        .noneMatch(finalMin -> finalMin.getCardId() == initialMin.getCardId()))
+                .map(card -> card.getBlueprint().getFullName())
                 .toList();
 
         // Find surviving minions
         List<String> survivingMinions = finalMinions.stream()
-                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .map(card -> card.getBlueprint().getFullName())
                 .toList();
 
         sb.append("Minions killed: ");
@@ -483,7 +478,7 @@ public class CombatOutcome {
 
         // Persistent shadow cards analysis
         List<String> persistentShadowCards = BoardStateUtil.getPersistentShadowCards(finalBoardState).stream()
-                .map(card -> card.getSelf().getBlueprint().getFullName())
+                .map(card -> card.getBlueprint().getFullName())
                 .toList();
 
 

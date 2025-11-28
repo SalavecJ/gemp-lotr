@@ -1,16 +1,11 @@
-package com.gempukku.lotro.bots.forge.plan.action;
+package com.gempukku.lotro.bots.forge.plan.action2;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 
-public class PlayCardFromHandAction extends ChooseCardAction {
+public class PlayCardFromHandAction2 extends ChooseCardAction2 {
 
-    public PlayCardFromHandAction(BotCard toPlay) {
-        super(toPlay);
-    }
-
-    @Override
-    protected String actionPrefix() {
-        return "Play";
+    public PlayCardFromHandAction2(String decisionText, BotCard toPlay, String actionId) {
+        super(decisionText, toPlay, actionId);
     }
 
     @Override
@@ -18,7 +13,7 @@ public class PlayCardFromHandAction extends ChooseCardAction {
         return "Action: Play " + getPhysicalCard().getBlueprint().getFullName() + " from hand";
     }
 
-    public boolean playsTheSameCard(PlayCardFromHandAction action) {
+    public boolean playsTheSameCard(PlayCardFromHandAction2 action) {
         return this.getPhysicalCard().getBlueprintId().equals(action.getPhysicalCard().getBlueprintId());
     }
 
@@ -26,7 +21,7 @@ public class PlayCardFromHandAction extends ChooseCardAction {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        PlayCardFromHandAction that = (PlayCardFromHandAction) o;
+        PlayCardFromHandAction2 that = (PlayCardFromHandAction2) o;
         return getPhysicalCard().getCardId() == that.getPhysicalCard().getCardId();
     }
 

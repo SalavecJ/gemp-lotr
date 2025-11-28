@@ -1,31 +1,30 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
 import com.gempukku.lotro.bots.forge.cards.ability2.Target;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Race;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.function.Predicate;
 
 public abstract class Effect {
-    public abstract void resolve(String player, PlannedBoardState plannedBoardState);
-    public abstract double getValueIfResolved(String player, PlannedBoardState plannedBoardState);
-    public abstract String toString(String player, PlannedBoardState plannedBoardState);
+    public abstract double getValueIfResolved(String player, DefaultLotroGame game);
+    public abstract String toString(String player, DefaultLotroGame game);
 
-    public static EffectTakeIntoHandFromDiscard takeIntoHandFromDiscard(Predicate<BotCard> target) {
+    public static EffectTakeIntoHandFromDiscard takeIntoHandFromDiscard(Predicate<PhysicalCard> target) {
         return new EffectTakeIntoHandFromDiscard(target);
     }
 
-    public static EffectPutFromHandToBottomOfDeck putFromHandToBottomOfDeck(Predicate<BotCard> target) {
+    public static EffectPutFromHandToBottomOfDeck putFromHandToBottomOfDeck(Predicate<PhysicalCard> target) {
         return new EffectPutFromHandToBottomOfDeck(target);
     }
 
     public static EffectPutFromHandToBottomOfDeck putFromHandToBottomOfDeck() {
-        return putFromHandToBottomOfDeck(botCard -> true);
+        return putFromHandToBottomOfDeck(PhysicalCard -> true);
     }
 
-    public static EffectPutFromDiscardToBottomOfDeck putFromDiscardToBottomOfDeck(Predicate<BotCard> target) {
+    public static EffectPutFromDiscardToBottomOfDeck putFromDiscardToBottomOfDeck(Predicate<PhysicalCard> target) {
         return new EffectPutFromDiscardToBottomOfDeck(target);
     }
 
@@ -41,15 +40,15 @@ public abstract class Effect {
         return new EffectRemoveBurden(amount);
     }
 
-    public static EffectDiscardFromPlay discardFromPlayAll(Predicate<BotCard> target) {
+    public static EffectDiscardFromPlay discardFromPlayAll(Predicate<PhysicalCard> target) {
         return discardFromPlay(target, true);
     }
 
-    public static EffectDiscardFromPlay discardFromPlay(Predicate<BotCard> target) {
+    public static EffectDiscardFromPlay discardFromPlay(Predicate<PhysicalCard> target) {
         return discardFromPlay(target, false);
     }
 
-    public static EffectDiscardFromPlay discardFromPlay(Predicate<BotCard> target, boolean discardAll) {
+    public static EffectDiscardFromPlay discardFromPlay(Predicate<PhysicalCard> target, boolean discardAll) {
         return new EffectDiscardFromPlay(target, discardAll);
     }
 
@@ -73,11 +72,11 @@ public abstract class Effect {
         return new EffectPlayFellowshipsNextSite();
     }
 
-    public static EffectHeal heal(Predicate<BotCard> target) {
+    public static EffectHeal heal(Predicate<PhysicalCard> target) {
         return heal(target, 1);
     }
 
-    public static EffectHeal heal(Predicate<BotCard> target, int amount) {
+    public static EffectHeal heal(Predicate<PhysicalCard> target, int amount) {
         return new EffectHeal(target, amount);
     }
 
@@ -97,7 +96,7 @@ public abstract class Effect {
         return heal(Target.cardType(cardType), amount);
     }
 
-    public static EffectPlayWithBonusDraw playWithBonusDraw(Predicate<BotCard> target){
+    public static EffectPlayWithBonusDraw playWithBonusDraw(Predicate<PhysicalCard> target){
         return new EffectPlayWithBonusDraw(target);
     }
 
@@ -105,15 +104,15 @@ public abstract class Effect {
         return Effect.playWithBonusDraw(Target.race(race));
     }
 
-    public static EffectPlayWithBonusTwilightModification playWithBonusTwilightModification(Predicate<BotCard> target, int twilightModification){
+    public static EffectPlayWithBonusTwilightModification playWithBonusTwilightModification(Predicate<PhysicalCard> target, int twilightModification){
         return new EffectPlayWithBonusTwilightModification(target, twilightModification);
     }
 
-    public static EffectPlayMinionFromDiscard playMinionFromDiscard(Predicate<BotCard> target){
+    public static EffectPlayMinionFromDiscard playMinionFromDiscard(Predicate<PhysicalCard> target){
         return new EffectPlayMinionFromDiscard(target);
     }
 
-    public static EffectPlayPossessionFromDiscardOn playPossessionFromDiscardOn(Predicate<BotCard> possessionPredicate, Predicate<BotCard> bearerPredicate){
+    public static EffectPlayPossessionFromDiscardOn playPossessionFromDiscardOn(Predicate<PhysicalCard> possessionPredicate, Predicate<PhysicalCard> bearerPredicate){
         return new EffectPlayPossessionFromDiscardOn(possessionPredicate, bearerPredicate);
     }
 

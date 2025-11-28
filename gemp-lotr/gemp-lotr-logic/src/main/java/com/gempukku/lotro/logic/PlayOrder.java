@@ -1,5 +1,6 @@
 package com.gempukku.lotro.logic;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlayOrder {
@@ -11,6 +12,13 @@ public class PlayOrder {
     public PlayOrder(List<String> playOrder, boolean looped) {
         _playOrder = playOrder;
         _looped = looped;
+    }
+
+    public PlayOrder(PlayOrder playOrder) {
+        _playOrder = new ArrayList<>(playOrder._playOrder);
+        _looped = playOrder._looped;
+        _lastPlayer = playOrder._lastPlayer;
+        _nextPlayerIndex = playOrder._nextPlayerIndex;
     }
 
     public String getFirstPlayer() {

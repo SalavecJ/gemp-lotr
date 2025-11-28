@@ -48,6 +48,47 @@ public class PhysicalCardImpl implements PhysicalCard {
         this.game = null;
     }
 
+    /**
+     * Copy constructor for creating a deep copy of a PhysicalCard.
+     * This is used for game tree search without replaying decisions.
+     * Note: Modifier hooks are NOT copied as they will be recreated when needed.
+     * Attachment and stacking relationships are NOT set here - they must be fixed up
+     * after all cards are copied to maintain proper references.
+     *
+     * @param original The original PhysicalCardImpl to copy
+     * @param newGame The new game instance this card will belong to
+     */
+    public PhysicalCardImpl(PhysicalCardImpl original, LotroGame newGame) {
+        _cardId = original._cardId;
+        _blueprintId = original._blueprintId;
+        _owner = original._owner;
+        _cardController = original._cardController;
+        _zone = original._zone;
+        _playedFromZone = original._playedFromZone;
+        _blueprint = original._blueprint;
+
+        // Note: _attachedTo and _stackedOn will be set after all cards are copied
+        // to maintain proper references between copied cards
+        _attachedTo = null;
+        _stackedOn = null;
+
+        // Modifier hooks are NOT copied - they will be recreated when the card
+        // starts affecting the game in the copied state
+        _modifierHooks = null;
+        _modifierHooksStacked = null;
+        _modifierHooksInDiscard = null;
+        _modifierHooksControlledSite = null;
+        _modifierHooksPermanentSite = null;
+
+        // Copy while in zone data if present
+        _whileInZoneData = original._whileInZoneData;
+
+        _siteNumber = original._siteNumber;
+
+        // Set the game reference to the new game instance
+        this.game = newGame;
+    }
+
     public void setCardId(int cardId) {
         _cardId = cardId;
     }

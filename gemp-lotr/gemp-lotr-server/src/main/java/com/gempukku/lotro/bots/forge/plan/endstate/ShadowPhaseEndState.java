@@ -1,26 +1,26 @@
 package com.gempukku.lotro.bots.forge.plan.endstate;
 
-import com.gempukku.lotro.bots.forge.plan.CombatPath;
-import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
+import com.gempukku.lotro.bots.forge.plan.CombatOutcome;
+import com.gempukku.lotro.bots.forge.plan.action2.ActionToTake2;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.Collections;
 import java.util.List;
 
 public class ShadowPhaseEndState extends PhaseEndState {
-    private CombatPath cachedCombatPath = null;
+    private AfterCombatEndPhase afterCombatEndPhase;
 
-    public ShadowPhaseEndState(PlannedBoardState finalBoardState, List<ActionToTake> shadowActions) {
+    public ShadowPhaseEndState(DefaultLotroGame game, List<ActionToTake2> shadowActions) {
         // Shadow phase only has shadow actions, FP actions is empty
-        super(finalBoardState, Collections.emptyList(), shadowActions);
+        super(game, Collections.emptyList(), shadowActions);
     }
 
     /**
      * Returns true if the combat path can win the game.
      */
     public boolean hasPotentialToWinTheGame() {
-        return getCombatPath().getCombatOutcome().winsTheGame();
+        return new CombatOutcome(copy, getAfterCombatEndPhase().copy).winsTheGame();
     }
 
     /**
@@ -28,19 +28,19 @@ public class ShadowPhaseEndState extends PhaseEndState {
      * Contains all 5 combat phase end states and can produce a combat outcome.
      * Uses lazy evaluation - only computes the path when first accessed.
      */
-    public CombatPath getCombatPath() {
-        if (cachedCombatPath == null) {
+    public AfterCombatEndPhase getAfterCombatEndPhase() {
+        if (afterCombatEndPhase == null) {
             // Explore the combat tree to find the best combat path
-            cachedCombatPath = ActionFinderUtil.findBestCombatPath(getBoardState());
+            afterCombatEndPhase = ActionFinderUtil.findBestCombatPath(copy);
         }
-        return cachedCombatPath;
+        return afterCombatEndPhase;
     }
 
     @Override
     public double getValue() {
         if (value != 0.0)
             return value;
-        return getCombatPath().evaluate();
+        return new CombatOutcome(copy, afterCombatEndPhase.copy).evaluateOutcome();
     }
 
     @Override
@@ -52,13 +52,13 @@ public class ShadowPhaseEndState extends PhaseEndState {
             sb.append("  (no actions)");
         } else {
             for (int i = 0; i < getShadowActions().size(); i++) {
-                ActionToTake action = getShadowActions().get(i);
+                ActionToTake2 action = getShadowActions().get(i);
                 sb.append("  ").append(i + 1).append(". ").append(action.toString()).append("\n");
             }
         }
 
         sb.append("\nCombat Outcome:\n");
-        sb.append(getCombatPath().toString());
+        sb.append(new CombatOutcome(copy, afterCombatEndPhase.copy).toString());
 
         return sb.toString();
     }

@@ -38,4 +38,11 @@ public class CheckForCorruptionGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        CheckForCorruptionGameProcess copy = new CheckForCorruptionGameProcess(_firstPlayer);
+        copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

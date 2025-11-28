@@ -51,4 +51,9 @@ public class EndOfPhaseGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new EndOfPhaseGameProcess(_phase, _followingGameProcess.copyThisForNewGame(game));
+    }
 }

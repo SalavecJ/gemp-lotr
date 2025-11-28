@@ -1,8 +1,8 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.cost;
 
 import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,26 +10,31 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class CostExert extends CostWithTarget {
-    protected final Predicate<BotCard> targetPredicate;
+    protected final Predicate<PhysicalCard> targetPredicate;
     protected final int amount;
 
-    public CostExert(Predicate<BotCard> targetPredicate, int amount) {
+    public CostExert(Predicate<PhysicalCard> targetPredicate, int amount) {
         this.targetPredicate = targetPredicate;
         this.amount = amount;
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getActiveCards().stream()
+    public boolean decisionTextMatches(String decisionText) {
+        return decisionText.equals("Choose cards to exert");
+    }
+
+    @Override
+    public ArrayList<PhysicalCard> getPotentialTargets(String player, DefaultLotroGame game) {
+        return new ArrayList<>(game.getGameState().getActiveCards().stream()
+                .filter(card -> game.getModifiersQuerying().getVitality(game, card) > amount)
                 .filter(targetPredicate)
-                .filter(botCard -> plannedBoardState.getVitality(botCard) > amount)
                 .toList());
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets ) {
+    public String toString(String player, DefaultLotroGame game, List<PhysicalCard> targets ) {
         String joined = targets.stream()
-                .map(t -> t.getSelf().getBlueprint().getFullName())
+                .map(t -> t.getBlueprint().getFullName())
                 .collect(Collectors.joining("; "));
         if (amount == 1) {
             return "exert " + joined;
@@ -45,20 +50,12 @@ public class CostExert extends CostWithTarget {
     }
 
     @Override
-    public void payWith(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
-            throw new IllegalStateException("Cost cannot be payed");
-        }
-        plannedBoardState.exert(target, amount);
-    }
-
-    @Override
-    public double getValueIfPayedWith(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        if (!canPayCostWithTarget(player, plannedBoardState, target)) {
+    protected double getValueIfPayedWith(String player, DefaultLotroGame game, PhysicalCard target) {
+        if (!canPayCostWithTarget(player, game, target)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
-        int vitality = plannedBoardState.getVitality(target);
-        return WoundsValueUtil.evaluateWoundsChangeValue(player, plannedBoardState, target, Math.min(amount, vitality - 1));
+        int vitality = game.getModifiersQuerying().getVitality(game, target);
+        return WoundsValueUtil.evaluateWoundsChangeValue(player, game, target, Math.min(amount, vitality - 1));
     }
 }

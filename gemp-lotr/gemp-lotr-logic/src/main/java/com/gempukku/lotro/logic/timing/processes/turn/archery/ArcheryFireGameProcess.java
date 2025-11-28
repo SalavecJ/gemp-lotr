@@ -29,4 +29,13 @@ public class ArcheryFireGameProcess implements GameProcess {
         return new FellowshipPlayerAssignsArcheryDamageGameProcess(_shadowArcheryTotal,
                 _game.getFormat().getAdventure().getAfterFellowshipArcheryGameProcess(_fellowshipArcheryTotal, _followingGameProcess));
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        ArcheryFireGameProcess copy = new ArcheryFireGameProcess(_followingGameProcess.copyThisForNewGame(game));
+        copy._fellowshipArcheryTotal = _fellowshipArcheryTotal;
+        copy._shadowArcheryTotal = _shadowArcheryTotal;
+        copy._game = game;
+        return copy;
+    }
 }

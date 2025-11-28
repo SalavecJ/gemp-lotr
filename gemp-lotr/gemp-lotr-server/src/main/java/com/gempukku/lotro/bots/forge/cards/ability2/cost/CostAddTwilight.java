@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.cost;
 
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class CostAddTwilight extends Cost {
     protected final int amount;
@@ -9,20 +9,16 @@ public class CostAddTwilight extends Cost {
         this.amount = amount;
     }
 
-    @Override
-    public void pay(String player, PlannedBoardState plannedBoardState) {
-        plannedBoardState.addTwilight(amount);
-    }
 
     @Override
-    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
+    public boolean canPayCost(String player, DefaultLotroGame game) {
         return true;
     }
 
     @Override
-    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
+    public double getValueIfPayed(String player, DefaultLotroGame game) {
         double returnValue = (double) amount * 0.4;
-        if (player.equals(plannedBoardState.getCurrentFpPlayer())) {
+        if (player.equals(game.getGameState().getCurrentPlayerId())) {
             returnValue *= -1;
         }
 
@@ -30,7 +26,7 @@ public class CostAddTwilight extends Cost {
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState) {
+    public String toString(String player, DefaultLotroGame game) {
         return "add " + amount + " twilight";
     }
 }

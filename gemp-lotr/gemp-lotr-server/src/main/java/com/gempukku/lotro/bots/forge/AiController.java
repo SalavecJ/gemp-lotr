@@ -13,8 +13,11 @@ import com.gempukku.lotro.common.SitesBlock;
 import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.logic.decisions.ArbitraryCardsSelectionDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.CardsSelectionDecision;
 import com.gempukku.lotro.logic.modifiers.ModifierFlag;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import com.gempukku.lotro.logic.timing.RuleUtils;
 
 import java.util.*;
@@ -657,40 +660,36 @@ public class AiController {
         return new AiSkirmishOrderController(printDebugMessages, game, options).chooseNextSkirmish();
     }
 
-    public List<PhysicalCard> chooseTargetForEffect(LotroGame game, List<PhysicalCard> options, PhysicalCard source, AwaitingDecision awaitingDecision) {
+    public String chooseTargetForEffect(LotroGame game, List<PhysicalCard> options, PhysicalCard source, AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             printSeparator();
         }
 
         if (fellowshipPhasePlan != null && !fellowshipPhasePlan.replanningNeeded()) {
-            List<PhysicalCard> plannedTargets = fellowshipPhasePlan.chooseTarget(awaitingDecision);
-            int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
-            int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
-            if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
-                return plannedTargets;
-            }
+            return fellowshipPhasePlan.chooseTarget(awaitingDecision);
         } else if (betweenTurnsPlan != null && !betweenTurnsPlan.replanningNeeded()) {
-            List<PhysicalCard> plannedTargets = betweenTurnsPlan.chooseTarget(awaitingDecision);
-            int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
-            int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
-            if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
-                return plannedTargets;
-            }
+            return betweenTurnsPlan.chooseTarget(awaitingDecision);
         } else if (shadowPhasePlan != null && !shadowPhasePlan.replanningNeeded()) {
-            // TODO remove when shadow phase plan is finished
-            try {
-                List<PhysicalCard> plannedTargets = shadowPhasePlan.chooseTarget(awaitingDecision);
-                int min = Integer.parseInt(awaitingDecision.getDecisionParameters().get("min")[0]);
-                int max = Integer.parseInt(awaitingDecision.getDecisionParameters().get("max")[0]);
-                if (options.containsAll(plannedTargets) && min <= plannedTargets.size() && max >= plannedTargets.size()) {
-                    return plannedTargets;
-                }
-            } catch (Exception e) {
-                throw new UnsupportedOperationException("Shadow plan target error: " + e.getMessage());
-            }
+            return shadowPhasePlan.chooseTarget(awaitingDecision);
         }
 
-        return new AiTargetController(printDebugMessages, game, options, source, awaitingDecision).chooseTarget();
+        List<PhysicalCard> cards = new AiTargetController(printDebugMessages, options, source, awaitingDecision).chooseTarget();
+        if (awaitingDecision instanceof CardsSelectionDecision) {
+            return String.join(",", cards.stream().map(card -> String.valueOf(card.getCardId())).toList());
+        } else if (awaitingDecision instanceof ArbitraryCardsSelectionDecision) {
+            List<String> cardIds = Arrays.stream(awaitingDecision.getDecisionParameters().get("physicalId")).toList();
+            return String.join(",", cards.stream().map(card -> {
+                List<String> tempIds = Arrays.stream(awaitingDecision.getDecisionParameters().get("cardId")).toList();
+                for (int i = 0; i < cardIds.size(); i++) {
+                    if (Integer.parseInt(cardIds.get(i)) == card.getCardId()) {
+                        return tempIds.get(i);
+                    }
+                }
+                throw new IllegalStateException("Cannot find chosen card " + card.getCardId() + " in decision options: " + awaitingDecision.toJson().toString());
+            }).toList());
+        } else {
+            throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
+        }
     }
 
     public String chooseOptionForEffect(LotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
@@ -717,7 +716,7 @@ public class AiController {
         return new AiIntegerChoiceController(printDebugMessages, game, awaitingDecision).chooseNumber();
     }
 
-    public int chooseActionToTakeNext(LotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
+    public String chooseActionToTakeNext(DefaultLotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
         if (printDebugMessages) {
             printSeparator();
         }

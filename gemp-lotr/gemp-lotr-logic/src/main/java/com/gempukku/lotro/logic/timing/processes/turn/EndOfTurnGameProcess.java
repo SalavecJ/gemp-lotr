@@ -45,4 +45,9 @@ public class EndOfTurnGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return new BetweenTurnsProcess();
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new EndOfTurnGameProcess();
+    }
 }

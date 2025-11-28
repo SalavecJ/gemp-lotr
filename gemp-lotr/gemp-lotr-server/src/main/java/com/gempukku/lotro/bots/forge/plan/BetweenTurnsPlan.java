@@ -1,12 +1,14 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.action.*;
+import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
 import com.gempukku.lotro.bots.forge.cards.ability2.TriggeredAbility;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
+import com.gempukku.lotro.bots.forge.plan.action2.AcceptTriggerAction2;
+import com.gempukku.lotro.bots.forge.plan.action2.ActionToTake2;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,10 +45,9 @@ public class BetweenTurnsPlan {
         return tbr;
     }
 
-    public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision, LotroGame game) {
-        PlannedBoardState plannedBoardState = new PlannedBoardState(game, playerName);
+    public String chooseActionToTakeOrPass(AwaitingDecision awaitingDecision, DefaultLotroGame game) {
 
-        List<BotCard> cards = Arrays.stream(awaitingDecision.getDecisionParameters().get("cardId")).map(Integer::parseInt).map(plannedBoardState::getCardById).toList();
+        List<BotCard> cards = Arrays.stream(awaitingDecision.getDecisionParameters().get("cardId")).map(Integer::parseInt).map(integer -> BotCardFactory.create(game.getGameState().findCardById(integer))).toList();
         Map<BotCard, Integer> cardsWithPositions = new HashMap<>();
         for (int i = 0; i < cards.size(); i++) {
             cardsWithPositions.put(cards.get(i), i);
@@ -64,7 +65,7 @@ public class BetweenTurnsPlan {
             if (triggeredAbility == null) {
                 continue;
             }
-            double value = triggeredAbility.getPossibleValue(playerName, plannedBoardState);
+            double value = triggeredAbility.getPossibleValue(playerName, game);
             if (value > maxValue) {
                 maxValue = value;
                 chosenCard = botCard;
@@ -79,17 +80,17 @@ public class BetweenTurnsPlan {
             if (printDebugMessages) {
                 System.out.println("Will pass without using any triggered ability among: " + joined);
             }
-            return -1;
+            return "";
         } else {
-            ActionToTake action = new OptionalTriggerAcceptAction(chosenCard);
+            ActionToTake2 action = new AcceptTriggerAction2(awaitingDecision.getText(), chosenCard, String.valueOf(cardsWithPositions.get(chosenCard)));
             if (printDebugMessages) {
                 System.out.println(action);
             }
-            return action.carryOut(awaitingDecision);
+            return action.carryOut();
         }
     }
 
-    public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
+    public String chooseTarget(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Between turns plan asked to take action on " + awaitingDecision.toJson().toString());
         }

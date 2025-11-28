@@ -37,4 +37,13 @@ public class PlayStartingFellowshipGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        PlayOrder order = game.getGameState().getPlayerOrder().getClockwisePlayOrder(_firstPlayer, false);
+        PlayStartingFellowshipGameProcess copy = new PlayStartingFellowshipGameProcess(order, _firstPlayer);
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

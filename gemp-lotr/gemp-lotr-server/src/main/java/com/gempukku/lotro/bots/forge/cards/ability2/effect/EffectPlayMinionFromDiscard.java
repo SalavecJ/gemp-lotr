@@ -1,56 +1,46 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.common.CardType;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
 public class EffectPlayMinionFromDiscard extends EffectWithTarget {
-    private final Predicate<BotCard> targetPredicate;
+    private final Predicate<PhysicalCard> targetPredicate;
 
-    public EffectPlayMinionFromDiscard(Predicate<BotCard> targetPredicate) {
+    public EffectPlayMinionFromDiscard(Predicate<PhysicalCard> targetPredicate) {
         this.targetPredicate = targetPredicate;
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getDiscard(player).stream()
-                .filter(targetPredicate)
-                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType() == CardType.MINION)
-                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
-                .filter(botCard -> {
-                    int currentSiteNumber = plannedBoardState.getCurrentSite().getSelf().getBlueprint().getSiteNumber();
-                    int minionSiteNumber = botCard.getSelf().getBlueprint().getSiteNumber();
-                    boolean roaming = minionSiteNumber > currentSiteNumber;
-                    return plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost() + (roaming ? 2 : 0);
-                })
-                .toList());
+    public boolean decisionTextMatches(String decisionText) {
+        return decisionText.equals("Choose card from discard");
     }
 
     @Override
-    public boolean affectsAll() {
+    protected ArrayList<PhysicalCard> getPotentialTargets(String player, DefaultLotroGame game) {
+        throw new IllegalStateException("EffectPlayMinionFromDiscard does not support target selection, hard to calculate twilight");
+    }
+
+    @Override
+    protected boolean affectsAll() {
         return false;
     }
 
-    @Override
-    public void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        plannedBoardState.playCardFromDiscard(target);
-    }
 
     @Override
-    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    protected double getValueIfResolvedOn(String player, DefaultLotroGame game, PhysicalCard target) {
         return 0.1; // Playing a card from discard has some value, but hard to quantify
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+    public String toString(String player, DefaultLotroGame game, List<PhysicalCard> targets) {
         if (targets.isEmpty()) {
             return "attempt to play card from discard, but none can be chosen";
         } else if (targets.size() == 1) {
-            return "play " + targets.getFirst().getSelf().getBlueprint().getFullName() + " from discard";
+            return "play " + targets.getFirst().getBlueprint().getFullName() + " from discard";
         } else {
             throw new IllegalStateException("EffectFromDiscard cannot be applied to multiple targets");
         }

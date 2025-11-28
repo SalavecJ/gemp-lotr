@@ -11,6 +11,23 @@ import com.gempukku.lotro.logic.timing.results.AfterAllSkirmishesResult;
 public class EndSkirmishesGameProcess implements GameProcess {
     private final AfterAllSkirmishesResult _afterAllSkirmishesResult = new AfterAllSkirmishesResult();
 
+    public static class CreateExtraAssignmentAndSkirmishPhases implements GameProcess {
+        @Override
+        public void process(LotroGame game) {
+            game.getGameState().setExtraSkirmishes(true);
+        }
+
+        @Override
+        public GameProcess getNextProcess() {
+            return new AssignmentGameProcess();
+        }
+
+        @Override
+        public GameProcess copyThisForNewGame(LotroGame game) {
+            return new CreateExtraAssignmentAndSkirmishPhases();
+        }
+    }
+
     @Override
     public void process(LotroGame game) {
         SystemQueueAction action = new SystemQueueAction();
@@ -23,19 +40,16 @@ public class EndSkirmishesGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         if (_afterAllSkirmishesResult.isCreateAnExtraAssignmentAndSkirmishPhases()) {
-            return new GameProcess() {
-                @Override
-                public void process(LotroGame game) {
-                    game.getGameState().setExtraSkirmishes(true);
-                }
-
-                @Override
-                public GameProcess getNextProcess() {
-                    return new AssignmentGameProcess();
-                }
-            };
+            return new CreateExtraAssignmentAndSkirmishPhases();
         } else {
             return new RegroupGameProcess();
         }
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        EndSkirmishesGameProcess copy = new EndSkirmishesGameProcess();
+        copy._afterAllSkirmishesResult.setCreateAnExtraAssignmentAndSkirmishPhases(_afterAllSkirmishesResult.isCreateAnExtraAssignmentAndSkirmishPhases());
+        return copy;
     }
 }

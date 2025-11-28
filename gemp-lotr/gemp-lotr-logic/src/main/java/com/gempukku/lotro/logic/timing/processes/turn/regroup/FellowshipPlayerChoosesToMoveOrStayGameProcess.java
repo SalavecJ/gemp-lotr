@@ -75,4 +75,12 @@ public class FellowshipPlayerChoosesToMoveOrStayGameProcess implements GameProce
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        FellowshipPlayerChoosesToMoveOrStayGameProcess copy = new FellowshipPlayerChoosesToMoveOrStayGameProcess();
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

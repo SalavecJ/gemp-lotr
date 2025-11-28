@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class EffectAddTwilight extends Effect{
     protected final int amount ;
@@ -10,14 +10,9 @@ public class EffectAddTwilight extends Effect{
     }
 
     @Override
-    public void resolve(String player, PlannedBoardState plannedBoardState) {
-        plannedBoardState.addTwilight(amount);
-    }
-
-    @Override
-    public double getValueIfResolved(String player, PlannedBoardState plannedBoardState) {
+    public double getValueIfResolved(String player, DefaultLotroGame game) {
         double returnValue = (double) amount * 0.4;
-        if (player.equals(plannedBoardState.getCurrentFpPlayer())) {
+        if (player.equals(game.getGameState().getCurrentPlayerId())) {
             returnValue *= -1;
         }
 
@@ -25,7 +20,7 @@ public class EffectAddTwilight extends Effect{
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState) {
+    public String toString(String player, DefaultLotroGame game) {
         return "add " + amount + " twilight";
     }
 }

@@ -6,6 +6,7 @@ import com.gempukku.lotro.game.CardNotFoundException;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +36,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
     }
 
     @Override
-    public String chooseAction(LotroGame game, AwaitingDecision awaitingDecision) {
+    public String chooseAction(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         try {
             return makeDecision(game, awaitingDecision);
         } catch (UnsupportedOperationException e) {
@@ -46,7 +47,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
         }
     }
 
-    private String makeDecision(LotroGame game, AwaitingDecision awaitingDecision) {
+    private String makeDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         return switch (awaitingDecision.getDecisionType()) {
             case INTEGER -> makeIntegerDecision(game, awaitingDecision);
             case MULTIPLE_CHOICE -> makeMultipleChoiceDecision(game, awaitingDecision);
@@ -66,18 +67,13 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
         }
     }
 
-    private String makeCardActionChoiceDecision(LotroGame game, AwaitingDecision awaitingDecision) {
+    private String makeCardActionChoiceDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         if (DecisionClassifier.isDegenerateDecision(awaitingDecision)) {
             // No action can be taken, just pass
             return "";
         } else {
             try {
-                int chosenActionId = brains.chooseActionToTakeNext(game, awaitingDecision);
-                if (chosenActionId < 0) {
-                    return "";
-                } else {
-                    return String.valueOf(chosenActionId);
-                }
+                return brains.chooseActionToTakeNext(game, awaitingDecision);
             } catch (CardNotFoundException e) {
                 throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
             }
@@ -100,7 +96,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
         throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
     }
 
-    private String makeCardSelectionDecision(LotroGame game, AwaitingDecision awaitingDecision) {
+    private String makeCardSelectionDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         if (DecisionClassifier.isDegenerateDecision(awaitingDecision)) {
             // No option to make a decision
             return super.chooseAction(game, awaitingDecision);
@@ -173,15 +169,13 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
                 options.add(game.getGameState().getPhysicalCard(Integer.parseInt(cardId)));
             }
 
-            List<PhysicalCard> target = brains.chooseTargetForEffect(game, options, source, awaitingDecision);
-
-            return String.join(",", target.stream().map(card -> String.valueOf(card.getCardId())).toList());
+            return brains.chooseTargetForEffect(game, options, source, awaitingDecision);
         }
 
         throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
     }
 
-    private String makeArbitraryCardsSelectionDecision(LotroGame game, AwaitingDecision awaitingDecision) {
+    private String makeArbitraryCardsSelectionDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         if (DecisionClassifier.isDegenerateDecision(awaitingDecision)) {
             // No option to make a decision
             return super.chooseAction(game, awaitingDecision);
@@ -215,17 +209,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
                 options.add(game.getGameState().getPhysicalCard(Integer.parseInt(cardId)));
             }
 
-            List<PhysicalCard> target = brains.chooseTargetForEffect(game, options, source, awaitingDecision);
-
-            return String.join(",", target.stream().map(card -> {
-                List<String> tempIds = Arrays.stream(awaitingDecision.getDecisionParameters().get("cardId")).toList();
-                for (int i = 0; i < cardIds.size(); i++) {
-                    if (Integer.parseInt(cardIds.get(i)) == card.getCardId()) {
-                       return tempIds.get(i);
-                    }
-                }
-                throw new IllegalStateException("Cannot find chosen card " + card.getCardId() + " in decision options: " + awaitingDecision.toJson().toString());
-            }).toList());
+            return brains.chooseTargetForEffect(game, options, source, awaitingDecision);
         }
 
         throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());

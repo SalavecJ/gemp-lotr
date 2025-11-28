@@ -38,4 +38,9 @@ public class ReturnFollowersToSupportGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new ReturnFollowersToSupportGameProcess(_followingProcess.copyThisForNewGame(game));
+    }
 }

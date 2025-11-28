@@ -1,24 +1,23 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.cost;
 
 import com.gempukku.lotro.bots.forge.cards.ability2.Target;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.Race;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.function.Predicate;
 
 public abstract class Cost {
-    public abstract void pay(String player, PlannedBoardState plannedBoardState);
-    public abstract boolean canPayCost(String player, PlannedBoardState plannedBoardState);
-    public abstract double getValueIfPayed(String player, PlannedBoardState plannedBoardState);
-    public abstract String toString(String player, PlannedBoardState plannedBoardState);
+    public abstract boolean canPayCost(String player, DefaultLotroGame game);
+    public abstract double getValueIfPayed(String player, DefaultLotroGame game);
+    public abstract String toString(String player, DefaultLotroGame game);
 
 
-    public static CostExert exert(Predicate<BotCard> target) {
+    public static CostExert exert(Predicate<PhysicalCard> target) {
         return exert(target, 1);
     }
 
-    public static CostExert exert(Predicate<BotCard> target, int amount) {
+    public static CostExert exert(Predicate<PhysicalCard> target, int amount) {
         return new CostExert(target, amount);
     }
 
@@ -38,19 +37,19 @@ public abstract class Cost {
         return exert(Target.race(race), amount);
     }
 
-    public static CostExertSelf exertSelf(BotCard self) {
+    public static CostExertSelf exertSelf(PhysicalCard self) {
         return exertSelf(self, 1);
     }
 
-    public static CostExertSelf exertSelf(BotCard self, int amount) {
+    public static CostExertSelf exertSelf(PhysicalCard self, int amount) {
         return new CostExertSelf(self, amount);
     }
 
-    public static CostDiscardSelf discardSelf(BotCard self) {
+    public static CostDiscardSelf discardSelf(PhysicalCard self) {
         return new CostDiscardSelf(self);
     }
 
-    public static CostDiscardCardFromHand discardFromHand(Predicate<BotCard> target) {
+    public static CostDiscardCardFromHand discardFromHand(Predicate<PhysicalCard> target) {
         return discardFromHand(target, 1);
     }
 
@@ -58,7 +57,7 @@ public abstract class Cost {
         return new CostDiscardCardFromHand(botCard -> true, howMany);
     }
 
-    public static CostDiscardCardFromHand discardFromHand(Predicate<BotCard> target, int howMany) {
+    public static CostDiscardCardFromHand discardFromHand(Predicate<PhysicalCard> target, int howMany) {
         return new CostDiscardCardFromHand(target, howMany);
     }
 

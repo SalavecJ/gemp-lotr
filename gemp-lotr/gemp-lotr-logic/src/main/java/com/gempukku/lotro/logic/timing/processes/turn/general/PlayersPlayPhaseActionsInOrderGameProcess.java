@@ -74,4 +74,12 @@ public class PlayersPlayPhaseActionsInOrderGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        PlayersPlayPhaseActionsInOrderGameProcess copy = new PlayersPlayPhaseActionsInOrderGameProcess(new PlayOrder(_playOrder), _consecutivePasses, _followingGameProcess.copyThisForNewGame(game));
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

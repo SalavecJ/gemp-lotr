@@ -54,4 +54,12 @@ public class FellowshipPlayerChoosesShadowPlayerToAssignDamageToGameProcess impl
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        FellowshipPlayerChoosesShadowPlayerToAssignDamageToGameProcess copy = new FellowshipPlayerChoosesShadowPlayerToAssignDamageToGameProcess(_woundsToAssign, _followingGameProcess.copyThisForNewGame(game));
+        if (_nextProcess != null)
+            copy._nextProcess = _nextProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

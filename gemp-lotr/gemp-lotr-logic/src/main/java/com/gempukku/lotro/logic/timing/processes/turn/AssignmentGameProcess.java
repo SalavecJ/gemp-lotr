@@ -31,4 +31,12 @@ public class AssignmentGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        AssignmentGameProcess copy = new AssignmentGameProcess();
+        if (_followingGameProcess != null)
+            copy._followingGameProcess = _followingGameProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

@@ -20,4 +20,12 @@ public class ShadowPhasesGameProcess implements GameProcess {
         String shadowPlayer = _playOrder.getNextPlayer();
         return new ShadowPhaseOfPlayerGameProcess(_playOrder, shadowPlayer);
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        ShadowPhasesGameProcess copy = new ShadowPhasesGameProcess();
+        if (_playOrder != null)
+            copy._playOrder = new PlayOrder(_playOrder);
+        return copy;
+    }
 }

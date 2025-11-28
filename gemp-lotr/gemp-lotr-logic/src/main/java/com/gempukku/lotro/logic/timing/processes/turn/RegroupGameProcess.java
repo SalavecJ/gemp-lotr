@@ -23,4 +23,12 @@ public class RegroupGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        RegroupGameProcess copy = new RegroupGameProcess();
+        if (_followingGameProcess != null)
+            copy._followingGameProcess = _followingGameProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

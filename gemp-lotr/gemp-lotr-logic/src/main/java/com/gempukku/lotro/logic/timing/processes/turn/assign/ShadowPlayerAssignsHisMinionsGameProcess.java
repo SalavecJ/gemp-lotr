@@ -15,6 +15,7 @@ import com.gempukku.lotro.logic.effects.AssignmentPhaseEffect;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +34,6 @@ public class ShadowPlayerAssignsHisMinionsGameProcess implements GameProcess {
 
     @Override
     public void process(final LotroGame game) {
-        GameState gameState = game.getGameState();
         Filter minionFilter = Filters.and(CardType.MINION, Filters.owner(_playerId), Filters.in(_leftoverMinions));
 
         final Collection<PhysicalCard> minions = Filters.filterActive(game, minionFilter, Filters.assignableToSkirmish(Side.SHADOW, false, false, false));
@@ -46,7 +46,7 @@ public class ShadowPlayerAssignsHisMinionsGameProcess implements GameProcess {
                                     Filters.assignableToSkirmish(Side.SHADOW, true, true, false)));
 
             game.getUserFeedback().sendAwaitingDecision(_playerId,
-                    new PlayerAssignMinionsDecision(1, "Assign minions to companions or allies at home", freePeopleTargets, minions) {
+                    new PlayerAssignMinionsDecision(1, "Assign minions to companions or allies at home", freePeopleTargets, minions, false) {
                         @Override
                         public void decisionMade(String result) throws DecisionResultInvalidException {
                             Map<PhysicalCard, Set<PhysicalCard>> assignments = getAssignmentsBasedOnResponse(result);
@@ -71,5 +71,10 @@ public class ShadowPlayerAssignsHisMinionsGameProcess implements GameProcess {
             return new ShadowPlayerAssignsHisMinionsGameProcess(_shadowOrder, nextPlayerId, _leftoverMinions, _followingGameProcess);
         else
             return _followingGameProcess;
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new ShadowPlayerAssignsHisMinionsGameProcess(new PlayOrder(_shadowOrder), _playerId, new HashSet<>(_leftoverMinions), _followingGameProcess.copyThisForNewGame(game));
     }
 }

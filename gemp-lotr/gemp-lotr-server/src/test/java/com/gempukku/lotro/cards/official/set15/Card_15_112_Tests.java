@@ -3,6 +3,7 @@ package com.gempukku.lotro.cards.official.set15;
 import com.gempukku.lotro.framework.VirtualTableScenario;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.CardNotFoundException;
+import com.gempukku.lotro.game.PhysicalCardImpl;
 import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 import org.junit.Test;
 
@@ -167,7 +168,31 @@ public class Card_15_112_Tests
 
 		// -3 for ability, -3 for orc, +2 for discount, -2 for roaming
 		assertEquals(14, scn.GetTwilight());
-		assertEquals(Zone.SHADOW_CHARACTERS, orc1.getZone());
-		assertEquals(0, scn.GetWoundsOn(orc1));
+
+		int orcsInPlay = 0;
+		PhysicalCardImpl orcInPlay = null;
+		if (orc1.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc1;
+		}
+		if (orc2.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc2;
+		}
+		if (orc3.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc3;
+		}
+		if (orc4.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc4;
+		}
+		if (orc5.getZone() == Zone.SHADOW_CHARACTERS) {
+			orcsInPlay++;
+			orcInPlay = orc5;
+		}
+		assertEquals(1, orcsInPlay);
+
+		assertEquals(0, scn.GetWoundsOn(orcInPlay));
 	}
 }

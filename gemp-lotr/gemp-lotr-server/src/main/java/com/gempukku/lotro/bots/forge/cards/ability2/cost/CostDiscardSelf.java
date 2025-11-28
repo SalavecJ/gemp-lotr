@@ -1,32 +1,24 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.cost;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class CostDiscardSelf extends Cost {
-    private final BotCard self;
+    private final PhysicalCard self;
 
-    public CostDiscardSelf(BotCard self) {
+    public CostDiscardSelf(PhysicalCard self) {
         this.self = self;
     }
 
-    @Override
-    public void pay(String player, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(player, plannedBoardState)) {
-            throw new IllegalStateException("Cost cannot be payed");
-        }
 
-        plannedBoardState.discardFromPlay(self);
+    @Override
+    public boolean canPayCost(String player, DefaultLotroGame game) {
+        return game.getGameState().getInPlay().contains(self);
     }
 
     @Override
-    public boolean canPayCost(String player, PlannedBoardState plannedBoardState) {
-        return plannedBoardState.getActiveCards().contains(self);
-    }
-
-    @Override
-    public double getValueIfPayed(String player, PlannedBoardState plannedBoardState) {
-        if (!canPayCost(player, plannedBoardState)) {
+    public double getValueIfPayed(String player, DefaultLotroGame game) {
+        if (!canPayCost(player, game)) {
             throw new IllegalStateException("Cost cannot be payed");
         }
 
@@ -34,7 +26,7 @@ public class CostDiscardSelf extends Cost {
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState) {
-        return "discard self (" + self.getSelf().getBlueprint().getFullName() + ")";
+    public String toString(String player, DefaultLotroGame game) {
+        return "discard self (" + self.getBlueprint().getFullName() + ")";
     }
 }

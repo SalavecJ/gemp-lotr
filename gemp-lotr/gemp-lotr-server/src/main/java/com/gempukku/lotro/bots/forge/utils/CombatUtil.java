@@ -3,11 +3,9 @@ package com.gempukku.lotro.bots.forge.utils;
 import com.gempukku.lotro.common.Keyword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
-import com.gempukku.lotro.game.state.Skirmish;
 import com.gempukku.lotro.logic.effects.ResolveSkirmishEffect;
 import com.gempukku.lotro.logic.modifiers.CantBeOverwhelmedModifier;
 
-import java.util.List;
 import java.util.Set;
 
 public class CombatUtil {
@@ -63,14 +61,6 @@ public class CombatUtil {
 
     public static int getPotentialDamageTakenIfShadowLoses(LotroGame game, PhysicalCard fp) {
         return 1 + game.getModifiersQuerying().getKeywordCount(game, fp, Keyword.DAMAGE);
-    }
-
-    public static List<PhysicalCard> returnSkirmishingCharacters(LotroGame game, List<PhysicalCard> options) {
-        Skirmish skirmish = game.getGameState().getSkirmish();
-        if (skirmish == null) {
-            return List.of();
-        }
-        return options.stream().filter(card -> skirmish.getFellowshipCharacter().equals(card) || skirmish.getShadowCharacters().contains(card)).toList();
     }
 
 }

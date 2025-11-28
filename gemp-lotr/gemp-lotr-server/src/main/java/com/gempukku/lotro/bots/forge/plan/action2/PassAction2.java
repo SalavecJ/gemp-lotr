@@ -1,11 +1,13 @@
-package com.gempukku.lotro.bots.forge.plan.action;
+package com.gempukku.lotro.bots.forge.plan.action2;
 
-import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+public class PassAction2 extends ActionToTake2 {
+    public PassAction2(String decisionText) {
+        super(decisionText);
+    }
 
-public class PassAction implements ActionToTake {
     @Override
-    public int carryOut(AwaitingDecision awaitingDecision) {
-        return -1;
+    public String carryOut() {
+        return "";
     }
 
     @Override
@@ -21,6 +23,6 @@ public class PassAction implements ActionToTake {
 
     @Override
     public int hashCode() {
-        return PassAction.class.hashCode();
+        return PassAction2.class.hashCode();
     }
 }

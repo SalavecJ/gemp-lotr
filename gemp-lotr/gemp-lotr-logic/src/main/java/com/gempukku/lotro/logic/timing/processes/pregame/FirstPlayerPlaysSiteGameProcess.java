@@ -1,13 +1,13 @@
 package com.gempukku.lotro.logic.timing.processes.pregame;
 
 import com.gempukku.lotro.common.Zone;
-import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.actions.SystemQueueAction;
 import com.gempukku.lotro.logic.effects.PlaySiteEffect;
 import com.gempukku.lotro.logic.timing.UnrespondableEffect;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class FirstPlayerPlaysSiteGameProcess implements GameProcess {
@@ -48,5 +48,10 @@ public class FirstPlayerPlaysSiteGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return new PlayRingBearerRingAndAddBurdersGameProcess(_bids, _firstPlayer);
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new FirstPlayerPlaysSiteGameProcess(new HashMap<>(_bids), _firstPlayer);
     }
 }

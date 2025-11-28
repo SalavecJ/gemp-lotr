@@ -89,4 +89,12 @@ public class FellowshipPlayerAssignsArcheryDamageGameProcess implements GameProc
     public GameProcess getNextProcess() {
         return _nextProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        FellowshipPlayerAssignsArcheryDamageGameProcess copy = new FellowshipPlayerAssignsArcheryDamageGameProcess(_woundsToAssign, _followingGameProcess.copyThisForNewGame(game));
+        if (_nextProcess != null)
+            copy._nextProcess = copy._followingGameProcess;
+        return copy;
+    }
 }

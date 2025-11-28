@@ -20,10 +20,10 @@ import com.gempukku.lotro.bots.rl.learning.semanticaction.*;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.GameState;
-import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.game.state.Skirmish;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.CardActionSelectionDecision;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -97,7 +97,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
     }
 
     @Override
-    public String chooseAction(LotroGame game, AwaitingDecision decision) {
+    public String chooseAction(DefaultLotroGame game, AwaitingDecision decision) {
         double[] stateVector = features.extractFeatures(game.getGameState(), decision, getName());
 
         SemanticAction action = chooseSemanticAction(game, decision);
@@ -108,7 +108,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return action.toDecisionString(decision, game.getGameState());
     }
 
-    private SemanticAction chooseSemanticAction(LotroGame game, AwaitingDecision decision) {
+    private SemanticAction chooseSemanticAction(DefaultLotroGame game, AwaitingDecision decision) {
         String action =  switch (decision.getDecisionType()) {
             case INTEGER -> chooseIntegerAction(game, decision);
             case MULTIPLE_CHOICE -> chooseMultipleChoiceAction(game, decision);
@@ -135,7 +135,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         };
     }
 
-    private String chooseAssignmentAction(LotroGame game, AwaitingDecision decision) {
+    private String chooseAssignmentAction(DefaultLotroGame game, AwaitingDecision decision) {
         for (DecisionAnswerer trainer : assignmentTrainers) {
             if (trainer.appliesTo(game.getGameState(), decision, getName())) {
                 return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
@@ -150,7 +150,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseActionChoice(LotroGame game, AwaitingDecision decision) {
+    private String chooseActionChoice(DefaultLotroGame game, AwaitingDecision decision) {
         // Order does not matter with FotR starters
 //        System.out.println("Unknown action decision: "
 //                + gameState.getCurrentPhase() + " - "
@@ -161,7 +161,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseCardActionChoice(LotroGame game, AwaitingDecision decision) {
+    private String chooseCardActionChoice(DefaultLotroGame game, AwaitingDecision decision) {
         String[] actionIds = decision.getDecisionParameters().get("actionId");
         if (actionIds == null || actionIds.length == 0) {
             // No actions available: must pass
@@ -210,7 +210,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseArbitraryCardsAction(LotroGame game, AwaitingDecision decision) {
+    private String chooseArbitraryCardsAction(DefaultLotroGame game, AwaitingDecision decision) {
         Map<String, String[]> params = decision.getDecisionParameters();
         String[] cardIds = params.get("cardId");
         String[] selectable = params.get("selectable");
@@ -248,7 +248,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseCardSelectionAction(LotroGame game, AwaitingDecision decision) {
+    private String chooseCardSelectionAction(DefaultLotroGame game, AwaitingDecision decision) {
         int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
         int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
         List<String> cardIds = Arrays.stream(decision.getDecisionParameters().get("cardId")).toList();
@@ -297,7 +297,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseIntegerAction(LotroGame game, AwaitingDecision decision) {
+    private String chooseIntegerAction(DefaultLotroGame game, AwaitingDecision decision) {
         for (DecisionAnswerer trainer : integerTrainers) {
             if (trainer.appliesTo(game.getGameState(), decision, getName())) {
                 return trainer.getAnswer(game.getGameState(), decision, getName(), features, modelRegistry);
@@ -311,7 +311,7 @@ public class FotrStarterBot extends RandomDecisionBot implements LearningBotPlay
         return super.chooseAction(game, decision);
     }
 
-    private String chooseMultipleChoiceAction(LotroGame game, AwaitingDecision decision) {
+    private String chooseMultipleChoiceAction(DefaultLotroGame game, AwaitingDecision decision) {
         String[] options = decision.getDecisionParameters().get("results");
         for (DecisionAnswerer trainer : multipleChoiceTrainers) {
             if (trainer.appliesTo(game.getGameState(), decision, getName())) {

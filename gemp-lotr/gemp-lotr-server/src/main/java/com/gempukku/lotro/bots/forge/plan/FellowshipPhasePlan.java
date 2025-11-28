@@ -1,31 +1,34 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.cards.ability2.ActivatedAbility;
-import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.*;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.*;
+import com.gempukku.lotro.bots.forge.plan.action2.*;
+import com.gempukku.lotro.bots.forge.utils.DecisionToActions;
+import com.gempukku.lotro.bots.forge.utils.TargetFinderUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.LotroGame;
+import com.gempukku.lotro.game.DefaultUserFeedback;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class FellowshipPhasePlan {
     private final int siteNumber;
     private final String playerName;
-    private final LotroGame game;
+    private final DefaultLotroGame game;
     private final boolean printDebugMessages;
 
     private int nextStep = 0;
-    List<ActionToTake> actions = new ArrayList<>();
-    private final PlannedBoardState plannedBoardState;
+    List<ActionToTake2> actions2 = new ArrayList<>();
 
-    public FellowshipPhasePlan(boolean printDebugMessages, LotroGame game) {
+    private final DefaultLotroGame copy;
+    private final DefaultUserFeedback feedback = new DefaultUserFeedback();
+
+    public FellowshipPhasePlan(boolean printDebugMessages, DefaultLotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
         this.playerName = game.getGameState().getCurrentPlayerId();
         this.game = game;
@@ -35,38 +38,45 @@ public class FellowshipPhasePlan {
             System.out.println("Making new fellowship phase plan for site " + siteNumber);
         }
 
-        plannedBoardState = new PlannedBoardState(game, playerName);
-//        makePlan();
-        makePlan2();
+        copy = game.getCopyByReplayingDecisionsFromStart(feedback);
+
+        makePlan();
     }
 
-    private void makePlan2() {
+    private void makePlan() {
         while (true) {
-            List<ActionToTake> possibleActions = plannedBoardState.getAvailableActions(playerName);
-            ActionToTake action = chooseAction(possibleActions);
-            actions.add(action);
+            AwaitingDecision awaitingDecision = feedback.getAwaitingDecision(playerName);
+//            System.out.println("Decision expected: " + awaitingDecision.toJson());
+            List<ActionToTake2> decisionActions = DecisionToActions.toActions(awaitingDecision, copy);
+//            System.out.println("Possible actions: ");
+//            for (ActionToTake2 decisionAction : decisionActions) {
+//                System.out.println(decisionAction);
+//            }
+            ActionToTake2 chosenAction2 = chooseAction(decisionActions);
+
+            actions2.add(chosenAction2);
             if (printDebugMessages) {
-                System.out.println("  " + actions.size() + ". " + action);
+                System.out.println("  " + actions2.size() + ". " + chosenAction2);
             }
-            plannedBoardState.takeAction(playerName, action);
-            if (action instanceof PassAction) {
+
+            String answer = chosenAction2.carryOut();
+            feedback.participantDecided(playerName, answer);
+            try {
+                awaitingDecision.decisionMade(answer);
+            } catch (DecisionResultInvalidException e) {
+                throw new IllegalStateException("Chosen action was invalid: " + answer, e);
+            }
+            copy.carryOutPendingActionsUntilDecisionNeeded();
+
+            if (chosenAction2 instanceof PassAction2 && awaitingDecision.getText().equals("Play Fellowship action or Pass")) {
                 break;
             }
         }
     }
 
-    private ActionToTake chooseAction(List<ActionToTake> possibleActions) {
-        // Mandatory target choosing actions for attached cards
-        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetForAttachmentAction)) {
-            return getBestTargetForAttachment(possibleActions);
-        }
-        // Mandatory target choosing actions for cost
-        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsForCostAction)) {
-            return getBestTargetForCost(possibleActions);
-        }
-        // Mandatory target choosing actions for effect
-        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsForEffectAction)) {
-            return getBestTargetForEffect(possibleActions);
+    private ActionToTake2 chooseAction(List<ActionToTake2> possibleActions) {
+        if (possibleActions.stream().allMatch(actionToTake2 -> actionToTake2 instanceof ChooseTargetsAction2)) {
+            return TargetFinderUtil.getBestTarget(possibleActions.stream().map(actionToTake2 -> ((ChooseTargetsAction2) actionToTake2)).toList(), copy, playerName);
         }
 
         // Priority order of effects to consider
@@ -81,22 +91,22 @@ public class FellowshipPhasePlan {
         );
 
         for (Class<? extends Effect> effectClass : effectPriority) {
-            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
+            ActionToTake2 bestAction = getBestActionWithEffect(possibleActions, effectClass);
             if (bestAction != null) {
                 return bestAction;
             }
         }
 
         // Check for heal companion by discard actions
-        Optional<ActionToTake> healAction = possibleActions.stream()
-                .filter(actionToTake -> actionToTake instanceof DiscardCompanionToHealAction)
+        Optional<ActionToTake2> healAction = possibleActions.stream()
+                .filter(actionToTake -> actionToTake instanceof DiscardCompanionToHealAction2)
                 .findFirst();
         if (healAction.isPresent()) {
             return healAction.get();
         }
 
         // Play permanents from hand
-        ActionToTake bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
+        ActionToTake2 bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
         if (bestPlayPermanentAction != null) {
             return bestPlayPermanentAction;
         }
@@ -107,7 +117,7 @@ public class FellowshipPhasePlan {
         );
 
         for (Class<? extends Effect> effectClass : unclogEffectPriority) {
-            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
+            ActionToTake2 bestAction = getBestActionWithEffect(possibleActions, effectClass);
             if (bestAction != null) {
                 return bestAction;
             }
@@ -115,79 +125,15 @@ public class FellowshipPhasePlan {
 
         // Finally pass if no other action with value is found
         return possibleActions.stream()
-                .filter(actionToTake -> actionToTake instanceof PassAction)
+                .filter(actionToTake -> actionToTake instanceof PassAction2)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No valid action found, and no pass action available."));
+
     }
 
-    private ActionToTake getBestTargetForAttachment(List<ActionToTake> possibleActions) {
-        ChooseTargetForAttachmentAction firstAction = validateAndGetFirstAction(
-                possibleActions,
-                ChooseTargetForAttachmentAction.class,
-                "ChooseTargetForAttachmentAction"
-        );
-
-        BotObjectAttachableCard attachment = firstAction.getAttachment();
-        verifyAllActionsShareSameCard(possibleActions,
-                action -> ((ChooseTargetForAttachmentAction) action).getAttachment(),
-                "attachment");
-
-        List<BotCard> potentialTargets = possibleActions.stream()
-                .map(action -> ((ChooseTargetForAttachmentAction) action).getTarget())
-                .toList();
-
-        BotCard chosenTarget = attachment.chooseTargetToAttachTo(plannedBoardState, potentialTargets);
-
-        return findActionWithTarget(possibleActions, chosenTarget,
-                action -> ((ChooseTargetForAttachmentAction) action).getTarget(),
-                attachment.getSelf().getBlueprint().getFullName());
-    }
-
-    private ActionToTake getBestTargetForCost(List<ActionToTake> possibleActions) {
-        ChooseTargetsForCostAction firstAction = validateAndGetFirstAction(
-                possibleActions,
-                ChooseTargetsForCostAction.class,
-                "ChooseTargetForCostAction"
-        );
-
-        BotCard source = firstAction.getSource();
-        CostWithTarget cost = firstAction.getCost();
-
-        verifyAllActionsShareSameCard(possibleActions,
-                action -> ((ChooseTargetsForCostAction) action).getSource(),
-                "source");
-
-        List<BotCard> chosenTargets = cost.chooseTargets(playerName, plannedBoardState);
-
-        return findActionWithTargets(possibleActions, chosenTargets,
-                action -> ((ChooseTargetsForCostAction) action).getTargets(),
-                source.getSelf().getBlueprint().getFullName());
-    }
-
-    private ActionToTake getBestTargetForEffect(List<ActionToTake> possibleActions) {
-        ChooseTargetsForEffectAction firstAction = validateAndGetFirstAction(
-                possibleActions,
-                ChooseTargetsForEffectAction.class,
-                "ChooseTargetForEffectAction"
-        );
-
-        BotCard source = firstAction.getSource();
-        EffectWithTarget effect = firstAction.getEffect();
-
-        verifyAllActionsShareSameCard(possibleActions,
-                action -> ((ChooseTargetsForEffectAction) action).getSource(),
-                "source");
-
-        BotCard chosenTarget = effect.chooseTarget(playerName, plannedBoardState);
-
-        return findActionWithTargets(possibleActions, List.of(chosenTarget),
-                action -> ((ChooseTargetsForEffectAction) action).getTargets(),
-                source.getSelf().getBlueprint().getFullName());
-    }
-
-    private ActionToTake getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
-        List<ActionToTake> playPermanentActions = new ArrayList<>(possibleActions.stream()
-                .filter(action -> action instanceof PlayCardFromHandAction playCardFromHandAction
+    private ActionToTake2 getBestPlayPermanentFromHandAction(List<ActionToTake2> possibleActions) {
+        List<ActionToTake2> playPermanentActions = new ArrayList<>(possibleActions.stream()
+                .filter(action -> action instanceof PlayCardFromHandAction2 playCardFromHandAction
                         && !(playCardFromHandAction.getCard() instanceof BotEventCard))
                 .sorted(playPermanentComparator())
                 .toList());
@@ -198,19 +144,19 @@ public class FellowshipPhasePlan {
         return playPermanentActions.getFirst();
     }
 
-    private ActionToTake getBestActionWithEffect(List<ActionToTake> possibleActions, Class<? extends Effect> effectClass) {
-        List<ActionToTake> actionsWithEffect = new ArrayList<>(possibleActions.stream().filter(valuableCardsWithEffect(effectClass)).sorted(eventAbilityComparator(effectClass)).toList());
+    private ActionToTake2 getBestActionWithEffect(List<ActionToTake2> possibleActions, Class<? extends Effect> effectClass) {
+        List<ActionToTake2> actionsWithEffect = new ArrayList<>(possibleActions.stream().filter(valuableCardsWithEffect(effectClass)).sorted(eventAbilityComparator(effectClass)).toList());
         if (actionsWithEffect.isEmpty()) {
             return null;
         }
         return actionsWithEffect.getFirst();
     }
 
-    private Comparator<ActionToTake> eventAbilityComparator(Class<? extends Effect> effectClass) {
+    private Comparator<ActionToTake2> eventAbilityComparator(Class<? extends Effect> effectClass) {
         // Sort actions: events first, then abilities, each group sorted by value (highest first)
         return (action1, action2) -> {
-            boolean isEvent1 = action1 instanceof PlayCardFromHandAction;
-            boolean isEvent2 = action2 instanceof PlayCardFromHandAction;
+            boolean isEvent1 = action1 instanceof PlayCardFromHandAction2;
+            boolean isEvent2 = action2 instanceof PlayCardFromHandAction2;
 
             // Events come before abilities
             if (isEvent1 && !isEvent2) return -1;
@@ -223,9 +169,9 @@ public class FellowshipPhasePlan {
         };
     }
 
-    private Comparator<ActionToTake> playPermanentComparator() {
+    private Comparator<ActionToTake2> playPermanentComparator() {
         return (action1, action2) -> {
-            if (!(action1 instanceof PlayCardFromHandAction play1) || !(action2 instanceof PlayCardFromHandAction play2)) {
+            if (!(action1 instanceof PlayCardFromHandAction2 play1) || !(action2 instanceof PlayCardFromHandAction2 play2)) {
                 return 0;
             }
 
@@ -261,34 +207,34 @@ public class FellowshipPhasePlan {
         };
     }
 
-    private double getActionValue(ActionToTake action, Class<? extends Effect> effectClass) {
-        if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
+    private double getActionValue(ActionToTake2 action, Class<? extends Effect> effectClass) {
+        if (action instanceof PlayCardFromHandAction2 playCardFromHandAction) {
             if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard
                     && botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-                return botEventCard.getEventAbility().getPossibleValue(playerName, plannedBoardState);
+                return botEventCard.getEventAbility().getPossibleValue(playerName, copy);
             }
-        } else if (action instanceof UseCardAction useCardAction) {
+        } else if (action instanceof UseCardAction2 useCardAction) {
             BotCard botCard = useCardAction.getCard();
             ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-            return activatedAbility.getPossibleValue(playerName, plannedBoardState);
+            return activatedAbility.getPossibleValue(playerName, copy);
         }
         return 0.0;
     }
 
-    private Predicate<ActionToTake> valuableCardsWithEffect(Class<? extends Effect> effectClass) {
+    private Predicate<ActionToTake2> valuableCardsWithEffect(Class<? extends Effect> effectClass) {
         return action -> {
-            if (action instanceof PlayCardFromHandAction playCardFromHandAction) {
+            if (action instanceof PlayCardFromHandAction2 playCardFromHandAction) {
                 if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard) {
                     if (botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-                        double value = botEventCard.getEventAbility().getPossibleValue(playerName, plannedBoardState);
+                        double value = botEventCard.getEventAbility().getPossibleValue(playerName, copy);
                         return value >= 0.0; // play cards with 0 value to cycle hand
                     }
                 }
-            } else if (action instanceof UseCardAction useCardAction) {
+            } else if (action instanceof UseCardAction2 useCardAction) {
                 BotCard botCard = useCardAction.getCard();
                 ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
                 if (activatedAbility != null) {
-                    double value = activatedAbility.getPossibleValue(playerName, plannedBoardState);
+                    double value = activatedAbility.getPossibleValue(playerName, copy);
                     return value > 0.0;
                 }
             }
@@ -296,74 +242,7 @@ public class FellowshipPhasePlan {
         };
     }
 
-    // Helper methods for target choosing refactoring
-
-    private <T extends ActionToTake> T validateAndGetFirstAction(
-            List<ActionToTake> possibleActions,
-            Class<T> expectedClass,
-            String expectedClassName) {
-        if (possibleActions.stream().anyMatch(action -> !expectedClass.isInstance(action))) {
-            throw new IllegalStateException("Expected all actions to be " + expectedClassName);
-        }
-        return expectedClass.cast(possibleActions.getFirst());
-    }
-
-    private void verifyAllActionsShareSameCard(
-            List<ActionToTake> possibleActions,
-            Function<ActionToTake, BotCard> cardExtractor,
-            String cardDescription) {
-        BotCard firstCard = cardExtractor.apply(possibleActions.getFirst());
-        for (ActionToTake action : possibleActions) {
-            BotCard card = cardExtractor.apply(action);
-            if (!card.equals(firstCard)) {
-                throw new IllegalStateException("Not all actions share the same " + cardDescription);
-            }
-        }
-    }
-
-    private ActionToTake findActionWithTarget(
-            List<ActionToTake> possibleActions,
-            BotCard chosenTarget,
-            Function<ActionToTake, BotCard> targetExtractor,
-            String sourceName) {
-        if (chosenTarget == null) {
-            throw new IllegalStateException("Could not find target for " + sourceName);
-        }
-
-        return possibleActions.stream()
-                .filter(action -> targetExtractor.apply(action).equals(chosenTarget))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Could not find action for chosen target"));
-    }
-
-    private ActionToTake findActionWithTargets(
-            List<ActionToTake> possibleActions,
-            List<BotCard> chosenTargets,
-            Function<ActionToTake, List<BotCard>> targetsExtractor,
-            String sourceName) {
-        if (chosenTargets == null || chosenTargets.isEmpty()) {
-            throw new IllegalStateException("Could not find targets for " + sourceName);
-        }
-
-        // Sort chosen targets by card ID for consistent comparison
-        List<Integer> chosenTargetIds = chosenTargets.stream()
-                .map(card -> card.getSelf().getCardId())
-                .sorted()
-                .toList();
-
-        return possibleActions.stream()
-                .filter(action -> {
-                    List<Integer> actionTargetIds = targetsExtractor.apply(action).stream()
-                            .map(card -> card.getSelf().getCardId())
-                            .sorted()
-                            .toList();
-                    return actionTargetIds.equals(chosenTargetIds);
-                })
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Could not find action for chosen targets"));
-    }
-
-    public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
+    public String chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString());
         }
@@ -375,22 +254,22 @@ public class FellowshipPhasePlan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (nextStep >= actions.size()) {
+        if (nextStep >= actions2.size()) {
             System.out.println("All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep);
+        ActionToTake2 action = actions2.get(nextStep);
         if (printDebugMessages) {
-            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions2.size());
             System.out.println(action.toString());
         }
-        int result = action.carryOut(awaitingDecision);
+        String result = action.carryOut();
         nextStep++;
         return result;
     }
 
-    public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
+    public String chooseTarget(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString());
         }
@@ -402,26 +281,25 @@ public class FellowshipPhasePlan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (nextStep >= actions.size()) {
+        if (nextStep >= actions2.size()) {
             System.out.println("All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep);
-        if (!(action instanceof ChooseTargetsAction)) {
+        ActionToTake2 action = actions2.get(nextStep);
+        if (!(action instanceof ChooseTargetsAction2)) {
             throw new IllegalStateException("Next action in plan is not target action");
         }
         if (printDebugMessages) {
-            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions2.size());
             System.out.println(action);
         }
         nextStep++;
-        List<BotCard> targets = ((ChooseTargetsAction) action).getTargets();
-        return targets.stream().map(BotCard::getSelf).toList();
+        return action.carryOut();
     }
 
     public boolean replanningNeeded() {
-        return !isActive() || nextStep >= actions.size();
+        return !isActive() || nextStep >= actions2.size();
     }
 
     private boolean isActive() {

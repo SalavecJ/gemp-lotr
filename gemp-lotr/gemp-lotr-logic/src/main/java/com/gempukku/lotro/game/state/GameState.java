@@ -6,6 +6,7 @@ import com.gempukku.lotro.game.*;
 import com.gempukku.lotro.logic.PlayerOrder;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.modifiers.ModifierFlag;
+import com.gempukku.lotro.logic.timing.DeterministicSeedGenerator;
 import com.gempukku.lotro.logic.timing.GameStats;
 import com.gempukku.lotro.logic.vo.LotroDeck;
 import org.apache.logging.log4j.LogManager;
@@ -13,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.security.InvalidParameterException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -97,8 +100,7 @@ public class GameState {
         }
     }
     private final List<DecisionInfo> _decisionsMade = new ArrayList<>();
-    private final List<Long> _seedsUsedToShuffle = new ArrayList<>();
-    private final List<Long> _seedsToUseToShuffle = new ArrayList<>();
+    private final DeterministicSeedGenerator _seedGenerator;
 
     private final List<Assignment> _assignments = new LinkedList<>();
     private Skirmish _skirmish = null;
@@ -116,6 +118,246 @@ public class GameState {
 
     private int nextCardId() {
         return _nextCardId++;
+    }
+
+    public GameState(long shuffleSeed) {
+        _seedGenerator = new DeterministicSeedGenerator(shuffleSeed);
+    }
+
+    /**
+     * Copy constructor that creates a deep copy of the game state.
+     * This is used for game copying for bot exploration.
+     *
+     * @param original The original GameState to copy
+     * @param game The game instance for the copied state
+     */
+    public GameState(GameState original, LotroGame game) {
+        // Copy shuffle seed generator
+        _seedGenerator = new DeterministicSeedGenerator(original._seedGenerator);
+
+        // Copy player order and format
+        _playerOrder = original._playerOrder;
+        _format = original._format;
+
+        // First pass: Create all card copies and build ID mapping
+        Map<Integer, PhysicalCardImpl> cardIdMap = new HashMap<>();
+
+        for (Map.Entry<Integer, PhysicalCardImpl> entry : original._allCards.entrySet()) {
+            PhysicalCardImpl originalCard = entry.getValue();
+            PhysicalCardImpl copiedCard = new PhysicalCardImpl(originalCard, game);
+            cardIdMap.put(originalCard.getCardId(), copiedCard);
+            _allCards.put(copiedCard.getCardId(), copiedCard);
+        }
+
+        // Second pass: Rebuild attachments and stacking relationships
+        for (PhysicalCardImpl originalCard : original._allCards.values()) {
+            PhysicalCardImpl copiedCard = cardIdMap.get(originalCard.getCardId());
+            if (copiedCard != null) {
+                if (originalCard.getAttachedTo() != null) {
+                    PhysicalCardImpl copiedAttachedTo = cardIdMap.get(originalCard.getAttachedTo().getCardId());
+                    if (copiedAttachedTo != null) {
+                        copiedCard.attachTo(copiedAttachedTo);
+                    }
+                }
+
+                if (originalCard.getStackedOn() != null) {
+                    PhysicalCardImpl copiedStackedOn = cardIdMap.get(originalCard.getStackedOn().getCardId());
+                    if (copiedStackedOn != null) {
+                        copiedCard.stackOn(copiedStackedOn);
+                    }
+                }
+            }
+        }
+
+        // Copy all zone collections using the card mapping
+        for (String playerId : original._adventureDecks.keySet()) {
+            List<PhysicalCardImpl> copiedDeck = new LinkedList<>();
+            for (PhysicalCardImpl card : original._adventureDecks.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedDeck.add(copiedCard);
+            }
+            _adventureDecks.put(playerId, copiedDeck);
+        }
+
+        for (String playerId : original._decks.keySet()) {
+            List<PhysicalCardImpl> copiedDeck = new LinkedList<>();
+            for (PhysicalCardImpl card : original._decks.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedDeck.add(copiedCard);
+            }
+            _decks.put(playerId, copiedDeck);
+        }
+
+        for (String playerId : original._hands.keySet()) {
+            List<PhysicalCardImpl> copiedHand = new LinkedList<>();
+            for (PhysicalCardImpl card : original._hands.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedHand.add(copiedCard);
+            }
+            _hands.put(playerId, copiedHand);
+        }
+
+        for (String playerId : original._discards.keySet()) {
+            List<PhysicalCardImpl> copiedDiscard = new LinkedList<>();
+            for (PhysicalCardImpl card : original._discards.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedDiscard.add(copiedCard);
+            }
+            _discards.put(playerId, copiedDiscard);
+        }
+
+        for (String playerId : original._deadPiles.keySet()) {
+            List<PhysicalCardImpl> copiedDeadPile = new LinkedList<>();
+            for (PhysicalCardImpl card : original._deadPiles.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedDeadPile.add(copiedCard);
+            }
+            _deadPiles.put(playerId, copiedDeadPile);
+        }
+
+        for (String playerId : original._stacked.keySet()) {
+            List<PhysicalCardImpl> copiedStacked = new LinkedList<>();
+            for (PhysicalCardImpl card : original._stacked.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedStacked.add(copiedCard);
+            }
+            _stacked.put(playerId, copiedStacked);
+        }
+
+        for (String playerId : original._voids.keySet()) {
+            List<PhysicalCardImpl> copiedVoid = new LinkedList<>();
+            for (PhysicalCardImpl card : original._voids.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedVoid.add(copiedCard);
+            }
+            _voids.put(playerId, copiedVoid);
+        }
+
+        for (String playerId : original._voidsFromHand.keySet()) {
+            List<PhysicalCardImpl> copiedVoidFromHand = new LinkedList<>();
+            for (PhysicalCardImpl card : original._voidsFromHand.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedVoidFromHand.add(copiedCard);
+            }
+            _voidsFromHand.put(playerId, copiedVoidFromHand);
+        }
+
+        for (String playerId : original._removed.keySet()) {
+            List<PhysicalCardImpl> copiedRemoved = new LinkedList<>();
+            for (PhysicalCardImpl card : original._removed.get(playerId)) {
+                PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+                if (copiedCard != null) copiedRemoved.add(copiedCard);
+            }
+            _removed.put(playerId, copiedRemoved);
+        }
+
+        // Copy in-play cards
+        for (PhysicalCardImpl card : original._inPlay) {
+            PhysicalCardImpl copiedCard = cardIdMap.get(card.getCardId());
+            if (copiedCard != null) _inPlay.add(copiedCard);
+        }
+
+        // Copy simple state fields
+        _currentPlayerId = original._currentPlayerId;
+        _firstPlayerId = original._firstPlayerId;
+        _currentPhase = original._currentPhase;
+        _twilightPool = original._twilightPool;
+        _moveCount = original._moveCount;
+        turnNumber = original.turnNumber;
+        _fierceSkirmishes = original._fierceSkirmishes;
+        _extraSkirmishes = original._extraSkirmishes;
+        _wearingRing = original._wearingRing;
+        _consecutiveAction = original._consecutiveAction;
+
+        // Copy player positions and threats
+        _playerPosition.putAll(original._playerPosition);
+        _playerThreats.putAll(original._playerThreats);
+
+        // Copy card tokens
+        for (Map.Entry<PhysicalCard, Map<Token, Integer>> entry : original._cardTokens.entrySet()) {
+            PhysicalCard originalCard = entry.getKey();
+            PhysicalCardImpl copiedCard = cardIdMap.get(originalCard.getCardId());
+            if (copiedCard != null) {
+                Map<Token, Integer> copiedTokens = new HashMap<>(entry.getValue());
+                _cardTokens.put(copiedCard, copiedTokens);
+            }
+        }
+
+        // Copy ring bearers, rings, and maps
+        for (Map.Entry<String, PhysicalCard> entry : original._ringBearers.entrySet()) {
+            PhysicalCardImpl copiedRB = cardIdMap.get(entry.getValue().getCardId());
+            if (copiedRB != null) {
+                _ringBearers.put(entry.getKey(), copiedRB);
+            }
+        }
+
+        for (Map.Entry<String, PhysicalCard> entry : original._rings.entrySet()) {
+            PhysicalCardImpl copiedRing = cardIdMap.get(entry.getValue().getCardId());
+            if (copiedRing != null) {
+                _rings.put(entry.getKey(), copiedRing);
+            }
+        }
+
+        for (Map.Entry<String, PhysicalCard> entry : original._maps.entrySet()) {
+            PhysicalCardImpl copiedMap = cardIdMap.get(entry.getValue().getCardId());
+            if (copiedMap != null) {
+                _maps.put(entry.getKey(), copiedMap);
+            }
+        }
+
+        // Copy assignments
+        for (Assignment assignment : original._assignments) {
+            PhysicalCard copiedFP = cardIdMap.get(assignment.getFellowshipCharacter().getCardId());
+            Set<PhysicalCard> copiedMinions = new HashSet<>();
+            for (PhysicalCard minion : assignment.getShadowCharacters()) {
+                PhysicalCard copiedMinion = cardIdMap.get(minion.getCardId());
+                if (copiedMinion != null) {
+                    copiedMinions.add(copiedMinion);
+                }
+            }
+            if (copiedFP != null) {
+                _assignments.add(new Assignment(copiedFP, copiedMinions));
+            }
+        }
+
+        // Copy skirmish
+        if (original._skirmish != null && original._skirmish.getFellowshipCharacter() != null) {
+            PhysicalCard copiedFP = cardIdMap.get(original._skirmish.getFellowshipCharacter().getCardId());
+            Set<PhysicalCard> copiedMinions = new HashSet<>();
+            for (PhysicalCard minion : original._skirmish.getShadowCharacters()) {
+                PhysicalCard copiedMinion = cardIdMap.get(minion.getCardId());
+                if (copiedMinion != null) {
+                    copiedMinions.add(copiedMinion);
+                }
+            }
+            if (copiedFP != null) {
+                _skirmish = new Skirmish(copiedFP, copiedMinions);
+            }
+        }
+
+        // Copy card ID counter
+        _nextCardId = original._nextCardId;
+
+        // Copy decision history
+        // Filter out decisions with null answers (ongoing decisions that haven't been answered yet)
+        for (DecisionInfo decision : original._decisionsMade) {
+            if (decision.getAnswer() != null) {
+                _decisionsMade.add(decision);
+            }
+        }
+
+        // Copy game stats and init flag
+        _mostRecentGameStats = original._mostRecentGameStats;
+        _isInit = original._isInit;
+        _lotroDecks = original._lotroDecks;
+        _preGameInfo = original._preGameInfo;
+
+        startAffectingCardsForCurrentPlayer(game);
+
+        // Note: We intentionally do NOT copy:
+        // - _gameStateListeners
+        // - _lastMessages
+        // - _playerDecisions
     }
 
     //This happens before the bidding, so it has to be done separately from init
@@ -407,15 +649,6 @@ public class GameState {
 
     public List<DecisionInfo> getDecisionsMade() {
         return new ArrayList<>(_decisionsMade);
-    }
-
-    public List<Long> getSeedsUsedToShuffle() {
-        return new ArrayList<>(_seedsUsedToShuffle);
-    }
-
-    public void setSeedsToUseToShuffle(List<Long> seeds) {
-        _seedsToUseToShuffle.clear();
-        _seedsToUseToShuffle.addAll(seeds);
     }
 
     public void transferCard(PhysicalCard card, PhysicalCard transferTo) {
@@ -1050,6 +1283,12 @@ public class GameState {
                 .collect(Collectors.toSet());
     }
 
+    public Set<PhysicalCard> getActiveCards() {
+        return _inPlay.stream()
+                .filter(this::isCardInPlayActive)
+                .collect(Collectors.toSet());
+    }
+
     public int getTurnNumber() {
         return turnNumber;
     }
@@ -1274,17 +1513,7 @@ public class GameState {
 
     public void shuffleDeck(String player) {
         List<PhysicalCardImpl> deck = _decks.get(player);
-        long seed;
-        if (_seedsToUseToShuffle.isEmpty()) {
-            // Generate a new random seed
-            seed = new Random().nextLong();
-        } else {
-            // Use a pre-determined seed for replay
-            seed = _seedsToUseToShuffle.removeFirst();
-        }
-        _seedsUsedToShuffle.add(seed);
-        // Create a new Random with the seed each time to ensure reproducibility
-        Collections.shuffle(deck, new Random(seed));
+        Collections.shuffle(deck, new Random(_seedGenerator.nextSeed()));
     }
 
     public void sendGameStats(GameStats gameStats) {
@@ -1300,5 +1529,78 @@ public class GameState {
 
     public GameStats getMostRecentGameStats() {
         return _mostRecentGameStats;
+    }
+
+    // Helper methods for bots
+
+    public boolean sameTitleInPlayOrInDeadPile(String title, String player) {
+        AtomicBoolean sameTitleInPlay = new AtomicBoolean(false);
+        _inPlay.forEach(card -> {
+            if (player.equals(card.getOwner())) {
+                boolean sameTitle = card.getBlueprint().getTitle().equals(title);
+                if (sameTitle) {
+                    sameTitleInPlay.set(true);
+                }
+            }
+        });
+        if (sameTitleInPlay.get()) {
+            return true;
+        }
+
+        for (PhysicalCardImpl deadCard : _deadPiles.get(player)) {
+            if (deadCard.getBlueprint().getTitle().equals(title)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    public int ruleOfNineRemainder(String player) {
+        int companionsInPlay = Math.toIntExact(_inPlay.stream().filter(card -> CardType.COMPANION.equals(card.getBlueprint().getCardType()) && card.getOwner().equals(player)).count());
+        int companionsDead = Math.toIntExact(_deadPiles.get(player).stream().filter(card -> CardType.COMPANION.equals(card.getBlueprint().getCardType())).count());
+
+        return 9 - (companionsInPlay + companionsDead);
+    }
+
+    public boolean canSpot(String owner, Predicate<PhysicalCard> predicate) {
+        return _inPlay.stream()
+                .filter(card -> card.getOwner().equals(owner))
+                .anyMatch(predicate);
+    }
+
+    public boolean hasFreeSlotForThis(PhysicalCard target, Set<PossessionClass> classes) {
+        for (PossessionClass possessionClass : classes) {
+            for (PhysicalCard attachedCard : getAttachedCards(target)) {
+                if (attachedCard.getBlueprint().getPossessionClasses() != null
+                        && attachedCard.getBlueprint().getPossessionClasses().contains(possessionClass)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public String getCurrentShadowPlayer() {
+        if (_playerOrder.getAllPlayers().size() == 2) {
+            return getOpponent(getCurrentPlayerId());
+        } else {
+            throw new IllegalStateException("There is no single shadow player in a multiplayer game");
+        }
+    }
+
+    public String getOpponent(String player) {
+        if (_playerOrder.getAllPlayers().size() == 2) {
+            for (String s : _playerOrder.getAllPlayers()) {
+                if (!s.equals(player)) {
+                    return s;
+                }
+            }
+
+            throw new IllegalStateException("Could not find opponent name");
+        } else {
+            throw new IllegalStateException("There is no single shadow player in a multiplayer game");
+        }
     }
 }

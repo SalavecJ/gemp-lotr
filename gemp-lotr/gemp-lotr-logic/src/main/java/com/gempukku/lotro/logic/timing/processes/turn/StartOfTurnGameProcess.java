@@ -33,4 +33,9 @@ public class StartOfTurnGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return new FellowshipGameProcess();
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new StartOfTurnGameProcess();
+    }
 }

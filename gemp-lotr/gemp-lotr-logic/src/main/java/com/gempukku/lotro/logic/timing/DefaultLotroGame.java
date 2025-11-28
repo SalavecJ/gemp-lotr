@@ -25,7 +25,7 @@ import java.util.*;
 public class DefaultLotroGame implements LotroGame {
     private static final Logger log = LogManager.getLogger(DefaultLotroGame.class);
 
-    private final GameState _gameState;
+    private GameState _gameState;
     private final ModifiersLogic _modifiersLogic = new ModifiersLogic();
     private final DefaultActionsEnvironment _actionsEnvironment;
     private final UserFeedback _userFeedback;
@@ -48,14 +48,23 @@ public class DefaultLotroGame implements LotroGame {
     private final Set<String> _requestedCancel = new HashSet<>();
     private final LotroCardBlueprintLibrary _library;
 
+    // For copying the game
     private final Map<String, LotroDeck> _decks;
+    private final long _seed;
+    private boolean _saveCheckpoints = false;
+    private DefaultLotroGame _checkpointGame = null;
 
     public DefaultLotroGame(LotroFormat format, Map<String, LotroDeck> decks, UserFeedback userFeedback, final LotroCardBlueprintLibrary library) {
         this(format, decks, userFeedback, library, "No timer", false, "Test Match");
     }
 
     public DefaultLotroGame(LotroFormat format, Map<String, LotroDeck> decks, UserFeedback userFeedback, final LotroCardBlueprintLibrary library,
-            String timerInfo, boolean allowSpectators, String tournamentName) {
+                            String timerInfo, boolean allowSpectators, String tournamentName) {
+        this(format, decks, userFeedback, library, timerInfo, allowSpectators, tournamentName, new Random().nextLong());
+    }
+
+    public DefaultLotroGame(LotroFormat format, Map<String, LotroDeck> decks, UserFeedback userFeedback, final LotroCardBlueprintLibrary library,
+            String timerInfo, boolean allowSpectators, String tournamentName, long seed) {
         _library = library;
         _adventure = format.getAdventure();
         _format = format;
@@ -65,11 +74,11 @@ public class DefaultLotroGame implements LotroGame {
 
         _actionsEnvironment = new DefaultActionsEnvironment(this, _actionStack);
 
-        final Map<String, List<String>> cards = new HashMap<>();
-        final Map<String, String> ringBearers = new HashMap<>();
-        final Map<String, String> rings = new HashMap<>();
-        final Map<String, String> maps = new HashMap<>();
-        final Map<String, String> notes = new HashMap<>();
+        final Map<String, List<String>> cards = new LinkedHashMap<>();
+        final Map<String, String> ringBearers = new LinkedHashMap<>();
+        final Map<String, String> rings = new LinkedHashMap<>();
+        final Map<String, String> maps = new LinkedHashMap<>();
+        final Map<String, String> notes = new LinkedHashMap<>();
         final StringBuilder formatInfo = new StringBuilder();
         for (String playerId : decks.keySet()) {
             List<String> deck = new LinkedList<>();
@@ -103,12 +112,13 @@ public class DefaultLotroGame implements LotroGame {
             formatInfo.append(LotroFormat.PCSummary);
         }
 
-        _gameState = new GameState();
+        _gameState = new GameState(seed);
 
         CharacterDeathRule characterDeathRule = new CharacterDeathRule(_actionsEnvironment);
         characterDeathRule.applyRule();
 
         LotroGame thisGame = this;
+        _seed = seed;
         _turnProcedure = new TurnProcedure(this, decks.keySet(), userFeedback, _actionStack,
                 new PlayerOrderFeedback() {
                     @Override
@@ -124,7 +134,8 @@ public class DefaultLotroGame implements LotroGame {
 
                         _gameState.initPreGame(preGameInfo, decks);
                     }
-                }, characterDeathRule);
+                }, characterDeathRule,
+                _seed);
         _userFeedback = userFeedback;
 
         RuleSet ruleSet = new RuleSet(this, _actionsEnvironment, _modifiersLogic);
@@ -136,11 +147,15 @@ public class DefaultLotroGame implements LotroGame {
         _decks = decks;
     }
 
-    public DefaultLotroGame getCopyForSimulation(UserFeedback userFeedback) {
-        DefaultLotroGame copy = new DefaultLotroGame(_format, _decks, userFeedback, _library);
+    /**
+     * Slow but precise method to copy the game by replaying all decisions.
+     */
+    public DefaultLotroGame getCopyByReplayingDecisionsFromStart(UserFeedback userFeedback) {
+        DefaultLotroGame copy = new DefaultLotroGame(_format, _decks, userFeedback, _library, "No timer", false, "Test Match", _seed);
         userFeedback.setGame(copy);
 
-        copy.getGameState().setSeedsToUseToShuffle(_gameState.getSeedsUsedToShuffle());
+        // Copies are expected to get copied again to explore different branches
+        copy._saveCheckpoints = true;
 
         copy.startGame();
 
@@ -151,24 +166,104 @@ public class DefaultLotroGame implements LotroGame {
         for (int i = 0; i < decisions.size(); i++) {
             GameState.DecisionInfo decision = decisions.get(i);
             AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(decision.getPlayer());
-            System.out.println("Executing decision " + (i + 1) + " of " + decisions.size());
-            System.out.println("Original: " + decision.getDecisionJson());
             if (awaitingDecision == null) {
-                System.out.println("User feedback pending decisions: " + userFeedback.hasPendingDecisions());
+                printCopyErrorDetails("No decision pending for player", i, decisions, decision, awaitingDecision, copy, userFeedback);
                 throw new IllegalStateException("No decision pending for player " + decision.getPlayer());
             }
-            System.out.println("Copy:     " + awaitingDecision.toJson().toString());
             if (decisionsMatch(decision.getDecisionJson(), awaitingDecision.toJson().toString())) {
                 String answer = decision.getAnswer();
                 userFeedback.participantDecided(decision.getPlayer(), answer);
                 try {
                     awaitingDecision.decisionMade(answer);
                 } catch (DecisionResultInvalidException e) {
-                    throw new IllegalStateException("Decision made in original game is invalid in copied game");
+                    printCopyErrorDetails("Decision made in original game is invalid in copied game", i, decisions, decision, awaitingDecision, copy, userFeedback);
+                    throw new IllegalStateException("Decision made in original game is invalid in copied game", e);
                 }
                 copy.carryOutPendingActionsUntilDecisionNeeded();
             } else {
+                printCopyErrorDetails("Decisions do not match when copying the game state", i, decisions, decision, awaitingDecision, copy, userFeedback);
                 throw new IllegalStateException("Decisions do not match when copying the game state");
+            }
+        }
+
+        return copy;
+    }
+
+    /**
+     * Saves a checkpoint of the game state at the start of a new phase.
+     * This can be used later to create faster copies of the game by replaying decisions from this checkpoint.
+     */
+    public void newPhaseProcessAboutToStart() {
+        if (_saveCheckpoints) {
+            _checkpointGame = new DefaultLotroGame(_format, _decks, null, _library, "No timer", false, "Test Match", _seed);
+            _checkpointGame._gameState = new GameState(_gameState, _checkpointGame);
+            _checkpointGame._winnerPlayerId = this._winnerPlayerId;
+            _checkpointGame._losers.putAll(this._losers);
+
+            _checkpointGame._turnProcedure.updateGameStats();
+
+            if (_winnerPlayerId == null) {
+                _checkpointGame._turnProcedure.setGameProcess(_turnProcedure.getGameProcess().copyThisForNewGame(_checkpointGame));
+            }
+        }
+    }
+
+    /**
+     * Faster method to copy the game by restoring from the last checkpoint (phase start) and replaying decisions made since then.
+     * Assumes that checkpoints were being saved.
+     */
+    public DefaultLotroGame getCopyByReplayingDecisionsFromLastCheckpoint(UserFeedback userFeedback) {
+        if (_checkpointGame == null) {
+            throw new IllegalStateException("No checkpoint available for copying the game");
+        }
+
+        DefaultLotroGame copy = new DefaultLotroGame(_format, _decks, userFeedback, _library, "No timer", false, "Test Match", _seed);
+        userFeedback.setGame(copy);
+
+        // Copies are expected to get copied again to explore different branches
+        copy._saveCheckpoints = true;
+
+        // Copy game state from checkpoint
+        copy._gameState = new GameState(_checkpointGame._gameState, copy); // Clone the game state
+
+        // Check for winner, if none, copy the rest
+        copy._winnerPlayerId = _checkpointGame._winnerPlayerId;
+        copy._losers.putAll(_checkpointGame._losers);
+
+
+        if (_winnerPlayerId == null) {
+            // Copy turn procedure and current game process
+            copy._turnProcedure.updateGameStats();
+            copy._turnProcedure.setGameProcess(_checkpointGame._turnProcedure.getGameProcess().copyThisForNewGame(copy));
+            copy.carryOutPendingActionsUntilDecisionNeeded();
+
+            // Play decisions made since checkpoint
+            List<GameState.DecisionInfo> decisions = _gameState.getDecisionsMade();
+            decisions.removeIf(decision -> decision.getAnswer() == null);
+            List<GameState.DecisionInfo> checkpointDecisions = _checkpointGame._gameState.getDecisionsMade();
+            checkpointDecisions.removeIf(decision -> decision.getAnswer() == null);
+
+            for (int i = checkpointDecisions.size(); i < decisions.size(); i++) {
+                GameState.DecisionInfo decision = decisions.get(i);
+                AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(decision.getPlayer());
+                if (awaitingDecision == null) {
+                    printCopyErrorDetails("No decision pending for player", i, decisions, decision, awaitingDecision, copy, userFeedback);
+                    throw new IllegalStateException("No decision pending for player " + decision.getPlayer());
+                }
+                if (decisionsMatch(decision.getDecisionJson(), awaitingDecision.toJson().toString())) {
+                    String answer = decision.getAnswer();
+                    userFeedback.participantDecided(decision.getPlayer(), answer);
+                    try {
+                        awaitingDecision.decisionMade(answer);
+                    } catch (DecisionResultInvalidException e) {
+                        printCopyErrorDetails("Decision made in original game is invalid in copied game", i, decisions, decision, awaitingDecision, copy, userFeedback);
+                        throw new IllegalStateException("Decision made in original game is invalid in copied game", e);
+                    }
+                    copy.carryOutPendingActionsUntilDecisionNeeded();
+                } else {
+                    printCopyErrorDetails("Decisions do not match when copying the game state", i, decisions, decision, awaitingDecision, copy, userFeedback);
+                    throw new IllegalStateException("Decisions do not match when copying the game state");
+                }
             }
         }
 
@@ -444,5 +539,65 @@ public class DefaultLotroGame implements LotroGame {
 
     public void setPlayerAutoPassSettings(String playerId, Set<Phase> phases) {
         _autoPassConfiguration.put(playerId, phases);
+    }
+
+    /**
+     * Prints detailed error information when copying the game fails.
+     * Shows the current decision, all previous decisions, remaining decisions, and current game state.
+     */
+    private void printCopyErrorDetails(String errorType, int currentIndex, List<GameState.DecisionInfo> allDecisions,
+                                       GameState.DecisionInfo currentDecision, AwaitingDecision awaitingDecision,
+                                       DefaultLotroGame copy, UserFeedback userFeedback) {
+        System.out.println("=== ERROR in getCopy method: " + errorType + " ===");
+        System.out.println("Executing decision " + (currentIndex + 1) + " of " + allDecisions.size());
+        System.out.println("Player: " + currentDecision.getPlayer());
+        System.out.println("Original: " + currentDecision.getDecisionJson());
+        System.out.println("Answer:   " + currentDecision.getAnswer());
+        if (awaitingDecision != null) {
+            System.out.println("Copy:     " + awaitingDecision.toJson().toString());
+        } else {
+            System.out.println("Copy:     (no decision pending)");
+        }
+
+        List<String> opponent = new ArrayList<>(_allPlayers);
+        opponent.remove(currentDecision.getPlayer());
+        System.out.println("\nUser feedback pending decisions: " + userFeedback.hasPendingDecisions());
+
+        if (!opponent.isEmpty()) {
+            AwaitingDecision opponentDecision = userFeedback.getAwaitingDecision(opponent.getFirst());
+            if (opponentDecision != null) {
+                System.out.println("Pending decision for opponent " + opponent.getFirst() + ": " + opponentDecision.toJson());
+            } else {
+                System.out.println("No pending decision for opponent " + opponent.getFirst());
+            }
+        }
+
+        System.out.println("\nAll previous decisions executed:");
+        for (int j = 0; j < currentIndex; j++) {
+            GameState.DecisionInfo prevDecision = allDecisions.get(j);
+            System.out.println("  [" + (j + 1) + "] Player: " + prevDecision.getPlayer());
+            System.out.println("      Decision: " + prevDecision.getDecisionJson());
+            System.out.println("      Answer:   " + prevDecision.getAnswer());
+        }
+
+        System.out.println("\nRemaining decisions (including current):");
+        for (int j = currentIndex; j < Math.min(currentIndex + 10, allDecisions.size()); j++) {
+            GameState.DecisionInfo nextDecision = allDecisions.get(j);
+            System.out.println("  [" + (j + 1) + "] Player: " + nextDecision.getPlayer());
+            System.out.println("      Decision: " + nextDecision.getDecisionJson());
+            System.out.println("      Answer:   " + nextDecision.getAnswer());
+        }
+        if (allDecisions.size() > currentIndex + 10) {
+            System.out.println("  ... and " + (allDecisions.size() - currentIndex - 10) + " more decisions");
+        }
+
+        System.out.println("\nCurrent game state:");
+        System.out.println("  Phase: " + copy.getGameState().getCurrentPhase());
+        System.out.println("  Current Player (FP): " + copy.getGameState().getCurrentPlayerId());
+        System.out.println("  Current Player (Shadow): " + copy.getGameState().getCurrentShadowPlayer());
+        System.out.println("  Turn number: " + copy.getGameState().getTurnNumber());
+        System.out.println("  Winner: " + copy.getWinnerPlayerId());
+
+        System.out.println("\n==========================================");
     }
 }

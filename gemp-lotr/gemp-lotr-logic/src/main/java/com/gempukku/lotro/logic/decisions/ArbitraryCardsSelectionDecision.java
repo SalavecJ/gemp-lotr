@@ -3,10 +3,7 @@ package com.gempukku.lotro.logic.decisions;
 import com.alibaba.fastjson2.JSONObject;
 import com.gempukku.lotro.game.PhysicalCard;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDecision {
     private final Collection<? extends PhysicalCard> _physicalCards;
@@ -24,17 +21,21 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
                                            Collection<? extends PhysicalCard> selectable,
                                            int minimum, int maximum, int source) {
         super(id, text, AwaitingDecisionType.ARBITRARY_CARDS);
-        _physicalCards = physicalCards;
         _selectable = selectable;
         _minimum = minimum;
         _maximum = maximum;
         _source = source;
+        List<PhysicalCard> physicalCardsList = new ArrayList<>(physicalCards);
+        physicalCardsList.sort(Comparator.comparingInt(PhysicalCard::getCardId));
+
+        _physicalCards = physicalCardsList;
+
         setParam("min", String.valueOf(minimum));
         setParam("max", String.valueOf(maximum));
-        setParam("cardId", getTempCardIds(physicalCards));
-        setParam("physicalId", getPhysicalCardIds(physicalCards));
-        setParam("blueprintId", getBlueprintIds(physicalCards));
-        setParam("selectable", getSelectable(physicalCards, selectable));
+        setParam("cardId", getTempCardIds(physicalCardsList));
+        setParam("physicalId", getPhysicalCardIds(physicalCardsList));
+        setParam("blueprintId", getBlueprintIds(physicalCardsList));
+        setParam("selectable", getSelectable(physicalCardsList, selectable));
         setParam("source", String.valueOf(source));
     }
 
@@ -103,7 +104,7 @@ public abstract class ArbitraryCardsSelectionDecision extends AbstractAwaitingDe
 
     protected List<PhysicalCard> getSelectedCardsByResponse(String response) throws DecisionResultInvalidException {
         String[] cardIds;
-        if (response.equals(""))
+        if (response.isEmpty())
             cardIds = new String[0];
         else
             cardIds = response.split(",");

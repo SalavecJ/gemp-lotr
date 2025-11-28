@@ -1,47 +1,27 @@
 package com.gempukku.lotro.bots.forge.cards.ability2;
 
-import com.gempukku.lotro.bots.forge.cards.ability2.condition.Condition;
-import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
 import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
-import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
-import com.gempukku.lotro.bots.forge.cards.ability2.trigger.Trigger;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-import java.util.List;
+import java.util.function.BiFunction;
 
 public class TriggeredAbility extends Ability {
     protected final boolean optionalTrigger;
-    protected final Trigger trigger;
+    private final BiFunction<String, DefaultLotroGame, Boolean> goodToUseFunction;
 
-    protected TriggeredAbility(boolean optionalTrigger, Trigger trigger, List<Condition> conditions, Effect effect, Cost cost) {
-        super(effect, cost, conditions);
+    protected TriggeredAbility(boolean optionalTrigger, Effect effect, Cost cost,
+                               BiFunction<String, DefaultLotroGame, Boolean> goodToUseFunction) {
+        super(effect, cost);
         this.optionalTrigger = optionalTrigger;
-        this.trigger = trigger;
+        this.goodToUseFunction = goodToUseFunction;
     }
 
     public boolean isOptionalTrigger() {
         return optionalTrigger;
     }
 
-    public Trigger getTrigger() {
-        return trigger;
-    }
-
-    public boolean resolvesWithoutActionNeeded() {
-        return !optionalTrigger
-                && (cost == null || !(cost instanceof CostWithTarget))
-                && !(effect instanceof EffectWithTarget);
-    }
-
-    public boolean goodToUseNoMatterWhat(String player, PlannedBoardState plannedBoardState) {
-        if (cost != null) {
-            return false;
-        }
-        if (effect instanceof EffectWithTarget effectWithTarget) {
-            return effectWithTarget.getMinimumPossibleValue(player, plannedBoardState) >= 0;
-        } else {
-            return effect.getValueIfResolved(player, plannedBoardState) >= 0;
-        }
+    public boolean goodToUse(String player, DefaultLotroGame game) {
+        return goodToUseFunction.apply(player, game);
     }
 }

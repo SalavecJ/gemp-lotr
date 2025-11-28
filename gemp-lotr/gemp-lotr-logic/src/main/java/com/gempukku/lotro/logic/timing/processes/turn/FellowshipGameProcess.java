@@ -27,4 +27,12 @@ public class FellowshipGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        FellowshipGameProcess copy = new FellowshipGameProcess();
+        if (_followingGameProcess != null)
+            copy._followingGameProcess = _followingGameProcess.copyThisForNewGame(game);
+        return copy;
+    }
 }

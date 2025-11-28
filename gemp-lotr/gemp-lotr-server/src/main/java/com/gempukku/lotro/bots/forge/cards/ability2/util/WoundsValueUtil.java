@@ -1,18 +1,18 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.util;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class WoundsValueUtil {
-    public static double evaluateWoundsChangeValue(String player, PlannedBoardState plannedBoardState, BotCard target, int amount) {
+    public static double evaluateWoundsChangeValue(String player, DefaultLotroGame game, PhysicalCard target, int amount) {
         if (target == null) return 0.0;
 
-        boolean isCompanion = target.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION);
-        boolean isRingBearer = plannedBoardState.getRingBearers().contains(target);
-        int vitality = plannedBoardState.getVitality(target);
-        int wounds = plannedBoardState.getWounds(target);
+        boolean isCompanion = target.getBlueprint().getCardType().equals(CardType.COMPANION);
+        boolean isRingBearer = game.getGameState().getRingBearers().contains(target);
+        int vitality = game.getModifiersQuerying().getVitality(game, target);
+        int wounds = game.getGameState().getWounds(target);
 
         int realChange;
         if (amount > 0) {
@@ -24,11 +24,11 @@ public class WoundsValueUtil {
         }
 
         if (realChange > 0 && wounds == 0
-                && plannedBoardState.getCurrentPhase().equals(Phase.FELLOWSHIP)
-                && player.equals(plannedBoardState.getCurrentFpPlayer())
-                && target.getSelf().getBlueprint().isUnique()) {
-            int copiesInHand = (int) plannedBoardState.getHand(player).stream()
-                    .filter(botCard -> botCard.getSelf().getBlueprint().getTitle().equals(target.getSelf().getBlueprint().getTitle()))
+                && game.getGameState().getCurrentPhase().equals(Phase.FELLOWSHIP)
+                && player.equals(game.getGameState().getCurrentPlayerId())
+                && target.getBlueprint().isUnique()) {
+            int copiesInHand = (int) game.getGameState().getHand(player).stream()
+                    .filter(card -> card.getBlueprint().getTitle().equals(target.getBlueprint().getTitle()))
                     .count();
             if (copiesInHand > 0) {
                 // if wounding a unique companion with no wounds during fellowship phase, modify exert value by number of copies in hand
@@ -75,7 +75,7 @@ public class WoundsValueUtil {
         }
 
         boolean goodTargetingOwnCards = amount < 0;
-        boolean targetsOwnCard = target.getSelf().getOwner().equals(player);
+        boolean targetsOwnCard = target.getOwner().equals(player);
         if (goodTargetingOwnCards == targetsOwnCard) {
             return value;
         } else {

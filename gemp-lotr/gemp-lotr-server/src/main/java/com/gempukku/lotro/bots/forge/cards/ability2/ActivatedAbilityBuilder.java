@@ -1,16 +1,11 @@
 package com.gempukku.lotro.bots.forge.cards.ability2;
-import com.gempukku.lotro.bots.forge.cards.ability2.condition.Condition;
+
 import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
 import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
 import com.gempukku.lotro.common.Phase;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
 public class ActivatedAbilityBuilder {
     private Phase phase = null;
-    private List<Condition> conditions = new ArrayList<>();
     private Cost cost = null;
     private Effect effect = null;
 
@@ -22,11 +17,6 @@ public class ActivatedAbilityBuilder {
             throw new IllegalStateException("Already has a phase");
         }
         this.phase = phase;
-        return this;
-    }
-
-    public ActivatedAbilityBuilder condition(Condition condition) {
-        conditions.add(condition);
         return this;
     }
 
@@ -50,6 +40,6 @@ public class ActivatedAbilityBuilder {
         if (phase == null) {
             throw new IllegalStateException("Activated abilities must have phase");
         }
-        return new ActivatedAbility(phase, conditions, effect, cost);
+        return new ActivatedAbility(phase, effect, cost);
     }
 }

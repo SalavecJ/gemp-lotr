@@ -1,16 +1,11 @@
-package com.gempukku.lotro.bots.forge.plan.action;
+package com.gempukku.lotro.bots.forge.plan.action2;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 
-public class DiscardCompanionToHealAction extends ChooseCardAction {
+public class DiscardCompanionToHealAction2 extends ChooseCardAction2 {
 
-    public DiscardCompanionToHealAction(BotCard toDiscard) {
-        super(toDiscard);
-    }
-
-    @Override
-    protected String actionPrefix() {
-        return "Heal";
+    public DiscardCompanionToHealAction2(String decisionText, BotCard toDiscard, String actionId) {
+        super(decisionText, toDiscard, actionId);
     }
 
     @Override
@@ -22,7 +17,7 @@ public class DiscardCompanionToHealAction extends ChooseCardAction {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DiscardCompanionToHealAction that = (DiscardCompanionToHealAction) o;
+        DiscardCompanionToHealAction2 that = (DiscardCompanionToHealAction2) o;
         return getPhysicalCard().getCardId() == that.getPhysicalCard().getCardId();
     }
 

@@ -77,4 +77,9 @@ public class MovementGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _afterMovementGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new MovementGameProcess(_afterMovementGameProcess.copyThisForNewGame(game));
+    }
 }

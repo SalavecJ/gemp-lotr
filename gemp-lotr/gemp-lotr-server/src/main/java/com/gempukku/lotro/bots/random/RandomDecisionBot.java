@@ -1,9 +1,9 @@
 package com.gempukku.lotro.bots.random;
 
 import com.gempukku.lotro.bots.BotPlayer;
-import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.AwaitingDecisionType;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,7 +17,7 @@ public class RandomDecisionBot implements BotPlayer {
     }
 
     @Override
-    public String chooseAction(LotroGame game, AwaitingDecision awaitingDecision) {
+    public String chooseAction(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         AwaitingDecisionType type = awaitingDecision.getDecisionType();
         Map<String, String[]> params = awaitingDecision.getDecisionParameters();
 

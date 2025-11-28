@@ -3,10 +3,10 @@ package com.gempukku.lotro.logic.timing.processes.pregame;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Zone;
 import com.gempukku.lotro.game.PhysicalCard;
-import com.gempukku.lotro.game.state.GameState;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.timing.processes.GameProcess;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class PlayRingBearerRingAndAddBurdersGameProcess implements GameProcess {
@@ -39,5 +39,10 @@ public class PlayRingBearerRingAndAddBurdersGameProcess implements GameProcess {
     @Override
     public GameProcess getNextProcess() {
         return new CheckForCorruptionGameProcess(_firstPlayer);
+    }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new PlayRingBearerRingAndAddBurdersGameProcess(new HashMap<>(_bids), _firstPlayer);
     }
 }

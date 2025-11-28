@@ -22,4 +22,9 @@ public class PlayerReconcilesGameProcess implements GameProcess {
     public GameProcess getNextProcess() {
         return _followingGameProcess;
     }
+
+    @Override
+    public GameProcess copyThisForNewGame(LotroGame game) {
+        return new PlayerReconcilesGameProcess(_playerId, _followingGameProcess.copyThisForNewGame(game));
+    }
 }

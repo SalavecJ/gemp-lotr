@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.plan.action.*;
+import com.gempukku.lotro.bots.forge.plan.action2.ActionToTake2;
+import com.gempukku.lotro.bots.forge.plan.action2.ChooseTargetsAction2;
 import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
@@ -9,9 +9,11 @@ import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Keyword;
 import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.common.Side;
+import com.gempukku.lotro.game.DefaultUserFeedback;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
 
@@ -22,10 +24,11 @@ public class ShadowPhasePlan {
     private final boolean printDebugMessages;
 
     private int nextStep = 0;
-    List<ActionToTake> actions = new ArrayList<>();
-    private final PlannedBoardState plannedBoardState;
+    List<ActionToTake2> actions2 = new ArrayList<>();
 
-    public ShadowPhasePlan(boolean printDebugMessages, LotroGame game) {
+    private final DefaultLotroGame copy;
+
+    public ShadowPhasePlan(boolean printDebugMessages, DefaultLotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
         this.game = game;
         this.printDebugMessages = printDebugMessages;
@@ -35,12 +38,13 @@ public class ShadowPhasePlan {
         }
 
         this.playerName = game.getGameState().getPlayerNames().stream().filter(s -> !s.equals(game.getGameState().getCurrentPlayerId())).findFirst().orElseThrow();
-        plannedBoardState = new PlannedBoardState(game, playerName);
+
+        copy = game.getCopyByReplayingDecisionsFromStart(new DefaultUserFeedback());
         makePlan();
     }
 
     private void makePlan() {
-        List<ShadowPhaseEndState> allEndStates = new ArrayList<>(ActionFinderUtil.findAllShadowPhaseEndStates(plannedBoardState));
+        List<ShadowPhaseEndState> allEndStates = new ArrayList<>(ActionFinderUtil.findAllShadowPhaseEndStates(copy));
 
         if (printDebugMessages) {
             System.out.println("Total shadow end states found: " + allEndStates.size());
@@ -58,7 +62,7 @@ public class ShadowPhasePlan {
                 .max(Comparator.comparingInt(this::fpLosesBeforeSkirmish) // Prefer winning before skirmish
                         .thenComparingInt(this::countMinionsOnBoard)) // Prefer winning with more minions on board
                 .ifPresent(shadowPhaseEndState -> {
-            actions = shadowPhaseEndState.getShadowActions();
+            actions2 = shadowPhaseEndState.getShadowActions();
             if (printDebugMessages) {
                 System.out.println("Chosen shadow plan leading to potential win:");
                 System.out.println(shadowPhaseEndState);
@@ -66,9 +70,9 @@ public class ShadowPhasePlan {
         });
 
         // If no winning play, choose best evaluated play
-        if (actions.isEmpty()) {
+        if (actions2.isEmpty()) {
             interestingEndStates.stream().max(Comparator.comparingDouble(PhaseEndState::getValue)).ifPresent(bestEndState -> {
-                this.actions = bestEndState.getShadowActions();
+                this.actions2 = bestEndState.getShadowActions();
                 if (printDebugMessages) {
                     System.out.println("No shadow plan leads to win, chosen best plan with value " + bestEndState.getValue());
                     System.out.println(bestEndState);
@@ -86,7 +90,7 @@ public class ShadowPhasePlan {
             return allEndStates;
         }
 
-        int minionsAtStart = BoardStateUtil.getMinionsInPlay(plannedBoardState).size();
+        int minionsAtStart = BoardStateUtil.getMinionsInPlay(copy).size();
 
         Set<ShadowPhaseEndState> selected = new LinkedHashSet<>();
 
@@ -129,32 +133,38 @@ public class ShadowPhasePlan {
     }
 
     private int countMinionsOnBoard(ShadowPhaseEndState endState) {
-        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
+        return Math.toIntExact(endState.getGameCopy().getGameState().getActiveCards().stream().filter(card -> CardType.MINION.equals(card.getBlueprint().getCardType())).count());
     }
 
     private int countArcherMinionsOnBoard(ShadowPhaseEndState endState) {
-        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()) && botCard.getSelf().getBlueprint().getKeywordCount(Keyword.ARCHER) > 0).count());
+        return Math.toIntExact(endState.getGameCopy().getGameState().getActiveCards().stream()
+                .filter(card -> CardType.MINION.equals(card.getBlueprint().getCardType())
+                        && endState.getGameCopy().getModifiersQuerying().hasKeyword(endState.getGameCopy(), card, Keyword.ARCHER))
+                .count());
     }
 
     private int countShadowConditionsOnBoard(ShadowPhaseEndState endState) {
-        return Math.toIntExact(endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream().filter(botCard -> CardType.CONDITION.equals(botCard.getSelf().getBlueprint().getCardType())).count());
+        return Math.toIntExact(endState.getGameCopy().getGameState().getActiveCards().stream()
+                .filter(card -> CardType.CONDITION.equals(card.getBlueprint().getCardType())
+                        && Side.SHADOW == card.getBlueprint().getSide())
+                .count());
     }
 
     private int fpLosesBeforeSkirmish(ShadowPhaseEndState endState) {
-        if (endState.getCombatPath().getSkirmishPhaseEndState() == null
-                && endState.getCombatPath().getRegroupPhaseEndState() == null) {
+        if (endState.getGameCopy().getGameState().getCurrentPhase() == Phase.ARCHERY
+                || endState.getGameCopy().getGameState().getCurrentPhase() == Phase.MANEUVER) {
             return 1;
         }
         return 0;
     }
 
     private int countTotalStrengthOfMinionsOnBoard(ShadowPhaseEndState endState) {
-        return endState.getBoardState().getShadowCardsInPlay(endState.getBoardState().getCurrentShadowPlayer()).stream()
-                .filter(botCard -> CardType.MINION.equals(botCard.getSelf().getBlueprint().getCardType()))
-                .mapToInt(botCard -> endState.getBoardState().getStrength(botCard)).sum();
+        return endState.getGameCopy().getGameState().getActiveCards().stream()
+                .filter(card -> CardType.MINION.equals(card.getBlueprint().getCardType()))
+                .mapToInt(card -> endState.getGameCopy().getModifiersQuerying().getStrength(endState.getGameCopy(), card)).sum();
     }
 
-    public int chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
+    public String chooseActionToTakeOrPass(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Shadow plan asked to take action on " + awaitingDecision.toJson().toString());
         }
@@ -166,22 +176,26 @@ public class ShadowPhasePlan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (nextStep >= actions.size()) {
+        if (nextStep >= actions2.size()) {
             System.out.println("All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep);
-        if (printDebugMessages) {
-            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
-            System.out.println(action.toString());
+        ActionToTake2 action = actions2.get(nextStep);
+        if (!action.getDecisionText().equals(awaitingDecision.getText())) {
+            throw new IllegalStateException("Next action in plan does not match the decision asked: expected "
+                    + action.getDecisionText() + " but got " + awaitingDecision.getText());
         }
-        int result = action.carryOut(awaitingDecision);
+        if (printDebugMessages) {
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions2.size());
+            System.out.println(action);
+        }
+        String result = action.carryOut();
         nextStep++;
         return result;
     }
 
-    public List<PhysicalCard> chooseTarget(AwaitingDecision awaitingDecision) {
+    public String chooseTarget(AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             System.out.println("Shadow phase plan asked to take action on " + awaitingDecision.toJson().toString());
         }
@@ -193,29 +207,32 @@ public class ShadowPhasePlan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (actions.isEmpty()) {
+        if (actions2.isEmpty()) {
             if (printDebugMessages) {
                 System.out.println("No actions in plan");
             }
             throw new IllegalStateException("No actions in plan");
         }
 
-        if (nextStep >= actions.size()) {
+        if (nextStep >= actions2.size()) {
             System.out.println("All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions.get(nextStep);
-        if (!(action instanceof ChooseTargetsAction)) {
+        ActionToTake2 action = actions2.get(nextStep);
+        if (!action.getDecisionText().equals(awaitingDecision.getText())) {
+            throw new IllegalStateException("Next action in plan does not match the decision asked: expected "
+                    + action.getDecisionText() + " but got " + awaitingDecision.getText());
+        }
+        if (!(action instanceof ChooseTargetsAction2)) {
             throw new IllegalStateException("Next action in plan is not target action");
         }
         if (printDebugMessages) {
-            System.out.println("Action " + (nextStep + 1) + " out of " + actions.size());
+            System.out.println("Action " + (nextStep + 1) + " out of " + actions2.size());
             System.out.println(action);
         }
         nextStep++;
-        List<BotCard> targets = ((ChooseTargetsAction) action).getTargets();
-        return targets.stream().map(BotCard::getSelf).toList();
+        return action.carryOut();
     }
 
     public boolean replanningNeeded() {

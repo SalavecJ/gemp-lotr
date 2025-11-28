@@ -5,29 +5,29 @@ import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 
 public interface Action {
-    public enum Type {
+    enum Type {
         PLAY_CARD, SPECIAL_ABILITY, TRIGGER, TRANSFER, RECONCILE, RESOLVE_DAMAGE, OTHER
     }
 
-    public Type getType();
+    Type getType();
 
-    public PhysicalCard getActionSource();
+    PhysicalCard getActionSource();
 
-    public void setActionTimeword(Timeword timeword);
+    void setActionTimeword(Timeword timeword);
 
-    public PhysicalCard getActionAttachedToCard();
+    PhysicalCard getActionAttachedToCard();
 
-    public void setVirtualCardAction(boolean virtualCardAction);
+    void setVirtualCardAction(boolean virtualCardAction);
 
-    public boolean isVirtualCardAction();
+    boolean isVirtualCardAction();
 
-    public void setPerformingPlayer(String playerId);
+    void setPerformingPlayer(String playerId);
 
-    public String getPerformingPlayer();
+    String getPerformingPlayer();
 
-    public Timeword getActionTimeword();
+    Timeword getActionTimeword();
 
-    public String getText(LotroGame game);
+    String getText(LotroGame game);
 
-    public Effect nextEffect(LotroGame game);
+    Effect nextEffect(LotroGame game);
 }

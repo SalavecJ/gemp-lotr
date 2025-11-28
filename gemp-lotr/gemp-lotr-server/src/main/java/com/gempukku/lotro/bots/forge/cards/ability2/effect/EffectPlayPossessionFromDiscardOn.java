@@ -1,59 +1,47 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
-import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
 public class EffectPlayPossessionFromDiscardOn extends EffectWithTarget {
-    private final Predicate<BotCard> possessionPredicate;
-    private final Predicate<BotCard> bearerPredicate;
+    private final Predicate<PhysicalCard> possessionPredicate;
+    private final Predicate<PhysicalCard> bearerPredicate;
 
-    public EffectPlayPossessionFromDiscardOn(Predicate<BotCard> possessionPredicate, Predicate<BotCard> bearerPredicate) {
+    public EffectPlayPossessionFromDiscardOn(Predicate<PhysicalCard> possessionPredicate, Predicate<PhysicalCard> bearerPredicate) {
         this.possessionPredicate = possessionPredicate;
         this.bearerPredicate = bearerPredicate;
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getDiscard(player).stream()
-                .filter(botCard -> botCard.getSelf().getBlueprint().getCardType() == CardType.POSSESSION && possessionPredicate.test(botCard))
-                .filter(botCard -> botCard instanceof BotObjectAttachableCard)
-                .filter(botCard -> botCard.canBePlayed(plannedBoardState))
-                .filter(botCard -> plannedBoardState.getTwilight() >= botCard.getSelf().getBlueprint().getTwilightCost())
-                .filter(botCard -> plannedBoardState.getActiveCards().stream().anyMatch(activeCard -> {
-                    BotObjectAttachableCard attachableCard = (BotObjectAttachableCard) botCard;
-                    return attachableCard.isValidBearer(activeCard, plannedBoardState)
-                            && bearerPredicate.test(activeCard);
-                }))
-                .toList());
+    public boolean decisionTextMatches(String decisionText) {
+        return decisionText.equals("Choose card from discard");
     }
 
     @Override
-    public boolean affectsAll() {
+    protected ArrayList<PhysicalCard> getPotentialTargets(String player, DefaultLotroGame game) {
+        throw new IllegalStateException("EffectPlayPossessionFromDiscardOn does not support target selection, hard to calculate twilight");
+    }
+
+    @Override
+    protected boolean affectsAll() {
         return false;
     }
 
     @Override
-    public void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        plannedBoardState.playPossessionFromDiscardOn(target, bearerPredicate);
-    }
-
-    @Override
-    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
+    protected double getValueIfResolvedOn(String player, DefaultLotroGame game, PhysicalCard target) {
         return 0.1; // Playing a card from discard has some value, but hard to quantify
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+    public String toString(String player, DefaultLotroGame game, List<PhysicalCard> targets) {
         if (targets.isEmpty()) {
             return "attempt to play card from discard, but none can be chosen";
         } else if (targets.size() == 1) {
-            return "play " + targets.getFirst().getSelf().getBlueprint().getFullName() + " from discard";
+            return "play " + targets.getFirst().getBlueprint().getFullName() + " from discard";
         } else {
             throw new IllegalStateException("EffectFromDiscard cannot be applied to multiple targets");
         }

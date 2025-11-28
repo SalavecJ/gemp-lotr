@@ -13,7 +13,7 @@ import java.util.Set;
 public interface Adventure {
     void applyAdventureRules(LotroGame game, DefaultActionsEnvironment actionsEnvironment, ModifiersLogic modifiersLogic);
 
-    GameProcess getStartingGameProcess(Set<String> players, PlayerOrderFeedback playerOrderFeedback, PregameSetupFeedback pregameSetupFeedback);
+    GameProcess getStartingGameProcess(Set<String> players, PlayerOrderFeedback playerOrderFeedback, PregameSetupFeedback pregameSetupFeedback, long seedToResolveBiddingTie);
 
     GameProcess getAfterFellowshipPhaseGameProcess();
 

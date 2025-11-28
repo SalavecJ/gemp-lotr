@@ -1,51 +1,52 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class EffectDiscardFromPlay extends EffectWithTarget{
-    protected final Predicate<BotCard> targetPredicate;
+public class EffectDiscardFromPlay extends EffectWithTarget {
+    protected final Predicate<PhysicalCard> targetPredicate;
     protected final boolean discardAll;
 
-    public EffectDiscardFromPlay(Predicate<BotCard> targetPredicate, boolean discardAll) {
+    public EffectDiscardFromPlay(Predicate<PhysicalCard> targetPredicate, boolean discardAll) {
         this.targetPredicate = targetPredicate;
         this.discardAll = discardAll;
     }
 
     @Override
-    public ArrayList<BotCard> getPotentialTargets(String player, PlannedBoardState plannedBoardState) {
-        return new ArrayList<>(plannedBoardState.getActiveCards().stream().filter(targetPredicate).toList());
+    public boolean decisionTextMatches(String decisionText) {
+        System.out.println(decisionText);
+        throw new IllegalStateException("Not implemented yet");
     }
 
     @Override
-    public boolean affectsAll() {
+    protected ArrayList<PhysicalCard> getPotentialTargets(String player, DefaultLotroGame game) {
+        return new ArrayList<>(game.getGameState().getActiveCards().stream().filter(targetPredicate).toList());
+    }
+
+    @Override
+    protected boolean affectsAll() {
         return discardAll;
     }
 
     @Override
-    public String toString(String player, PlannedBoardState plannedBoardState, List<BotCard> targets) {
+    public String toString(String player, DefaultLotroGame game, List<PhysicalCard> targets) {
         if (targets.isEmpty()) {
             return "discard cards from play, but none will be affected";
         } else {
             String joined = targets.stream()
-                    .map(t -> t.getSelf().getBlueprint().getFullName())
+                    .map(t -> t.getBlueprint().getFullName())
                     .collect(Collectors.joining("; "));
            return  "discard from play: " + joined;
         }
     }
 
     @Override
-    protected void resolveOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        plannedBoardState.discardFromPlay(target);
-    }
-
-    @Override
-    protected double getValueIfResolvedOn(String player, PlannedBoardState plannedBoardState, BotCard target) {
-        return target.getSelf().getOwner().equals(player) ? -1.1: 1.1;
+    protected double getValueIfResolvedOn(String player, DefaultLotroGame game, PhysicalCard target) {
+        return target.getOwner().equals(player) ? -1.1: 1.1;
     }
 }

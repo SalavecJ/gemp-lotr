@@ -1,9 +1,10 @@
 package com.gempukku.lotro.bots.forge.cards;
 
+import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
 import com.gempukku.lotro.common.CardType;
-import com.gempukku.lotro.bots.forge.plan.PlannedBoardState;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
+import com.gempukku.lotro.logic.timing.RuleUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,13 +33,13 @@ public enum BotTargetingMode {
         this.humanReadable = humanReadable;
     }
 
-    public BotCard chooseTarget(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
-        List<BotCard> list = chooseTargets(plannedBoardState, options, 1, 1, printDebugMessages);
+    public BotCard chooseTarget(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
+        List<BotCard> list = chooseTargets(game, options, 1, 1, printDebugMessages);
         if (list.isEmpty()) return null;
         return list.getFirst();
     }
 
-    public List<BotCard> chooseTargets(PlannedBoardState plannedBoardState, List<BotCard> options, int min, int max, boolean printDebugMessages) {
+    public List<BotCard> chooseTargets(DefaultLotroGame game, List<BotCard> options, int min, int max, boolean printDebugMessages) {
         if (printDebugMessages) {
             System.out.println("Targeting mode: " + this);
             if (min != max) {
@@ -56,13 +57,13 @@ public enum BotTargetingMode {
             BotCard chosen = switch (this) {
                 case SPECIAL -> throw new IllegalStateException("Cannot choose target for special targeting mode like this");
                 case RANDOM -> chooseTargetRandom(myOptions, printDebugMessages);
-                case HEAL -> chooseHealTarget(plannedBoardState, myOptions, printDebugMessages);
-                case EXERT_SELF -> chooseExertSelfTarget(plannedBoardState, myOptions, printDebugMessages);
-                case COMPANION_HIGH_STRENGTH -> chooseHighestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
-                case COMPANION_LOW_STRENGTH -> chooseLowestStrengthCompanion(plannedBoardState, myOptions, printDebugMessages);
-                case COMPANION_NOT_DYING -> chooseCompanionLeastLikelyToDie(plannedBoardState, myOptions, printDebugMessages);
-                case HIGH_STRENGTH -> chooseHighestStrength(plannedBoardState, myOptions, printDebugMessages);
-                case BASIC_SHADOW_WEAPON_TARGETING -> chooseBasicShadowWeaponTarget(plannedBoardState, myOptions, printDebugMessages);
+                case HEAL -> chooseHealTarget(game, myOptions, printDebugMessages);
+                case EXERT_SELF -> chooseExertSelfTarget(game, myOptions, printDebugMessages);
+                case COMPANION_HIGH_STRENGTH -> chooseHighestStrengthCompanion(game, myOptions, printDebugMessages);
+                case COMPANION_LOW_STRENGTH -> chooseLowestStrengthCompanion(game, myOptions, printDebugMessages);
+                case COMPANION_NOT_DYING -> chooseCompanionLeastLikelyToDie(game, myOptions, printDebugMessages);
+                case HIGH_STRENGTH -> chooseHighestStrength(game, myOptions, printDebugMessages);
+                case BASIC_SHADOW_WEAPON_TARGETING -> chooseBasicShadowWeaponTarget(game, myOptions, printDebugMessages);
                 default -> throw new IllegalStateException("Targeting from enum for " + this + " is not implemented yet");
             };
             tbr.add(chosen);
@@ -72,204 +73,153 @@ public enum BotTargetingMode {
         return tbr;
     }
 
-    private BotCard chooseBasicShadowWeaponTarget(PlannedBoardState plannedBoardState, List<BotCard> myOptions, boolean printDebugMessages) {
-        int minionInPlay = BoardStateUtil.getMinionsInPlay(plannedBoardState).size();
-        int fpThatCanSkirmish = BoardStateUtil.getCompanionsAndAlliesAtHome(plannedBoardState).size();
+
+    private BotCard chooseBasicShadowWeaponTarget(DefaultLotroGame game, List<BotCard> myOptions, boolean printDebugMessages) {
+        int minionInPlay = Math.toIntExact(game.getGameState().getActiveCards().stream().filter(physicalCard -> CardType.MINION == physicalCard.getBlueprint().getCardType()).count());
+
+        int companionsInPlay = Math.toIntExact(game.getGameState().getActiveCards().stream().filter(physicalCard -> CardType.COMPANION == physicalCard.getBlueprint().getCardType()).count());
+        int alliesInPlay = Math.toIntExact(game.getGameState().getActiveCards().stream()
+                .filter(physicalCard ->
+                        CardType.ALLY == physicalCard.getBlueprint().getCardType()
+                                && RuleUtils.isAllyAtHome(physicalCard, game.getGameState().getCurrentSiteNumber(), game.getGameState().getCurrentSiteBlock()))
+                .count());
+        int fpThatCanSkirmish = companionsInPlay + alliesInPlay;
+
         boolean swarm = minionInPlay > fpThatCanSkirmish;
 
         if (swarm) {
-            return chooseLowestStrength(plannedBoardState, myOptions, printDebugMessages);
+            return chooseLowestStrength(game, myOptions, printDebugMessages);
         } else {
-            return chooseHighestStrength(plannedBoardState, myOptions, printDebugMessages);
+            return chooseHighestStrength(game, myOptions, printDebugMessages);
         }
     }
 
-    private BotCard chooseExertSelfTarget(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseExertSelfTarget(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen = options.stream()
-                .max((o1, o2) -> {
-                    int vitality1 = plannedBoardState.getVitality(o1);
-                    int vitality2 = plannedBoardState.getVitality(o2);
-
-                    int strength1 = plannedBoardState.getStrength(o1);
-                    int strength2 = plannedBoardState.getStrength(o2);
-
-                    if (vitality1 == 1 && vitality2 != 1) {
-                        return -1;
-                    }
-                    if (vitality1 != 1 && vitality2 == 1) {
-                        return 1;
-                    }
-
-                    if (o1.getSelf().getBlueprint().getCardType().equals(CardType.ALLY) && o2.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return 1;
-                    }
-
-                    if (o2.getSelf().getBlueprint().getCardType().equals(CardType.ALLY) && o1.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return -1;
-                    }
-
-                    if (strength1 > 2 * strength2) {
-                        return -1;
-                    }
-                    if (strength2 > 2 * strength1) {
-                        return 1;
-                    }
-
-                    if (vitality1 != vitality2) {
-                        return Integer.compare(vitality1, vitality2);
-                    }
-
-                    return Integer.compare(strength2, strength1);
-                })
+                .max(Comparator.comparingDouble(o -> WoundsValueUtil.evaluateWoundsChangeValue(
+                        options.getFirst().getSelf().getOwner(),
+                        game,
+                        o.getSelf(),
+                        1)))
                 .orElseThrow();
 
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseHealTarget(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseHealTarget(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen = options.stream()
-                .min((o1, o2) -> {
-                    int vitality1 = plannedBoardState.getVitality(o1);
-                    int vitality2 = plannedBoardState.getVitality(o2);
-
-                    int strength1 = plannedBoardState.getStrength(o1);
-                    int strength2 = plannedBoardState.getStrength(o2);
-
-                    if (vitality1 == 1 && vitality2 != 1) {
-                        return -1;
-                    }
-                    if (vitality1 != 1 && vitality2 == 1) {
-                        return 1;
-                    }
-
-                    if (o1.getSelf().getBlueprint().getCardType().equals(CardType.ALLY) && o2.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return 1;
-                    }
-
-                    if (o2.getSelf().getBlueprint().getCardType().equals(CardType.ALLY) && o1.getSelf().getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return -1;
-                    }
-
-                    if (strength1 > 2 * strength2) {
-                        return -1;
-                    }
-                    if (strength2 > 2 * strength1) {
-                        return 1;
-                    }
-
-                    if (vitality1 != vitality2) {
-                        return Integer.compare(vitality1, vitality2);
-                    }
-
-                    return Integer.compare(strength2, strength1);
-                })
+                .max(Comparator.comparingDouble(o -> WoundsValueUtil.evaluateWoundsChangeValue(
+                        options.getFirst().getSelf().getOwner(),
+                        game,
+                        o.getSelf(),
+                        -1)))
                 .orElseThrow();
 
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseHighestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseHighestStrengthCompanion(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
                         .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
-                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
-                        .thenComparingInt(plannedBoardState::getStrength)
-                        .thenComparingInt(plannedBoardState::getVitality))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf()) > 1 ? 1 : 0)
+                        .thenComparingInt(card -> game.getModifiersQuerying().getStrength(game, card.getSelf()))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf())))
                 .orElseThrow();
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+            System.out.println("Has more than 1 vitality: " + (game.getModifiersQuerying().getVitality(game, chosen.getSelf()) > 1));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseHighestStrength(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseHighestStrength(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
-                        .comparingInt((ToIntFunction<BotCard>) card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
-                        .thenComparingInt(plannedBoardState::getStrength)
-                        .thenComparingInt(plannedBoardState::getVitality))
+                        .comparingInt((ToIntFunction<BotCard>) card -> game.getModifiersQuerying().getVitality(game, card.getSelf()) > 1 ? 1 : 0)
+                        .thenComparingInt(card -> game.getModifiersQuerying().getStrength(game, card.getSelf()))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf())))
                 .orElseThrow();
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+            System.out.println("Has more than 1 vitality: " + (game.getModifiersQuerying().getVitality(game, chosen.getSelf()) > 1));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseLowestStrengthCompanion(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseLowestStrengthCompanion(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
                         .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
-                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
-                        .thenComparingInt(card -> - plannedBoardState.getStrength(card))
-                        .thenComparingInt(plannedBoardState::getVitality))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf()) > 1 ? 1 : 0)
+                        .thenComparingInt(card -> - game.getModifiersQuerying().getStrength(game, card.getSelf()))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf())))
                 .orElseThrow();
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+            System.out.println("Has more than 1 vitality: " + (game.getModifiersQuerying().getVitality(game, chosen.getSelf()) > 1));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseLowestStrength(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseLowestStrength(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen =  options.stream()
                 .max(Comparator
-                        .comparingInt((ToIntFunction<BotCard>) card -> - plannedBoardState.getStrength(card))
-                        .thenComparingInt(plannedBoardState::getVitality))
+                        .comparingInt((ToIntFunction<BotCard>) card -> - game.getModifiersQuerying().getStrength(game, card.getSelf()))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf())))
                 .orElseThrow();
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
         }
 
         return chosen;
     }
 
-    private BotCard chooseCompanionLeastLikelyToDie(PlannedBoardState plannedBoardState, List<BotCard> options, boolean printDebugMessages) {
+    private BotCard chooseCompanionLeastLikelyToDie(DefaultLotroGame game, List<BotCard> options, boolean printDebugMessages) {
         BotCard chosen = options.stream()
                 .max(Comparator
                         .comparingInt((ToIntFunction<BotCard>) card -> card.getSelf().getBlueprint().getCardType() == CardType.COMPANION ? 1 : 0)
-                        .thenComparingInt(card -> plannedBoardState.getRingBearers().contains(card) ? 1 : 0)
-                        .thenComparingInt(card -> plannedBoardState.getVitality(card) > 1 ? 1 : 0)
-                        .thenComparingInt(plannedBoardState::getStrength)
-                        .thenComparingInt(plannedBoardState::getVitality))
+                        .thenComparingInt(card -> game.getGameState().getRingBearers().contains(card.getSelf()) ? 1 : 0)
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf()) > 1 ? 1 : 0)
+                        .thenComparingInt(card -> game.getModifiersQuerying().getStrength(game, card.getSelf()))
+                        .thenComparingInt(card -> game.getModifiersQuerying().getVitality(game, card.getSelf())))
                 .orElseThrow();
 
         if (printDebugMessages) {
             System.out.println("Chosen: " + chosen.getSelf().getBlueprint().getFullName());
-            System.out.println("Ring-bearer: " + plannedBoardState.getRingBearers().contains(chosen));
-            System.out.println("Has more than 1 vitality: " + (plannedBoardState.getVitality(chosen) > 1));
-            System.out.println("Strength: " + plannedBoardState.getStrength(chosen));
-            System.out.println("Vitality: " + plannedBoardState.getVitality(chosen));
+            System.out.println("Ring-bearer: " + game.getGameState().getRingBearers().contains(chosen.getSelf()));
+            System.out.println("Has more than 1 vitality: " + (game.getModifiersQuerying().getVitality(game, chosen.getSelf()) > 1));
+            System.out.println("Strength: " + game.getModifiersQuerying().getStrength(game, chosen.getSelf()));
+            System.out.println("Vitality: " + game.getModifiersQuerying().getVitality(game, chosen.getSelf()));
         }
 
         return chosen;
