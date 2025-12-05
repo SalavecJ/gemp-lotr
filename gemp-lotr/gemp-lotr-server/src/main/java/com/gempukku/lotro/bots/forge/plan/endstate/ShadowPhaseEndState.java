@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ShadowPhaseEndState extends PhaseEndState {
-    private AfterCombatEndPhase afterCombatEndPhase;
+    private AfterCombatEndState afterCombatEndState;
 
     public ShadowPhaseEndState(DefaultLotroGame game, List<ActionToTake2> shadowActions) {
         // Shadow phase only has shadow actions, FP actions is empty
@@ -28,19 +28,19 @@ public class ShadowPhaseEndState extends PhaseEndState {
      * Contains all 5 combat phase end states and can produce a combat outcome.
      * Uses lazy evaluation - only computes the path when first accessed.
      */
-    public AfterCombatEndPhase getAfterCombatEndPhase() {
-        if (afterCombatEndPhase == null) {
+    public AfterCombatEndState getAfterCombatEndPhase() {
+        if (afterCombatEndState == null) {
             // Explore the combat tree to find the best combat path
-            afterCombatEndPhase = ActionFinderUtil.findBestCombatPath(copy);
+            afterCombatEndState = ActionFinderUtil.findBestCombatPath(copy);
         }
-        return afterCombatEndPhase;
+        return afterCombatEndState;
     }
 
     @Override
     public double getValue() {
         if (value != 0.0)
             return value;
-        return new CombatOutcome(copy, afterCombatEndPhase.copy).evaluateOutcome();
+        return new CombatOutcome(copy, afterCombatEndState.copy).evaluateOutcome();
     }
 
     @Override
@@ -58,7 +58,7 @@ public class ShadowPhaseEndState extends PhaseEndState {
         }
 
         sb.append("\nCombat Outcome:\n");
-        sb.append(new CombatOutcome(copy, afterCombatEndPhase.copy).toString());
+        sb.append(new CombatOutcome(copy, afterCombatEndState.copy));
 
         return sb.toString();
     }

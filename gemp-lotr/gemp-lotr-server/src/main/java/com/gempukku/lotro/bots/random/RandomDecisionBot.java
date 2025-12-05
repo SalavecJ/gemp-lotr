@@ -33,6 +33,11 @@ public class RandomDecisionBot implements BotPlayer {
     }
 
     @Override
+    public void decisionMadeByPlayer(DefaultLotroGame game, AwaitingDecision awaitingDecision, String answer, String player) {
+
+    }
+
+    @Override
     public void cleanUpAfterGame() {
 
     }

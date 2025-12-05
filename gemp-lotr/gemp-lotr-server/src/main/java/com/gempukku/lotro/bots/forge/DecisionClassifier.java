@@ -79,16 +79,6 @@ public class DecisionClassifier {
                 && awaitingDecision.getText().equals("Do you want to make another move?");
     }
 
-    public static boolean isAssignArcheryShadowPlayerDecision(AwaitingDecision awaitingDecision) {
-        return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)
-                && awaitingDecision.getText().contains("Choose minion to assign archery wound to - remaining wounds:");
-    }
-
-    public static boolean isAssignArcheryFpPlayerDecision(AwaitingDecision awaitingDecision) {
-        return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)
-                && awaitingDecision.getText().contains("Choose character to assign archery wound to - remaining wounds:");
-    }
-
     public static boolean isSanctuaryHealingDecision(AwaitingDecision awaitingDecision) {
         return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)
                 && awaitingDecision.getText().contains("Sanctuary healing - Choose companion to heal - remaining heals:");
@@ -110,8 +100,7 @@ public class DecisionClassifier {
     }
 
     public static boolean isCardTargetingDecision(AwaitingDecision awaitingDecision) {
-        return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION)
-                && Integer.parseInt(awaitingDecision.getDecisionParameters().get(("source"))[0]) != -1;
+        return awaitingDecision.getDecisionType().equals(AwaitingDecisionType.CARD_SELECTION);
     }
 
     public static boolean isArbitraryCardTargetingDecision(AwaitingDecision awaitingDecision) {

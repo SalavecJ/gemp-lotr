@@ -635,7 +635,10 @@ public class GameState {
             listener.decisionRequired(playerId, awaitingDecision);
     }
 
-    public void playerDecisionFinished(String playerId, String answer) {
+    public void playerDecisionFinished(String playerId, AwaitingDecision awaitingDecision, String answer) {
+        for (GameStateListener listener : getAllGameStateListeners()) {
+            listener.decisionMade(playerId, awaitingDecision, answer);
+        }
         _playerDecisions.remove(playerId);
         // Find the last decision made by this specific player
         for (int i = _decisionsMade.size() - 1; i >= 0; i--) {

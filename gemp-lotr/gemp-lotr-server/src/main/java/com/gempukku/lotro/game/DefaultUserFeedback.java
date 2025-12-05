@@ -20,8 +20,8 @@ public class DefaultUserFeedback implements UserFeedback {
 
     @Override
     public void participantDecided(String playerId, String answer) {
-        _awaitingDecisionMap.remove(playerId);
-        _game.getGameState().playerDecisionFinished(playerId, answer);
+        AwaitingDecision awaitingDecision = _awaitingDecisionMap.remove(playerId);
+        _game.getGameState().playerDecisionFinished(playerId, awaitingDecision, answer);
     }
 
     @Override

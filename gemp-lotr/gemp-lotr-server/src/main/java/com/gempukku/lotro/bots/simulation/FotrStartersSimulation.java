@@ -60,9 +60,9 @@ public class FotrStartersSimulation implements Simulation {
         // Simulate game loop
         while (!lotroGame.isFinished()) {
             if (userFeedback.getAwaitingDecision(bot1.getName()) != null) {
-                getDecisionAndDecide(bot1, lotroGame);
+                getDecisionAndDecide(bot1, bot2, lotroGame);
             } else if (userFeedback.getAwaitingDecision(bot2.getName()) != null) {
-                getDecisionAndDecide(bot2, lotroGame);
+                getDecisionAndDecide(bot2, bot1, lotroGame);
             }
         }
 
@@ -77,17 +77,21 @@ public class FotrStartersSimulation implements Simulation {
         }
     }
 
-    private void getDecisionAndDecide(BotPlayer bot1, DefaultLotroGame lotroGame) {
-        AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(bot1.getName());
-        String action = bot1.chooseAction(lotroGame, awaitingDecision);
+    private void getDecisionAndDecide(BotPlayer bot, BotPlayer other, DefaultLotroGame lotroGame) {
+        AwaitingDecision awaitingDecision = userFeedback.getAwaitingDecision(bot.getName());
+        String action = bot.chooseAction(lotroGame, awaitingDecision);
         try {
-            userFeedback.participantDecided(bot1.getName(), action);
+            userFeedback.participantDecided(bot.getName(), action);
             awaitingDecision.decisionMade(action);
+            bot.decisionMadeByPlayer(lotroGame, awaitingDecision, action, bot.getName());
+            other.decisionMadeByPlayer(lotroGame, awaitingDecision, action, bot.getName());
             lotroGame.carryOutPendingActionsUntilDecisionNeeded();
         } catch (DecisionResultInvalidException e) {
             // Bot provided wrong answer - ask again for the same decision
-            System.out.println(bot1.getName() + " wrong answer - " + e.getWarningMessage());
-            userFeedback.sendAwaitingDecision(bot1.getName(), awaitingDecision);
+            System.out.println(bot.getName() + " wrong answer - " + e.getWarningMessage());
+            System.out.println("Asked decision: " + awaitingDecision.toJson());
+            System.out.println("Provided answer: " + action);
+            userFeedback.sendAwaitingDecision(bot.getName(), awaitingDecision);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.plan.action2.ActionToTake2;
 import com.gempukku.lotro.bots.forge.plan.action2.ChooseTargetsAction2;
+import com.gempukku.lotro.bots.forge.plan.endstate.AfterCombatEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.PhaseEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.bots.forge.utils.ActionFinderUtil;
@@ -25,6 +26,7 @@ public class ShadowPhasePlan {
 
     private int nextStep = 0;
     List<ActionToTake2> actions2 = new ArrayList<>();
+    private AfterCombatEndState afterCombatEndState = null;
 
     private final DefaultLotroGame copy;
 
@@ -63,6 +65,7 @@ public class ShadowPhasePlan {
                         .thenComparingInt(this::countMinionsOnBoard)) // Prefer winning with more minions on board
                 .ifPresent(shadowPhaseEndState -> {
             actions2 = shadowPhaseEndState.getShadowActions();
+            afterCombatEndState = shadowPhaseEndState.getAfterCombatEndPhase();
             if (printDebugMessages) {
                 System.out.println("Chosen shadow plan leading to potential win:");
                 System.out.println(shadowPhaseEndState);
@@ -72,7 +75,8 @@ public class ShadowPhasePlan {
         // If no winning play, choose best evaluated play
         if (actions2.isEmpty()) {
             interestingEndStates.stream().max(Comparator.comparingDouble(PhaseEndState::getValue)).ifPresent(bestEndState -> {
-                this.actions2 = bestEndState.getShadowActions();
+                actions2 = bestEndState.getShadowActions();
+                afterCombatEndState = bestEndState.getAfterCombatEndPhase();
                 if (printDebugMessages) {
                     System.out.println("No shadow plan leads to win, chosen best plan with value " + bestEndState.getValue());
                     System.out.println(bestEndState);
@@ -243,5 +247,13 @@ public class ShadowPhasePlan {
         return !game.getGameState().getCurrentPlayerId().equals(playerName)
                 && game.getGameState().getCurrentSiteNumber() == siteNumber
                 && game.getGameState().getCurrentPhase().equals(Phase.SHADOW);
+    }
+
+    public List<ActionToTake2> getCombatFpActions() {
+        return afterCombatEndState != null ? afterCombatEndState.getFpActions() : Collections.emptyList();
+    }
+
+    public List<ActionToTake2> getCombatShadowActions() {
+        return afterCombatEndState != null ? afterCombatEndState.getShadowActions() : Collections.emptyList();
     }
 }

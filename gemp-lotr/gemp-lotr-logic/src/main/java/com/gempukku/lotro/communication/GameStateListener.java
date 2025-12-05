@@ -60,6 +60,8 @@ public interface GameStateListener {
 
     void decisionRequired(String playerId, AwaitingDecision awaitingDecision);
 
+    void decisionMade(String playerId, AwaitingDecision awaitingDecision, String answer);
+
     void sendWarning(String playerId, String warning);
 
     void endGame();

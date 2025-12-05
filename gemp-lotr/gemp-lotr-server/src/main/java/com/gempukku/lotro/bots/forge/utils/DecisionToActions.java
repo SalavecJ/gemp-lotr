@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
 import com.gempukku.lotro.bots.forge.plan.action2.*;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.decisions.*;
+import com.gempukku.lotro.logic.modifiers.ModifierFlag;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.ArrayList;
@@ -62,6 +63,10 @@ public class DecisionToActions {
                         } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
                             if (botCard.getSelf().getBlueprint().getFullName().equals("The Bridge of Khazad-dûm")) {
                                 // Do not offer to use The Bridge of Khazad-dûm
+                                continue;
+                            }
+                            if (botCard.getSelf().getBlueprint().getFullName().equals("Shores of Nen Hithoel") && game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE)) {
+                                // Do not offer to use Shores of Nen Hithoel if FP cannot move to prevent loop
                                 continue;
                             }
                             tbr.add(new UseCardAction2(decision.getText(), botCard, actionId));

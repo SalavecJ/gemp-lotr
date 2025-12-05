@@ -157,6 +157,11 @@ public class BotGameStateListener implements GameStateListener {
     }
 
     @Override
+    public void decisionMade(String playerId, AwaitingDecision awaitingDecision, String answer) {
+        botPlayer.decisionMadeByPlayer(lotroGameMediator.getGame(), awaitingDecision, answer, playerId);
+    }
+
+    @Override
     public void sendWarning(String playerId, String warning) {
 
     }

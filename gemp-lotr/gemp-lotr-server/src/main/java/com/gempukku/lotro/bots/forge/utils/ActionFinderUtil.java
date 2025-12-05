@@ -2,7 +2,7 @@ package com.gempukku.lotro.bots.forge.utils;
 
 import com.gempukku.lotro.bots.forge.plan.CombatOutcome;
 import com.gempukku.lotro.bots.forge.plan.action2.*;
-import com.gempukku.lotro.bots.forge.plan.endstate.AfterCombatEndPhase;
+import com.gempukku.lotro.bots.forge.plan.endstate.AfterCombatEndState;
 import com.gempukku.lotro.bots.forge.plan.endstate.ShadowPhaseEndState;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
@@ -26,14 +26,14 @@ public class ActionFinderUtil {
      * @param afterShadowPhaseState The board state after shadow phase ends (before combat begins)
      * @return The best AfterCombatEndPhase containing the optimal combat outcome
      */
-    public static AfterCombatEndPhase findBestCombatPath(DefaultLotroGame afterShadowPhaseState) {
+    public static AfterCombatEndState findBestCombatPath(DefaultLotroGame afterShadowPhaseState) {
         // Do a single combined search through all combat phases
 
         UserFeedback currentFeedback = new DefaultUserFeedback();
         // Slow copy method to ensure everything is setup correctly, called just once so it's acceptable here
         DefaultLotroGame currentCopy = afterShadowPhaseState.getCopyByReplayingDecisionsFromStart(currentFeedback);
 
-        AfterCombatEndPhase result = exploreCombatPhases(afterShadowPhaseState, currentCopy, currentFeedback,
+        AfterCombatEndState result = exploreCombatPhases(afterShadowPhaseState, currentCopy, currentFeedback,
                 new ArrayList<>(), new ArrayList<>(), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 
 //        printCombatHistory(afterShadowPhaseState, result.getFpActions(), result.getShadowActions());
@@ -55,9 +55,9 @@ public class ActionFinderUtil {
      * @param beta Best value FP can guarantee (for alpha-beta pruning)
      * @return The result containing the best combat outcome
      */
-    private static AfterCombatEndPhase exploreCombatPhases(DefaultLotroGame afterShadowPhaseState, DefaultLotroGame currentCopy, UserFeedback currentFeedback,
-                                                        List<ActionToTake2> fpActions, List<ActionToTake2> shadowActions,
-                                                        double alpha, double beta) {
+    private static AfterCombatEndState exploreCombatPhases(DefaultLotroGame afterShadowPhaseState, DefaultLotroGame currentCopy, UserFeedback currentFeedback,
+                                                           List<ActionToTake2> fpActions, List<ActionToTake2> shadowActions,
+                                                           double alpha, double beta) {
         // Check if terminal state (before getting decisions)
         String fpPlayerId = currentCopy.getGameState().getCurrentPlayerId();
         String shadowPlayerId = currentCopy.getGameState().getCurrentShadowPlayer();
@@ -69,7 +69,7 @@ public class ActionFinderUtil {
                 || (fpDecision != null && fpDecision.getText().contains("Reconcile"))
                 || (fpDecision != null && fpDecision.getText().equals("Do you want to make another move?"))) {
             // Terminal state - create end state and return immediately
-            return new AfterCombatEndPhase(currentCopy, fpActions, shadowActions);
+            return new AfterCombatEndState(currentCopy, fpActions, shadowActions);
         }
 
         // Get decisions
@@ -95,7 +95,7 @@ public class ActionFinderUtil {
             possibleActions = List.of(SkirmishOrderUtil.chooseNextSkirmish(currentCopy, possibleActions));
         }
 
-        AfterCombatEndPhase bestResult = null;
+        AfterCombatEndState bestResult = null;
 
         for (ActionToTake2 action : possibleActions) {
             // Add action to appropriate history
@@ -119,7 +119,7 @@ public class ActionFinderUtil {
             nextState.carryOutPendingActionsUntilDecisionNeeded();
 
             // Recurse immediately - if terminal, the recursion will return the end state
-            AfterCombatEndPhase result = exploreCombatPhases(afterShadowPhaseState, nextState, nextFeedback,
+            AfterCombatEndState result = exploreCombatPhases(afterShadowPhaseState, nextState, nextFeedback,
                     fpActions, shadowActions, alpha, beta);
 
             // Evaluation
@@ -153,7 +153,7 @@ public class ActionFinderUtil {
     /**
      * Updates the best result based on minimax logic for combat path exploration.
      */
-    private static AfterCombatEndPhase updateBestCombatPathResult(DefaultLotroGame afterShadowPhaseState, AfterCombatEndPhase bestResult, AfterCombatEndPhase newResult, boolean isFpTurn) {
+    private static AfterCombatEndState updateBestCombatPathResult(DefaultLotroGame afterShadowPhaseState, AfterCombatEndState bestResult, AfterCombatEndState newResult, boolean isFpTurn) {
         if (bestResult == null) {
             return newResult;
         }
@@ -170,7 +170,7 @@ public class ActionFinderUtil {
     /**
      * Checks if alpha-beta pruning should occur for combat path exploration.
      */
-    private static boolean shouldPruneCombatPath(DefaultLotroGame afterShadowPhaseState, AfterCombatEndPhase bestResult, boolean isFpTurn, double alpha, double beta) {
+    private static boolean shouldPruneCombatPath(DefaultLotroGame afterShadowPhaseState, AfterCombatEndState bestResult, boolean isFpTurn, double alpha, double beta) {
         if (bestResult == null) {
             return false;
         }
@@ -353,13 +353,13 @@ public class ActionFinderUtil {
      * @param isFpTurn Whether it's FP's turn
      * @return The best result after exploring all assignment branches
      */
-    private static AfterCombatEndPhase exploreAssignmentDecision(DefaultLotroGame afterShadowPhaseState,
-                                                               DefaultLotroGame currentCopy,
-                                                               UserFeedback currentFeedback,
-                                                               List<ActionToTake2> fpActions,
-                                                               List<ActionToTake2> shadowActions,
-                                                               double alpha, double beta,
-                                                               boolean isFpTurn) {
+    private static AfterCombatEndState exploreAssignmentDecision(DefaultLotroGame afterShadowPhaseState,
+                                                                 DefaultLotroGame currentCopy,
+                                                                 UserFeedback currentFeedback,
+                                                                 List<ActionToTake2> fpActions,
+                                                                 List<ActionToTake2> shadowActions,
+                                                                 double alpha, double beta,
+                                                                 boolean isFpTurn) {
 
         // Get the assignment action from the current game state
         AwaitingDecision currentDecision = isFpTurn ?
@@ -389,13 +389,13 @@ public class ActionFinderUtil {
      * @param isFpTurn Whether it's FP's turn
      * @return The best result from this branch
      */
-    private static AfterCombatEndPhase exploreAssignmentRecursive(AssignMinionsAction2 assignmentAction,
-                                                                 DefaultLotroGame afterShadowPhaseState,
-                                                                 DefaultLotroGame currentCopy,
-                                                                 List<ActionToTake2> fpActions,
-                                                                 List<ActionToTake2> shadowActions,
-                                                                 double alpha, double beta,
-                                                                 boolean isFpTurn) {
+    private static AfterCombatEndState exploreAssignmentRecursive(AssignMinionsAction2 assignmentAction,
+                                                                  DefaultLotroGame afterShadowPhaseState,
+                                                                  DefaultLotroGame currentCopy,
+                                                                  List<ActionToTake2> fpActions,
+                                                                  List<ActionToTake2> shadowActions,
+                                                                  double alpha, double beta,
+                                                                  boolean isFpTurn) {
         // Base case: assignment is complete, execute it
         if (assignmentAction.isComplete()) {
             // Add assignment to history
@@ -419,7 +419,7 @@ public class ActionFinderUtil {
             nextState.carryOutPendingActionsUntilDecisionNeeded();
 
             // Get back to exploring combat phases
-            AfterCombatEndPhase result = exploreCombatPhases(afterShadowPhaseState, nextState, nextFeedback, fpActions, shadowActions, alpha, beta);
+            AfterCombatEndState result = exploreCombatPhases(afterShadowPhaseState, nextState, nextFeedback, fpActions, shadowActions, alpha, beta);
 
             // Remove from history
             if (isFpTurn) {
@@ -433,7 +433,7 @@ public class ActionFinderUtil {
 
         // Recursive case: explore each possible assignment for the next minion
         List<AssignMinionsAction2.SubAction> availableSubActions = assignmentAction.getAvailableActions();
-        AfterCombatEndPhase bestResult = null;
+        AfterCombatEndState bestResult = null;
 
         for (AssignMinionsAction2.SubAction subAction : availableSubActions) {
             // Create a copy of the assignment action for this branch
@@ -443,7 +443,7 @@ public class ActionFinderUtil {
             branchAssignment.assign(subAction);
 
             // Recursively explore with the updated assignment
-            AfterCombatEndPhase result = exploreAssignmentRecursive(branchAssignment,
+            AfterCombatEndState result = exploreAssignmentRecursive(branchAssignment,
                     afterShadowPhaseState, currentCopy, fpActions, shadowActions, alpha, beta, isFpTurn);
 
             bestResult = updateBestCombatPathResult(afterShadowPhaseState, bestResult, result, isFpTurn);

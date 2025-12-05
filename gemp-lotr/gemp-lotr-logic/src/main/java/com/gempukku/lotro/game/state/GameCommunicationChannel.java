@@ -223,6 +223,11 @@ public class GameCommunicationChannel implements GameStateListener, LongPollable
     }
 
     @Override
+    public void decisionMade(String playerId, AwaitingDecision awaitingDecision, String answer) {
+        // Important for bots, not for players
+    }
+
+    @Override
     public void sendWarning(String playerId, String warning) {
         if (playerId.equals(_self))
             appendEvent(new GameEvent(SEND_WARNING).message(warning));

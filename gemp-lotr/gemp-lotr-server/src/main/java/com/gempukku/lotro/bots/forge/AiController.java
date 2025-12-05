@@ -3,6 +3,7 @@ package com.gempukku.lotro.bots.forge;
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.forge.controller.*;
 import com.gempukku.lotro.bots.forge.plan.BetweenTurnsPlan;
+import com.gempukku.lotro.bots.forge.plan.CombatPhasesPlan;
 import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
 import com.gempukku.lotro.bots.forge.plan.ShadowPhasePlan;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
@@ -32,6 +33,7 @@ public class AiController {
     private BetweenTurnsPlan betweenTurnsPlan = null;
     private FellowshipPhasePlan fellowshipPhasePlan = null;
     private ShadowPhasePlan shadowPhasePlan = null;
+    private CombatPhasesPlan combatPhasesPlan = null;
 
     public AiController(String aiPlayerName, boolean printDebugMessages) {
         this.aiPlayerName = aiPlayerName;
@@ -43,6 +45,7 @@ public class AiController {
         betweenTurnsPlan = null;
         fellowshipPhasePlan = null;
         shadowPhasePlan = null;
+        combatPhasesPlan = null;
     }
 
     private static void printSeparator() {
@@ -399,98 +402,6 @@ public class AiController {
         return ""; // Pass, all played already
     }
 
-    public Map<String, List<String>> chooseAssignment(LotroGame game, AwaitingDecision awaitingDecision) {
-        if (printDebugMessages) {
-            printSeparator();
-        }
-        return new AiAssignmentController(aiPlayerName, printDebugMessages, game, awaitingDecision).chooseAssignment();
-    }
-
-    public PhysicalCard chooseOwnMinionToWound(LotroGame game, Collection<PhysicalCard> minions) {
-        if (printDebugMessages) {
-            printSeparator();
-            StringBuilder shadow = new StringBuilder("Choosing own minion to wound");
-            for (PhysicalCard minionCard : minions) {
-                shadow.append("\n").append(minionCard.getBlueprint().getFullName()).append(" - vitality: ").append(game.getModifiersQuerying().getVitality(game, minionCard));
-            }
-            System.out.println(shadow);
-        }
-
-        PhysicalCard chosen = minions.stream()
-                .max(Comparator.comparingInt((PhysicalCard c) -> game.getModifiersQuerying().getVitality(game, c))
-                        .thenComparing(Comparator.comparingInt((PhysicalCard c) -> game.getModifiersQuerying().getStrength(game, c)).reversed()))
-                .orElseThrow();
-
-
-        if (printDebugMessages) {
-            System.out.println("Chosen: " + chosen.getBlueprint().getFullName());
-        }
-
-        return chosen;
-    }
-
-    public PhysicalCard chooseOwnFpCharacterToWound(LotroGame game, Collection<PhysicalCard> fpCharacters) {
-        if (printDebugMessages) {
-            printSeparator();
-            StringBuilder fp = new StringBuilder("Choosing own FP character to wound");
-            for (PhysicalCard card : fpCharacters) {
-                fp.append("\n").append(card.getBlueprint().getFullName()).append(" - vitality: ").append(game.getModifiersQuerying().getVitality(game, card));
-            }
-            System.out.println(fp);
-        }
-
-        // TODO prioritize ring bearer, count with burdens
-
-        PhysicalCard chosen = fpCharacters.stream()
-                .max((o1, o2) -> {
-                    int vitality1 = game.getModifiersQuerying().getVitality(game, o1);
-                    int vitality2 = game.getModifiersQuerying().getVitality(game, o2);
-
-                    int strength1 = game.getModifiersQuerying().getStrength(game, o1);
-                    int strength2 = game.getModifiersQuerying().getStrength(game, o2);
-
-                    // Prioritize not killing
-                    if (vitality1 == 1 && vitality2 != 1) {
-                        return -1;
-                    }
-                    if (vitality1 != 1 && vitality2 == 1) {
-                        return 1;
-                    }
-
-                    // Prioritize allies over companions
-                    if (o1.getBlueprint().getCardType().equals(CardType.ALLY) && o2.getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return 1;
-                    }
-                    if (o2.getBlueprint().getCardType().equals(CardType.ALLY) && o1.getBlueprint().getCardType().equals(CardType.COMPANION)) {
-                        return -1;
-                    }
-
-                    // Prioritize way weaker characters
-                    if (strength1 > 2 * strength2) {
-                        return -1;
-                    }
-                    if (strength2 > 2 * strength1) {
-                        return 1;
-                    }
-
-                    // Prioritize healthier characters
-                    if (vitality1 != vitality2) {
-                        return Integer.compare(vitality1, vitality2);
-                    }
-
-                    // Prioritize weaker characters
-                    return Integer.compare(strength2, strength1);
-                })
-                .orElseThrow();
-
-
-        if (printDebugMessages) {
-            System.out.println("Chosen: " + chosen.getBlueprint().getFullName());
-        }
-
-        return chosen;
-    }
-
     public PhysicalCard chooseOwnFpCharacterToHeal(LotroGame game, Collection<PhysicalCard> fpCharacters) {
         if (printDebugMessages) {
             printSeparator();
@@ -652,15 +563,7 @@ public class AiController {
         return toDiscard;
     }
 
-    public PhysicalCard chooseNextSkirmishToResolve(LotroGame game, List<PhysicalCard> options) {
-        if (printDebugMessages) {
-            printSeparator();
-        }
-
-        return new AiSkirmishOrderController(printDebugMessages, game, options).chooseNextSkirmish();
-    }
-
-    public String chooseTargetForEffect(LotroGame game, List<PhysicalCard> options, PhysicalCard source, AwaitingDecision awaitingDecision) {
+    public String chooseTargetForEffect(DefaultLotroGame game, List<PhysicalCard> options, PhysicalCard source, AwaitingDecision awaitingDecision) {
         if (printDebugMessages) {
             printSeparator();
         }
@@ -671,6 +574,8 @@ public class AiController {
             return betweenTurnsPlan.chooseTarget(awaitingDecision);
         } else if (shadowPhasePlan != null && !shadowPhasePlan.replanningNeeded()) {
             return shadowPhasePlan.chooseTarget(awaitingDecision);
+        } else if (combatPhasesPlan != null && combatPhasesPlan.areSiteAndPhaseCorrect()) {
+            return combatPhasesPlan.chooseActionToTakeOrPass(game, awaitingDecision);
         }
 
         List<PhysicalCard> cards = new AiTargetController(printDebugMessages, options, source, awaitingDecision).chooseTarget();
@@ -700,14 +605,6 @@ public class AiController {
         return new AiMultipleChoiceController(printDebugMessages, game, awaitingDecision).chooseOption();
     }
 
-    public int chooseRequiredResponseToResolveNext(LotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
-        if (printDebugMessages) {
-            printSeparator();
-        }
-
-        return new AiRequiredResponseOrderController(printDebugMessages, game, awaitingDecision).chooseOption();
-    }
-
     public int chooseIntegerForEffect(LotroGame game, AwaitingDecision awaitingDecision) throws CardNotFoundException {
         if (printDebugMessages) {
             printSeparator();
@@ -735,7 +632,14 @@ public class AiController {
                 shadowPhasePlan = new ShadowPhasePlan(printDebugMessages, game);
             }
             try {
-                return shadowPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
+                String answer = shadowPhasePlan.chooseActionToTakeOrPass(awaitingDecision);
+
+                if (answer.isEmpty() && awaitingDecision.getText().equals("Play Shadow action or Pass")) {
+                    // Passing in shadow state, save found combat path
+                    combatPhasesPlan = new CombatPhasesPlan(printDebugMessages, game, aiPlayerName, shadowPhasePlan.getCombatShadowActions(), shadowPhasePlan.getCombatFpActions());
+                }
+
+                return answer;
             } catch (Exception e) {
                 throw new UnsupportedOperationException("Shadow plan error: " + e.getMessage());
             }
@@ -744,8 +648,28 @@ public class AiController {
                 betweenTurnsPlan = new BetweenTurnsPlan(printDebugMessages, game);
             }
             return betweenTurnsPlan.chooseActionToTakeOrPass(awaitingDecision, game);
+        } else if (isInCombatPhase(game)) {
+            if (combatPhasesPlan == null || !combatPhasesPlan.areSiteAndPhaseCorrect()) {
+                combatPhasesPlan = new CombatPhasesPlan(printDebugMessages, game, aiPlayerName);
+            }
+            return combatPhasesPlan.chooseActionToTakeOrPass(game, awaitingDecision);
         } else {
             throw new UnsupportedOperationException("Decision not supported: " + awaitingDecision.toJson().toString());
         }
+    }
+
+    public void decisionMadeByPlayer(DefaultLotroGame game, AwaitingDecision awaitingDecision, String answer, String player) {
+        if (combatPhasesPlan != null && combatPhasesPlan.areSiteAndPhaseCorrect()) {
+            combatPhasesPlan.decisionMadeByPlayer(game, awaitingDecision, answer, player);
+        }
+    }
+
+    private boolean isInCombatPhase(DefaultLotroGame game) {
+        Phase currentPhase = game.getGameState().getCurrentPhase();
+        return currentPhase.equals(Phase.MANEUVER)
+                || currentPhase.equals(Phase.ARCHERY)
+                || currentPhase.equals(Phase.ASSIGNMENT)
+                || currentPhase.equals(Phase.SKIRMISH)
+                || currentPhase.equals(Phase.REGROUP);
     }
 }
