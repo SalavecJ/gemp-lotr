@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.forge.plan;
 
 import com.gempukku.lotro.bots.forge.utils.BoardStateUtil;
+import com.gempukku.lotro.bots.forge.cards.ability2.util.BurdensValueUtil;
 import com.gempukku.lotro.bots.forge.cards.ability2.util.WoundsValueUtil;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Side;
@@ -121,6 +122,33 @@ public class CombatOutcome {
         }
 
         return totalValue;
+    }
+
+    // ========== Burden Analysis ==========
+
+    /**
+     * Evaluates the burden change from initial to final board state.
+     * Uses BurdensValueUtil for sophisticated evaluation of burden value.
+     * @return Higher score means better outcome for Shadow in terms of burdens
+     */
+    public double getBurdenValue() {
+        String shadowPlayer = initialBoardState.getGameState().getCurrentShadowPlayer();
+
+        int initialBurdens = initialBoardState.getGameState().getBurdens();
+        int finalBurdens = finalBoardState.getGameState().getBurdens();
+        int burdenChange = finalBurdens - initialBurdens;
+
+        if (burdenChange == 0) {
+            return 0.0;
+        }
+
+        // Use the util to evaluate the burden change
+        // We evaluate from the initial state perspective to properly weight the change
+        return BurdensValueUtil.evaluateBurdenChangeValue(
+                shadowPlayer,
+                initialBoardState,
+                burdenChange
+        );
     }
 
     /**
@@ -330,6 +358,7 @@ public class CombatOutcome {
 
         // Calculate weighted score
         score += getDamageValue() * damageWeight;
+        score += getBurdenValue();
         score += getStoppingValue() * stoppingWeight;
         score += getSetupValue() * setupWeight;
 
@@ -488,6 +517,13 @@ public class CombatOutcome {
         } else {
             sb.append(String.join(", ", persistentShadowCards));
         }
+        sb.append("\n");
+
+        // Burden analysis
+        int initialBurdens = initialBoardState.getGameState().getBurdens();
+        int finalBurdens = finalBoardState.getGameState().getBurdens();
+
+        sb.append("Burdens: ").append(initialBurdens).append(" → ").append(finalBurdens);
 
         return sb.toString();
     }

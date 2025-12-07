@@ -66,7 +66,9 @@ public class ActionFinderUtil {
 
         if (currentCopy.getWinnerPlayerId() != null
                 || (shadowDecision != null && shadowDecision.getText().contains("Reconcile"))
+                || (shadowDecision != null && shadowDecision.getText().contains("Choose cards to discard down to 8"))
                 || (fpDecision != null && fpDecision.getText().contains("Reconcile"))
+                || (fpDecision != null && fpDecision.getText().contains("Choose cards to discard down to 8"))
                 || (fpDecision != null && fpDecision.getText().equals("Do you want to make another move?"))) {
             // Terminal state - create end state and return immediately
             return new AfterCombatEndState(currentCopy, fpActions, shadowActions);

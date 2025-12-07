@@ -17,6 +17,7 @@ public class DecisionToActions {
     private static final String USE_ACTION_PREFIX = "Use ";
     private static final String TRANSFER_ACTION_PREFIX = "Transfer ";
     private static final String OPTIONAL_TRIGGER_PREFIX = "Optional trigger ";
+    private static final String OPTIONAL_IS_ABOUT_TO_RESPONSES = "Optional \\\"is about to\\\" responses";
     private static final String ARCHERY_FIRE_FP_PREFIX = "Choose character to assign archery wound to - remaining wounds: ";
     private static final String ARCHERY_FIRE_SHADOW_PREFIX = "Choose minion to assign archery wound to - remaining wounds: ";
     private static final String HEAL_BY_DISCARDING = "Heal by discarding";
@@ -42,6 +43,27 @@ public class DecisionToActions {
                         tbr.add(new AcceptTriggerAction2(decision.getText(), botCard, actionId));
                     }
                     tbr.add(new DenyTriggerAction2(decision.getText()));
+                } else if (decision.getText().contains(OPTIONAL_IS_ABOUT_TO_RESPONSES)) {
+                    for (int i = 0; i < actionIds.size(); i++) {
+                        String actionId = actionIds.get(i);
+                        String actionText = actionTexts.get(i);
+                        int physicalId = Integer.parseInt(physicalIds.get(i));
+
+                        BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
+                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+                            tbr.add(new PlayCardFromHandAction2(decision.getText(), botCard, actionId));
+                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+                            if (botCard.getSelf().getBlueprint().getFullName().equals("The One Ring, The Ruling Ring")
+                                    && game.getModifiersQuerying().getVitality(game, game.getGameState().getRingBearer(game.getGameState().getCurrentPlayerId())) > 1) {
+                                // Do not offer to use The Ruling Ring if RB is not exhausted
+                                continue;
+                            }
+                            tbr.add(new UseCardAction2(decision.getText(), botCard, actionId));
+                        } else {
+                            throw new IllegalStateException("Unknown action text: " + actionText);
+                        }
+                    }
+                    tbr.add(new PassAction2(decision.getText()));
                 } else {
                     //Assume nothing can be used and play maneuver to regroup
                     if (decision.getText().equals("Play Maneuver action or Pass") ||

@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.forge.cards.ability2.effect;
 
+import com.gempukku.lotro.bots.forge.cards.ability2.util.BurdensValueUtil;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public class EffectRemoveBurden extends Effect{
@@ -11,12 +12,9 @@ public class EffectRemoveBurden extends Effect{
 
     @Override
     public double getValueIfResolved(String player, DefaultLotroGame game) {
-        int burdensPlaced = game.getGameState().getBurdens();
-        int toBeRemoved = Math.min(amount, burdensPlaced);
-        double valueOfOneRemovedBurden = 0.9 + ((double) burdensPlaced / 10); // more burdens placed, better to remove
-        double totalValue = toBeRemoved * valueOfOneRemovedBurden;
-        // removing my burdens good, removing opponent's burdens bad
-        return player.equals(game.getGameState().getCurrentPlayerId()) ? totalValue : -totalValue;
+        // Use BurdensValueUtil for consistent burden evaluation
+        // Negative amount because we're removing burdens
+        return BurdensValueUtil.evaluateBurdenChangeValue(player, game, -amount);
     }
 
     @Override
