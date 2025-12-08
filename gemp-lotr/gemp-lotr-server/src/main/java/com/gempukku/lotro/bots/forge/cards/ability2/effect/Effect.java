@@ -96,6 +96,14 @@ public abstract class Effect {
         return heal(Target.cardType(cardType), amount);
     }
 
+    public static EffectModifyStrength modifyStrength(Predicate<PhysicalCard> target, int amount) {
+        return new EffectModifyStrength(target, amount);
+    }
+
+    public static EffectModifyStrength modifyStrength(Race race, int amount) {
+        return modifyStrength(Target.race(race), amount);
+    }
+
     public static EffectPlayWithBonusDraw playWithBonusDraw(Predicate<PhysicalCard> target){
         return new EffectPlayWithBonusDraw(target);
     }

@@ -121,7 +121,7 @@ public class BotCardFactory {
         // 1_51 Legolas, Prince of Mirkwood - <b>Archer</b>.<br>While skirmishing a Nazgûl, Legolas is strength +3.
         else if (card.getBlueprintId().equals("1_51")) {
             return new BotCompanionCard(card) {
-
+                // Nothing to add, abilities are not used, they just 'work'
             };
         }
         // 1_52
@@ -272,7 +272,16 @@ public class BotCardFactory {
         // 1_97 Boromir, Son of Denethor - <b>Skirmish:</b> Exert Boromir to make a Hobbit strength +3.
         else if (card.getBlueprintId().equals("1_97")) {
             return new BotCompanionCard(card) {
-
+                @Override
+                public List<ActivatedAbility> getActivatedAbilities() {
+                    return List.of(
+                            new ActivatedAbilityBuilder()
+                                    .phase(Phase.SKIRMISH)
+                                    .cost(Cost.exertSelf(this.self))
+                                    .effect(Effect.modifyStrength(Race.HOBBIT, 3))
+                                    .build()
+                    );
+                }
             };
         }
         // 1_98
@@ -961,13 +970,13 @@ public class BotCardFactory {
             return new BotSiteCard(card) {
 
             };
-            }
-            // 1_350 Dimrill Dale - <b>Sanctuary</b>. The twilight cost of the first [moria] Orc played each Shadow phase is -2.
-            else if (card.getBlueprintId().equals("1_350")) {
-                return new BotSiteCard(card) {
+        }
+        // 1_350 Dimrill Dale - <b>Sanctuary</b>. The twilight cost of the first [moria] Orc played each Shadow phase is -2.
+        else if (card.getBlueprintId().equals("1_350")) {
+            return new BotSiteCard(card) {
 
-                };
-            }
+            };
+        }
         // 1_351 Galadriel's Glade - <b>Sanctuary</b>. <b>Fellowship:</b> Exert an Elf to look at an opponent's hand.
         else if (card.getBlueprintId().equals("1_351")) {
             return new BotSiteCard(card) {
