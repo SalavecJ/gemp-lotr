@@ -127,4 +127,8 @@ public abstract class Effect {
     public static EffectPreventFellowshipFromMoving preventFellowshipFromMoving() {
         return new EffectPreventFellowshipFromMoving();
     }
+
+    public static EffectWearRing wearRing() {
+        return new EffectWearRing();
+    }
 }

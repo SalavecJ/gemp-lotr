@@ -25,15 +25,20 @@ public class BotCardFactory {
 
     private static BotCard createSetOneCard(PhysicalCard card) {
         // 1_1 Isildur's Bane - <b>Response:</b> If bearer is about to take a wound, he wears The One Ring until the regroup phase.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound, add 2 burdens instead.
-        if (card.getBlueprintId().equals("1_1")) {
-            return new BotOneRingCard(card) {
-
-            };
-        }
         // 1_2 The Ruling Ring - <b>Response:</b> If bearer is about to take a wound in a skirmish, he wears The One Ring until the regroup phase.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound during a skirmish, add a burden instead.
-        else if (card.getBlueprintId().equals("1_2")) {
+        if (card.getBlueprintId().equals("1_2")) {
             return new BotOneRingCard(card) {
-
+                @Override
+                public TriggeredAbility getTriggeredAbility() {
+                    return new TriggeredAbilityBuilder()
+                            .optional(true)
+                            .effect(Effect.wearRing())
+                            // Use when RB is exhausted and does not have 1 resistance left
+                            .goodToUseFunction((player, game) ->
+                                    game.getModifiersQuerying().getVitality(game, game.getGameState().getRingBearer(player)) == 1
+                                            && game.getModifiersQuerying().getResistance(game, game.getGameState().getRingBearer(player)) > 1)
+                            .build();
+                }
             };
         }
         // 1_3
@@ -1064,12 +1069,13 @@ public class BotCardFactory {
                                             Target.signet(Signet.ARAGORN)).and(
                                             Target.not(Target.self(this.getSelf())))
                             ))
+                            // Use when something can be healed
                             .goodToUseFunction((player, game) -> game.getGameState().getInPlay().stream().anyMatch((Predicate<PhysicalCard>) physicalCard ->
                                     physicalCard.getOwner().equals(player)
                                     && CardType.COMPANION == physicalCard.getBlueprint().getCardType()
                                     && Signet.ARAGORN == physicalCard.getBlueprint().getSignet()
                                     && game.getGameState().getWounds(physicalCard) > 0
-                                    && !physicalCard.getBlueprint().getFullName().equals("Aragorn, King in Exile"))) // Use when something can be healed
+                                    && !physicalCard.getBlueprint().getFullName().equals("Aragorn, King in Exile")))
                             .build();
                 }
             };

@@ -100,6 +100,14 @@ public class ActionFinderUtil {
         AfterCombatEndState bestResult = null;
 
         for (ActionToTake2 action : possibleActions) {
+            // Do not explore bad trigger actions
+            if (action instanceof AcceptTriggerAction2 acceptAction) {
+                if (!acceptAction.getCard().getTriggeredAbility().goodToUse(isFpTurn ? fpPlayerId : shadowPlayerId, currentCopy)
+                        && acceptAction.getCard().getTriggeredAbility().isOptionalTrigger()) {
+                    continue;
+                }
+            }
+
             // Add action to appropriate history
             if (isFpTurn) {
                 fpActions.add(action);
