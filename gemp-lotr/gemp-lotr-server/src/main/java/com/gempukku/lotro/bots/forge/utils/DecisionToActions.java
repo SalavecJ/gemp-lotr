@@ -1,8 +1,8 @@
 package com.gempukku.lotro.bots.forge.utils;
 
 import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.plan.action2.*;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
+import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.decisions.*;
 import com.gempukku.lotro.logic.modifiers.ModifierFlag;
@@ -24,9 +24,10 @@ public class DecisionToActions {
     private static final String CHOOSE_NEXT_SKIRMISH = "Choose next skirmish to resolve";
     private static final String REQUIRED_RESPONSES = "Required responses";
 
-    public static List<ActionToTake2> toActions(AwaitingDecision decision, DefaultLotroGame game) {
+
+    public static List<ActionToTake> toActions(AwaitingDecision decision, DefaultLotroGame game) {
 //        System.out.println("Converting decision to actions: " + decision.toJson());
-        List<ActionToTake2> tbr = new ArrayList<>();
+        List<ActionToTake> tbr = new ArrayList<>();
 
         switch (decision) {
             case CardActionSelectionDecision cardActionSelectionDecision -> {
@@ -40,9 +41,9 @@ public class DecisionToActions {
                         int physicalId = Integer.parseInt(physicalIds.get(i));
 
                         BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
-                        tbr.add(new AcceptTriggerAction2(decision.getText(), botCard, actionId));
+                        tbr.add(new AcceptTriggerAction(decision.getText(), botCard, actionId));
                     }
-                    tbr.add(new DenyTriggerAction2(decision.getText()));
+                    tbr.add(new DenyTriggerAction(decision.getText()));
                 } else if (decision.getText().contains(OPTIONAL_IS_ABOUT_TO_RESPONSES)) {
                     // Optional "is about to" responses
                     for (int i = 0; i < actionIds.size(); i++) {
@@ -51,15 +52,15 @@ public class DecisionToActions {
                         int physicalId = Integer.parseInt(physicalIds.get(i));
 
                         BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
-                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
-                            tbr.add(new PlayCardFromHandAction2(decision.getText(), botCard, actionId));
-                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
-                            tbr.add(new AcceptTriggerAction2(decision.getText(), botCard, actionId));
+                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getFullName())) {
+                            tbr.add(new PlayCardFromHandAction(decision.getText(), botCard, actionId));
+                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getFullName())) {
+                            tbr.add(new AcceptTriggerAction(decision.getText(), botCard, actionId));
                         } else {
                             throw new IllegalStateException("Unknown action text: " + actionText);
                         }
                     }
-                    tbr.add(new PassAction2(decision.getText()));
+                    tbr.add(new PassAction(decision.getText()));
                 } else {
                     // Assume nothing can be used and play maneuver to regroup
                     if (decision.getText().equals("Play Maneuver action or Pass") ||
@@ -67,7 +68,7 @@ public class DecisionToActions {
                             decision.getText().equals("Play Assignment action or Pass") ||
                             decision.getText().equals("Choose action to play or Pass") ||
                             decision.getText().equals("Play Regroup action or Pass")) {
-                        return List.of(new PassAction2(decision.getText()));
+                        return List.of(new PassAction(decision.getText()));
                     }
 
                     for (int i = 0; i < actionIds.size(); i++) {
@@ -76,27 +77,27 @@ public class DecisionToActions {
                         int physicalId = Integer.parseInt(physicalIds.get(i));
 
                         BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
-                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
-                            tbr.add(new PlayCardFromHandAction2(decision.getText(), botCard, actionId));
-                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
-                            if (botCard.getSelf().getBlueprint().getFullName().equals("The Bridge of Khazad-dûm")) {
+                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getFullName())) {
+                            tbr.add(new PlayCardFromHandAction(decision.getText(), botCard, actionId));
+                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getFullName())) {
+                            if (botCard.getFullName().equals("The Bridge of Khazad-dûm")) {
                                 // Do not offer to use The Bridge of Khazad-dûm
                                 continue;
                             }
-                            if (botCard.getSelf().getBlueprint().getFullName().equals("Shores of Nen Hithoel") && game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE)) {
+                            if (botCard.getFullName().equals("Shores of Nen Hithoel") && game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE)) {
                                 // Do not offer to use Shores of Nen Hithoel if FP cannot move to prevent loop
                                 continue;
                             }
-                            tbr.add(new UseCardAction2(decision.getText(), botCard, actionId));
+                            tbr.add(new UseCardAction(decision.getText(), botCard, actionId));
                         } else if (actionText.equals(HEAL_BY_DISCARDING)) {
-                            tbr.add(new DiscardCompanionToHealAction2(decision.getText(), botCard, actionId));
+                            tbr.add(new DiscardCompanionToHealAction(decision.getText(), botCard, actionId));
                         } else if (actionText.startsWith(TRANSFER_ACTION_PREFIX)) {
                             // Do not offer transfer actions
                         } else {
                             throw new IllegalStateException("Unknown action text: " + actionText);
                         }
                     }
-                    tbr.add(new PassAction2(decision.getText()));
+                    tbr.add(new PassAction(decision.getText()));
                 }
             }
             case CardsSelectionDecision cardsSelectionDecision -> {
@@ -109,12 +110,12 @@ public class DecisionToActions {
                     if (decision.getText().equals(CHOOSE_NEXT_SKIRMISH)) {
                         for (String physicalId : physicalIds) {
                             PhysicalCard fpCharacter = game.getGameState().findCardById(Integer.parseInt(physicalId));
-                            tbr.add(new ChooseSkirmishAction2(decision.getText(), fpCharacter));
+                            tbr.add(new ChooseSkirmishAction(decision.getText(), BotCardFactory.create(fpCharacter)));
                         }
                     } else if (decision.getText().startsWith(ARCHERY_FIRE_FP_PREFIX) || decision.getText().startsWith(ARCHERY_FIRE_SHADOW_PREFIX)) {
                         for (String physicalId : physicalIds) {
                             PhysicalCard card = game.getGameState().findCardById(Integer.parseInt(physicalId));
-                            tbr.add(new AssignArcheryWoundAction2(decision.getText(), card));
+                            tbr.add(new AssignArcheryWoundAction(decision.getText(), BotCardFactory.create(card)));
                         }
                     } else {
                         throw new IllegalStateException("Only skirmish selection without source card is supported, but got decision text: " + decision.getText());
@@ -136,7 +137,7 @@ public class DecisionToActions {
 
                     // Create an action for each combination
                     for (List<BotCard> combination : combinations) {
-                        tbr.add(new ChooseTargetsAction2(decision.getText(), sourceCard, combination));
+                        tbr.add(new ChooseTargetsAction(decision.getText(), sourceCard, combination));
                     }
                 }
             }
@@ -150,7 +151,7 @@ public class DecisionToActions {
 
                 BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
                 if (min == 0 && max == 0) {
-                    return List.of(new PassAction2(decision.getText()));
+                    return List.of(new PassAction(decision.getText()));
                 }
                 if (min != 1 || max != 1) {
                     throw new IllegalStateException("Only single card selection is supported, but got min: " + min + ", max: " + max);
@@ -158,41 +159,46 @@ public class DecisionToActions {
                 for (int i = 0; i < physicalIds.size(); i++) {
                     if (Boolean.parseBoolean(selectable.get(i))) {
                         BotCard targetCard = BotCardFactory.create(game.getGameState().findCardById(Integer.parseInt(physicalIds.get(i))));
-                        tbr.add(new ChooseArbitraryTargetsAction2(decision.getText(), sourceCard, List.of(targetCard), List.of(tempIds.get(i))));
+                        tbr.add(new ChooseArbitraryTargetsAction(decision.getText(), sourceCard, List.of(targetCard), List.of(tempIds.get(i))));
                     }
                 }
-
             }
-            case PlayerAssignMinionsDecision playerAssignMinionsDecision -> {
-                List<String> minionIds = Arrays.asList(decision.getDecisionParameters().get("minions"));
-                List<PhysicalCard> minions = minionIds.stream().map(s -> {
-                    int physicalId = Integer.parseInt(s);
-                    return game.getGameState().findCardById(physicalId);
-                }).toList();
-
-                List<String> freeCharacterIds = Arrays.asList(decision.getDecisionParameters().get("freeCharacters"));
-                List<PhysicalCard> freeCharacters = freeCharacterIds.stream().map(s -> {
-                    int physicalId = Integer.parseInt(s);
-                    return game.getGameState().findCardById(physicalId);
-                }).toList();
-
-                boolean fpAssignment = decision.getDecisionParameters().get("player")[0].equals("fp");
-
-                return List.of(new AssignMinionsAction2(decision.getText(), minions, freeCharacters, fpAssignment, game));
-            }
-            case ActionSelectionDecision actionSelectionDecision -> {
-                if (decision.getText().equals(REQUIRED_RESPONSES)) {
-                    List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
-                    List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
-//                for (int i = 0; i < actionIds.size(); i++) {
-                    for (int i = 0; i < 1; i++) { // Whatever order, minimalize branching
-                        String actionId = actionIds.get(i);
-                        String actionText = actionTexts.get(i);
-
-                        tbr.add(new AcceptRequiredResponseAction2(decision.getText(), Integer.parseInt(actionId), actionText));
-                    }
-                } else {
-                    throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
+//            case PlayerAssignMinionsDecision playerAssignMinionsDecision -> {
+//                List<String> minionIds = Arrays.asList(decision.getDecisionParameters().get("minions"));
+//                List<PhysicalCard> minions = minionIds.stream().map(s -> {
+//                    int physicalId = Integer.parseInt(s);
+//                    return game.getGameState().findCardById(physicalId);
+//                }).toList();
+//
+//                List<String> freeCharacterIds = Arrays.asList(decision.getDecisionParameters().get("freeCharacters"));
+//                List<PhysicalCard> freeCharacters = freeCharacterIds.stream().map(s -> {
+//                    int physicalId = Integer.parseInt(s);
+//                    return game.getGameState().findCardById(physicalId);
+//                }).toList();
+//
+//                boolean fpAssignment = decision.getDecisionParameters().get("player")[0].equals("fp");
+//
+//                return List.of(new AssignMinionsAction2(decision.getText(), minions, freeCharacters, fpAssignment, game));
+//            }
+//            case ActionSelectionDecision actionSelectionDecision -> {
+//                if (decision.getText().equals(REQUIRED_RESPONSES)) {
+//                    List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
+//                    List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
+////                for (int i = 0; i < actionIds.size(); i++) {
+//                    for (int i = 0; i < 1; i++) { // Whatever order, minimalize branching
+//                        String actionId = actionIds.get(i);
+//                        String actionText = actionTexts.get(i);
+//
+//                        tbr.add(new AcceptRequiredResponseAction2(decision.getText(), Integer.parseInt(actionId), actionText));
+//                    }
+//                } else {
+//                    throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
+//                }
+//            }
+            case MultipleChoiceAwaitingDecision multipleChoiceAwaitingDecision -> {
+                String[] results = decision.getDecisionParameters().get("results");
+                for (String result : results) {
+                    tbr.add(new ChooseOptionAction(decision, result));
                 }
             }
             default -> {
@@ -203,6 +209,192 @@ public class DecisionToActions {
 
         return tbr;
     }
+
+//    public static List<ActionToTake2> toActions(AwaitingDecision decision, DefaultLotroGame game) {
+////        System.out.println("Converting decision to actions: " + decision.toJson());
+//        List<ActionToTake2> tbr = new ArrayList<>();
+//
+//        switch (decision) {
+//            case CardActionSelectionDecision cardActionSelectionDecision -> {
+//                List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
+//                List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
+//                List<String> physicalIds = Arrays.asList(decision.getDecisionParameters().get("cardId"));
+//                if (!actionTexts.isEmpty() && actionTexts.stream().allMatch(s -> s.startsWith(OPTIONAL_TRIGGER_PREFIX))) {
+//                    // Optional triggers
+//                    for (int i = 0; i < actionIds.size(); i++) {
+//                        String actionId = actionIds.get(i);
+//                        int physicalId = Integer.parseInt(physicalIds.get(i));
+//
+//                        BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
+//                        tbr.add(new AcceptTriggerAction2(decision.getText(), botCard, actionId));
+//                    }
+//                    tbr.add(new DenyTriggerAction2(decision.getText()));
+//                } else if (decision.getText().contains(OPTIONAL_IS_ABOUT_TO_RESPONSES)) {
+//                    // Optional "is about to" responses
+//                    for (int i = 0; i < actionIds.size(); i++) {
+//                        String actionId = actionIds.get(i);
+//                        String actionText = actionTexts.get(i);
+//                        int physicalId = Integer.parseInt(physicalIds.get(i));
+//
+//                        BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
+//                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+//                            tbr.add(new PlayCardFromHandAction2(decision.getText(), botCard, actionId));
+//                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+//                            tbr.add(new AcceptTriggerAction2(decision.getText(), botCard, actionId));
+//                        } else {
+//                            throw new IllegalStateException("Unknown action text: " + actionText);
+//                        }
+//                    }
+//                    tbr.add(new PassAction2(decision.getText()));
+//                } else {
+//                    // Assume nothing can be used and play maneuver to regroup
+//                    if (decision.getText().equals("Play Maneuver action or Pass") ||
+//                            decision.getText().equals("Play Archery action or Pass") ||
+//                            decision.getText().equals("Play Assignment action or Pass") ||
+//                            decision.getText().equals("Choose action to play or Pass") ||
+//                            decision.getText().equals("Play Regroup action or Pass")) {
+//                        return List.of(new PassAction2(decision.getText()));
+//                    }
+//
+//                    for (int i = 0; i < actionIds.size(); i++) {
+//                        String actionId = actionIds.get(i);
+//                        String actionText = actionTexts.get(i);
+//                        int physicalId = Integer.parseInt(physicalIds.get(i));
+//
+//                        BotCard botCard = BotCardFactory.create(game.getGameState().findCardById(physicalId));
+//                        if (actionText.equals(PLAY_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+//                            tbr.add(new PlayCardFromHandAction2(decision.getText(), botCard, actionId));
+//                        } else if (actionText.equals(USE_ACTION_PREFIX + botCard.getSelf().getBlueprint().getFullName())) {
+//                            if (botCard.getSelf().getBlueprint().getFullName().equals("The Bridge of Khazad-dûm")) {
+//                                // Do not offer to use The Bridge of Khazad-dûm
+//                                continue;
+//                            }
+//                            if (botCard.getSelf().getBlueprint().getFullName().equals("Shores of Nen Hithoel") && game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE)) {
+//                                // Do not offer to use Shores of Nen Hithoel if FP cannot move to prevent loop
+//                                continue;
+//                            }
+//                            tbr.add(new UseCardAction2(decision.getText(), botCard, actionId));
+//                        } else if (actionText.equals(HEAL_BY_DISCARDING)) {
+//                            tbr.add(new DiscardCompanionToHealAction2(decision.getText(), botCard, actionId));
+//                        } else if (actionText.startsWith(TRANSFER_ACTION_PREFIX)) {
+//                            // Do not offer transfer actions
+//                        } else {
+//                            throw new IllegalStateException("Unknown action text: " + actionText);
+//                        }
+//                    }
+//                    tbr.add(new PassAction2(decision.getText()));
+//                }
+//            }
+//            case CardsSelectionDecision cardsSelectionDecision -> {
+//                int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
+//                int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
+//                List<String> physicalIds = Arrays.asList(decision.getDecisionParameters().get("cardId"));
+//                int sourceId = Integer.parseInt(decision.getDecisionParameters().get("source")[0]);
+//                if (sourceId == -1) {
+//                    // No source card
+//                    if (decision.getText().equals(CHOOSE_NEXT_SKIRMISH)) {
+//                        for (String physicalId : physicalIds) {
+//                            PhysicalCard fpCharacter = game.getGameState().findCardById(Integer.parseInt(physicalId));
+//                            tbr.add(new ChooseSkirmishAction2(decision.getText(), fpCharacter));
+//                        }
+//                    } else if (decision.getText().startsWith(ARCHERY_FIRE_FP_PREFIX) || decision.getText().startsWith(ARCHERY_FIRE_SHADOW_PREFIX)) {
+//                        for (String physicalId : physicalIds) {
+//                            PhysicalCard card = game.getGameState().findCardById(Integer.parseInt(physicalId));
+//                            tbr.add(new AssignArcheryWoundAction2(decision.getText(), card));
+//                        }
+//                    } else {
+//                        throw new IllegalStateException("Only skirmish selection without source card is supported, but got decision text: " + decision.getText());
+//                    }
+//                } else {
+//                    BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
+//                    if (min != max) {
+//                        throw new IllegalStateException("Only fixed card selection is supported (min must equal max), but got min: " + min + ", max: " + max);
+//                    }
+//
+//                    // Convert physical IDs to BotCards
+//                    List<BotCard> availableTargets = new ArrayList<>();
+//                    for (String physicalId : physicalIds) {
+//                        availableTargets.add(BotCardFactory.create(game.getGameState().findCardById(Integer.parseInt(physicalId))));
+//                    }
+//
+//                    // Generate all combinations of size 'min' (which equals 'max')
+//                    List<List<BotCard>> combinations = generateCombinations(availableTargets, min);
+//
+//                    // Create an action for each combination
+//                    for (List<BotCard> combination : combinations) {
+//                        tbr.add(new ChooseTargetsAction2(decision.getText(), sourceCard, combination));
+//                    }
+//                }
+//            }
+//            case ArbitraryCardsSelectionDecision arbitraryCardsSelectionDecision -> {
+//                int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
+//                int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
+//                List<String> tempIds = Arrays.asList(decision.getDecisionParameters().get("cardId"));
+//                List<String> physicalIds = Arrays.asList(decision.getDecisionParameters().get("physicalId"));
+//                List<String> selectable = Arrays.asList(decision.getDecisionParameters().get("selectable"));
+//                int sourceId = Integer.parseInt(decision.getDecisionParameters().get("source")[0]);
+//
+//                BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
+//                if (min == 0 && max == 0) {
+//                    return List.of(new PassAction2(decision.getText()));
+//                }
+//                if (min != 1 || max != 1) {
+//                    throw new IllegalStateException("Only single card selection is supported, but got min: " + min + ", max: " + max);
+//                }
+//                for (int i = 0; i < physicalIds.size(); i++) {
+//                    if (Boolean.parseBoolean(selectable.get(i))) {
+//                        BotCard targetCard = BotCardFactory.create(game.getGameState().findCardById(Integer.parseInt(physicalIds.get(i))));
+//                        tbr.add(new ChooseArbitraryTargetsAction2(decision.getText(), sourceCard, List.of(targetCard), List.of(tempIds.get(i))));
+//                    }
+//                }
+//
+//            }
+//            case PlayerAssignMinionsDecision playerAssignMinionsDecision -> {
+//                List<String> minionIds = Arrays.asList(decision.getDecisionParameters().get("minions"));
+//                List<PhysicalCard> minions = minionIds.stream().map(s -> {
+//                    int physicalId = Integer.parseInt(s);
+//                    return game.getGameState().findCardById(physicalId);
+//                }).toList();
+//
+//                List<String> freeCharacterIds = Arrays.asList(decision.getDecisionParameters().get("freeCharacters"));
+//                List<PhysicalCard> freeCharacters = freeCharacterIds.stream().map(s -> {
+//                    int physicalId = Integer.parseInt(s);
+//                    return game.getGameState().findCardById(physicalId);
+//                }).toList();
+//
+//                boolean fpAssignment = decision.getDecisionParameters().get("player")[0].equals("fp");
+//
+//                return List.of(new AssignMinionsAction2(decision.getText(), minions, freeCharacters, fpAssignment, game));
+//            }
+//            case ActionSelectionDecision actionSelectionDecision -> {
+//                if (decision.getText().equals(REQUIRED_RESPONSES)) {
+//                    List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
+//                    List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
+////                for (int i = 0; i < actionIds.size(); i++) {
+//                    for (int i = 0; i < 1; i++) { // Whatever order, minimalize branching
+//                        String actionId = actionIds.get(i);
+//                        String actionText = actionTexts.get(i);
+//
+//                        tbr.add(new AcceptRequiredResponseAction2(decision.getText(), Integer.parseInt(actionId), actionText));
+//                    }
+//                } else {
+//                    throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
+//                }
+//            }
+//            case MultipleChoiceAwaitingDecision multipleChoiceAwaitingDecision -> {
+//                String[] results = decision.getDecisionParameters().get("results");
+//                for (String result : results) {
+//                    tbr.add(new ChooseOptionAction2(decision, result));
+//                }
+//            }
+//            default -> {
+//                System.out.println("Unknown decision: " + decision.toJson());
+//                throw new IllegalStateException("Unknown decision type: " + decision.getClass());
+//            }
+//        }
+//
+//        return tbr;
+//    }
 
     /**
      * Generates all combinations of size k from the given list.

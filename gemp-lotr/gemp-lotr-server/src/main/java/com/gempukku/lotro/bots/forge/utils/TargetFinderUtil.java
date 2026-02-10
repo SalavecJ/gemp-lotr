@@ -1,104 +1,63 @@
 package com.gempukku.lotro.bots.forge.utils;
 
-import com.gempukku.lotro.bots.forge.cards.ability2.Ability;
-import com.gempukku.lotro.bots.forge.cards.ability2.ActivatedAbility;
-import com.gempukku.lotro.bots.forge.cards.ability2.EventAbility;
-import com.gempukku.lotro.bots.forge.cards.ability2.TriggeredAbility;
-import com.gempukku.lotro.bots.forge.cards.ability2.cost.Cost;
-import com.gempukku.lotro.bots.forge.cards.ability2.cost.CostWithTarget;
-import com.gempukku.lotro.bots.forge.cards.ability2.effect.Effect;
-import com.gempukku.lotro.bots.forge.cards.ability2.effect.EffectWithTarget;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotCard;
-import com.gempukku.lotro.bots.forge.cards.abstractcard.BotObjectAttachableCard;
-import com.gempukku.lotro.bots.forge.plan.action2.ChooseTargetsAction2;
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
+import com.gempukku.lotro.bots.forge.cards.ability.BotTargetingPolicy;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotItemCard;
+import com.gempukku.lotro.bots.forge.plan.action.ChooseTargetsAction;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TargetFinderUtil {
-    public static ChooseTargetsAction2 getBestTarget(List<ChooseTargetsAction2> possibleActions, DefaultLotroGame game, String playerName) {
-        if (possibleActions.stream().allMatch(ChooseTargetsAction2::isAttachAction)) {
-            ChooseTargetsAction2 firstAction = possibleActions.getFirst();
+import static com.gempukku.lotro.bots.forge.utils.BotLogging.log;
 
-            BotObjectAttachableCard attachment = (BotObjectAttachableCard) firstAction.getSource();
+public class TargetFinderUtil {
+
+    public static ChooseTargetsAction getBestTarget(List<ChooseTargetsAction> possibleActions, DefaultLotroGame game, String playerName) {
+        if (possibleActions.stream().allMatch(ChooseTargetsAction::isAttachAction)) {
+            ChooseTargetsAction firstAction = possibleActions.getFirst();
+
+            BotItemCard attachment = (BotItemCard) firstAction.getSource();
             verifyAllActionsShareSameCard(possibleActions);
 
             List<BotCard> potentialTargets = possibleActions.stream()
-                    .map(ChooseTargetsAction2::getTargets)
+                    .map(ChooseTargetsAction::getTargets)
                     .map(List::getFirst)
                     .toList();
 
             BotCard chosenTarget = attachment.chooseTargetToAttachTo(game, potentialTargets);
 
-            return findActionWithTarget(possibleActions, List.of(chosenTarget.getSelf()));
+            return findActionWithTarget(possibleActions, List.of(chosenTarget.getPhysicalCard()));
         } else {
-            ChooseTargetsAction2 firstAction = possibleActions.getFirst();
-
-            BotCard source = firstAction.getSource();
-
+            ChooseTargetsAction firstAction = possibleActions.getFirst();
             verifyAllActionsShareSameCard(possibleActions);
+            AbilityStep step = firstAction.getSource().getAbilityStepForDecision(firstAction.getDecisionText());
 
-            List<List<PhysicalCard>> potentialTargets = possibleActions.stream()
-                    .map(ChooseTargetsAction2::getTargets)
-                    .map(botCards -> {
-                        List<PhysicalCard> tbr = new ArrayList<>();
-                        for (BotCard botCard : botCards) {
-                            tbr.add(botCard.getSelf());
-                        }
-                        return tbr;
-                    })
+            if (step == null) {
+                throw new IllegalStateException("Could not find ability step for decision text " + firstAction.getDecisionText() + " and source " + firstAction.getSource());
+            }
+
+            log(2, "Choosing targets for step: " + step);
+            BotTargetingPolicy targetingPolicy = step.getBotTargetingPolicy();
+            log(2, "Using targeting policy: " + targetingPolicy);
+
+            List<List<BotCard>> potentialTargets = possibleActions.stream()
+                    .map(ChooseTargetsAction::getTargets)
                     .toList();
 
-            List<ActivatedAbility> abilities = source.getActivatedAbilities();
-            TriggeredAbility triggeredAbility = source.getTriggeredAbility();
-            EventAbility eventAbility = source.getEventAbility();
+            List<BotCard> chosenTargets = targetingPolicy.getTargets(potentialTargets, game, playerName);
+            log(2, "Chosen targets: " + chosenTargets);
 
-            int possibleAbilitySources = abilities.size() + (triggeredAbility != null ? 1 : 0) + (eventAbility != null ? 1 : 0);
-            if (possibleAbilitySources != 1) {
-                throw new IllegalStateException("Source " + source.getSelf().getBlueprint().getFullName() + " has multiple possible abilities to choose from");
-            }
-
-            Ability sourceAbility =  (abilities.isEmpty() ? (triggeredAbility == null ? eventAbility : triggeredAbility) : abilities.getFirst());
-            Cost cost = sourceAbility.getCost();
-            Effect effect = sourceAbility.getEffect();
-
-            boolean costTargeting;
-            if (cost instanceof CostWithTarget costWithTarget) {
-                costTargeting = costWithTarget.decisionTextMatches(firstAction.getDecisionText());
-            } else {
-                costTargeting = false;
-            }
-
-            boolean effectTargeting;
-            if (effect instanceof EffectWithTarget effectWithTarget) {
-                effectTargeting = effectWithTarget.decisionTextMatches(firstAction.getDecisionText());
-            } else {
-                effectTargeting = false;
-            }
-
-            if (costTargeting && effectTargeting) {
-                throw new IllegalStateException("Unclear what targets are for - cost or effect for source " + source.getSelf().getBlueprint().getFullName() + " and decision text " + firstAction.getDecisionText());
-            } else if (!costTargeting && !effectTargeting) {
-                throw new IllegalStateException("Neither cost nor effect seem to be targeting for source " + source.getSelf().getBlueprint().getFullName() + " and decision text " + firstAction.getDecisionText());
-            } else if (costTargeting) {
-                CostWithTarget costWithTarget = (CostWithTarget) sourceAbility.getCost();
-                List<PhysicalCard> chosenTargets = costWithTarget.chooseTargets(playerName, game, potentialTargets);
-                return findActionWithTarget(possibleActions, chosenTargets);
-            } else {
-                EffectWithTarget effectWithTarget = (EffectWithTarget) sourceAbility.getEffect();
-                List<PhysicalCard> chosenTargets = effectWithTarget.chooseTargets(playerName, game, potentialTargets);
-                return findActionWithTarget(possibleActions, chosenTargets);
-            }
+            return findActionWithTarget(possibleActions, chosenTargets.stream().map(BotCard::getPhysicalCard).toList());
         }
     }
 
-    private static void verifyAllActionsShareSameCard(List<ChooseTargetsAction2> possibleActions) {
+    private static void verifyAllActionsShareSameCard(List<ChooseTargetsAction> possibleActions) {
         BotCard firstCard = possibleActions.getFirst().getSource();
-        for (ChooseTargetsAction2 action : possibleActions) {
+        for (ChooseTargetsAction action : possibleActions) {
             BotCard card = action.getSource();
             if (!card.equals(firstCard)) {
                 throw new IllegalStateException("Not all actions share the same source");
@@ -106,13 +65,13 @@ public class TargetFinderUtil {
         }
     }
 
-    private static ChooseTargetsAction2 findActionWithTarget(List<ChooseTargetsAction2> possibleActions, List<PhysicalCard> chosenTargets) {
+    private static ChooseTargetsAction findActionWithTarget(List<ChooseTargetsAction> possibleActions, List<PhysicalCard> chosenTargets) {
         if (chosenTargets == null) {
             throw new IllegalStateException("Could not find target for " + possibleActions.getFirst().getSource());
         }
 
         return possibleActions.stream()
-                .filter(action -> listsHaveSameElements(action.getTargets().stream().map(BotCard::getSelf).toList(), chosenTargets))
+                .filter(action -> listsHaveSameElements(action.getTargets().stream().map(BotCard::getPhysicalCard).toList(), chosenTargets))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Could not find action for chosen target"));
     }

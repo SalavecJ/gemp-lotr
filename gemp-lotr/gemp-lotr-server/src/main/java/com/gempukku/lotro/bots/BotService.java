@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots;
 
 import com.gempukku.lotro.bots.forge.ForgeBot;
+import com.gempukku.lotro.bots.forge.utils.BotLogging;
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.random.RandomLearningBot;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
@@ -131,16 +132,17 @@ public class BotService {
         }
 
         if (START_NEW_BOT_SIMULATION_AT_STARTUP) {
+            BotLogging.setLogLevel(1);
             System.out.println("Random vs Forge");
             startFotrStartersSimulation(
                     new RandomDecisionBot("~randomBot"),
-                    new ForgeBot("~forgeBot", true),
+                    new ForgeBot("~forgeBot"),
                     100);
 
             System.out.println("Old vs Forge");
             startFotrStartersSimulation(
                     new FotrStarterBot(new FotrStartersRLGameStateFeatures(), "~oldBot", modelRegistry, null),
-                    new ForgeBot("~forgeBot", true),
+                    new ForgeBot("~forgeBot"),
                     100);
         }
     }
