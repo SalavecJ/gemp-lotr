@@ -1,4 +1,4 @@
-package com.gempukku.lotro.bots.forge.cards.ability;
+package com.gempukku.lotro.bots.forge.cards.ability.targeting;
 
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;

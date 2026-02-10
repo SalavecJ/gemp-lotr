@@ -1,11 +1,21 @@
 package com.gempukku.lotro.bots.forge.cards;
 
-import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
-import com.gempukku.lotro.bots.forge.cards.abstractcards.BotItemCard;
+import com.gempukku.lotro.bots.forge.cards.ability.*;
+import com.gempukku.lotro.bots.forge.cards.ability.cost.AddTwilight;
+import com.gempukku.lotro.bots.forge.cards.ability.cost.DiscardCardsFromHand;
+import com.gempukku.lotro.bots.forge.cards.ability.cost.DiscardSelf;
+import com.gempukku.lotro.bots.forge.cards.ability.cost.ExertSelf;
+import com.gempukku.lotro.bots.forge.cards.ability.effect.Heal;
+import com.gempukku.lotro.bots.forge.cards.ability.effect.PutCardsFromDiscardIntoHand;
+import com.gempukku.lotro.bots.forge.cards.ability.effect.PutCardsFromHandOnBottomOfDeck;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.*;
 import com.gempukku.lotro.common.Culture;
+import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.common.Race;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
+
+import java.util.List;
 
 public class BotCardFactory {
     public static BotCard create(PhysicalCard card) {
@@ -35,8 +45,25 @@ public class BotCardFactory {
         // 1_11
         // 1_12 Gimli, Dwarf of Erebor - <b>Damage +1</b>.<br><b>Fellowship:</b> If the twilight pool has fewer than 2 twilight tokens, add (2) to place a card from hand beneath your draw deck.
         else if (card.getBlueprintId().equals("1_12")) {
-            return new BotCard(card) {
+            return new BotCompanionCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Phase getPhase() {
+                                    return Phase.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new AddTwilight(2),
+                                            new PutCardsFromHandOnBottomOfDeck()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_13
@@ -113,8 +140,25 @@ public class BotCardFactory {
         // 1_69
         // 1_70 Barliman Butterbur, Prancing Pony Proprietor - <b>Fellowship:</b> Exert Barliman Butterbur to take a [gandalf] event into hand from your discard pile.
         else if (card.getBlueprintId().equals("1_70")) {
-            return new BotCard(card) {
+            return new BotAllyCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Phase getPhase() {
+                                    return Phase.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new ExertSelf(),
+                                            new PutCardsFromDiscardIntoHand()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_71
@@ -197,6 +241,25 @@ public class BotCardFactory {
                 @Override
                 protected AttachmentStrategy getAttachmentStrategy() {
                     return AttachmentStrategy.COMPANION_NOT_DYING;
+                }
+
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Phase getPhase() {
+                                    return Phase.FELLOWSHIP;
+                                }
+
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new DiscardSelf(),
+                                            new Heal()
+                                    );
+                                }
+                            });
                 }
             };
         }
@@ -777,8 +840,25 @@ public class BotCardFactory {
         // 1_357
         // 1_358 Pillars of the Kings - <b>River</b>. <b>Fellowship:</b> Discard a [gondor] card from hand to heal a [gondor] companion.
         else if (card.getBlueprintId().equals("1_358")) {
-            return new BotCard(card) {
+            return new BotSiteCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Phase getPhase() {
+                                    return Phase.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new DiscardCardsFromHand(),
+                                            new Heal()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_359 Shores of Nen Hithoel - <b>River</b>. <b>Shadow:</b> Spot 5 Orc minions to prevent the fellowship from moving again this turn.

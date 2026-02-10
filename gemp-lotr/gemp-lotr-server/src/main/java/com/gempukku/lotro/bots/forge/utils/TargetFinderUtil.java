@@ -1,7 +1,7 @@
 package com.gempukku.lotro.bots.forge.utils;
 
 import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
-import com.gempukku.lotro.bots.forge.cards.ability.BotTargetingPolicy;
+import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotItemCard;
 import com.gempukku.lotro.bots.forge.plan.action.ChooseTargetsAction;
@@ -40,8 +40,12 @@ public class TargetFinderUtil {
                 throw new IllegalStateException("Could not find ability step for decision text " + firstAction.getDecisionText() + " and source " + firstAction.getSource());
             }
 
-            log(2, "Choosing targets for step: " + step);
+            log(2, "Choosing targets for step: '" + step + "' of card: " + firstAction.getSource());
             BotTargetingPolicy targetingPolicy = step.getBotTargetingPolicy();
+
+            if (targetingPolicy == null) {
+                throw new IllegalStateException("No targeting policy for step: '" + step + "' of card: " + firstAction.getSource());
+            }
             log(2, "Using targeting policy: " + targetingPolicy);
 
             List<List<BotCard>> potentialTargets = possibleActions.stream()
