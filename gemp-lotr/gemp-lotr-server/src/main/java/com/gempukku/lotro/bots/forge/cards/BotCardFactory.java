@@ -1,17 +1,10 @@
 package com.gempukku.lotro.bots.forge.cards;
 
 import com.gempukku.lotro.bots.forge.cards.ability.*;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.AddTwilight;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.DiscardCardsFromHand;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.DiscardSelf;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.ExertSelf;
-import com.gempukku.lotro.bots.forge.cards.ability.effect.Heal;
-import com.gempukku.lotro.bots.forge.cards.ability.effect.PutCardsFromDiscardIntoHand;
-import com.gempukku.lotro.bots.forge.cards.ability.effect.PutCardsFromHandOnBottomOfDeck;
+import com.gempukku.lotro.bots.forge.cards.ability.cost.*;
+import com.gempukku.lotro.bots.forge.cards.ability.effect.*;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.*;
-import com.gempukku.lotro.common.Culture;
-import com.gempukku.lotro.common.Phase;
-import com.gempukku.lotro.common.Race;
+import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
@@ -27,8 +20,8 @@ public class BotCardFactory {
     }
 
     private static BotCard createSetOneCard(PhysicalCard card) {
-        // 1_1 Isildur's Bane - <b>Response:</b> If bearer is about to take a wound, he wears The One Ring until the regroup phase.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound, add 2 burdens instead.
-        // 1_2 The Ruling Ring - <b>Response:</b> If bearer is about to take a wound in a skirmish, he wears The One Ring until the regroup phase.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound during a skirmish, add a burden instead.
+        // 1_1 Isildur's Bane - <b>Response:</b> If bearer is about to take a wound, he wears The One Ring until the regroup Timeword.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound, add 2 burdens instead.
+        // 1_2 The Ruling Ring - <b>Response:</b> If bearer is about to take a wound in a skirmish, he wears The One Ring until the regroup Timeword.<br>While wearing The One Ring, each time the Ring-bearer is about to take a wound during a skirmish, add a burden instead.
         if (card.getBlueprintId().equals("1_2")) {
             return new BotCard(card) {
 
@@ -51,8 +44,8 @@ public class BotCardFactory {
                     return List.of(
                             new ActivatedAbility() {
                                 @Override
-                                public Phase getPhase() {
-                                    return Phase.FELLOWSHIP;
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
                                 }
 
                                 @Override
@@ -81,7 +74,7 @@ public class BotCardFactory {
         // 1_25
         // 1_26 Their Halls of Stone - Skirmish: Make a Dwarf strength +2 (or +4 if at an underground site).
         else if (card.getBlueprintId().equals("1_26")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -97,7 +90,7 @@ public class BotCardFactory {
         // 1_36
         // 1_37 Defiance - Skirmish: Make an Elf strength +2 (or +4 if skirmishing a Nazgûl).
         else if (card.getBlueprintId().equals("1_37")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -141,20 +134,25 @@ public class BotCardFactory {
         // 1_70 Barliman Butterbur, Prancing Pony Proprietor - <b>Fellowship:</b> Exert Barliman Butterbur to take a [gandalf] event into hand from your discard pile.
         else if (card.getBlueprintId().equals("1_70")) {
             return new BotAllyCard(card) {
+                private final BotCard self = this;
+
                 @Override
                 public List<Ability> getAbilities() {
                     return List.of(
                             new ActivatedAbility() {
                                 @Override
-                                public Phase getPhase() {
-                                    return Phase.FELLOWSHIP;
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
                                 }
 
                                 @Override
                                 public List<AbilityStep> getSteps() {
                                     return List.of(
-                                            new ExertSelf(),
-                                            new PutCardsFromDiscardIntoHand()
+                                            new ExertSelf(self),
+                                            new PutCardsFromDiscardIntoHand(card1 ->
+                                                    Culture.GANDALF == card1.getPhysicalCard().getBlueprint().getCulture()
+                                                    && CardType.EVENT == card1.getPhysicalCard().getBlueprint().getCardType()
+                                            )
                                     );
                                 }
                             });
@@ -168,14 +166,14 @@ public class BotCardFactory {
         // 1_75
         // 1_76 Intimidate - Spell. Response: If a companion is about to take a wound, spot Gandalf to prevent that wound.
         else if (card.getBlueprintId().equals("1_76")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.RESPONSE) {
 
             };
         }
         // 1_77
         // 1_78 Mysterious Wizard - Spell. Skirmish: Make Gandalf strength +2 (or +4 if there are 4 or fewer burdens on the Ring-bearer).
         else if (card.getBlueprintId().equals("1_78")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -186,15 +184,38 @@ public class BotCardFactory {
         // 1_83
         // 1_84 Sleep, Caradhras - Spell. Fellowship: Exert Gandalf to discard every condition.
         else if (card.getBlueprintId().equals("1_84")) {
-            return new BotCard(card) {
-
+            return new BotEventCard(card, Timeword.FELLOWSHIP) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new EventAbility() {
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new Exert(card -> "Gandalf".equals(card.getPhysicalCard().getBlueprint().getTitle())),
+                                            new DiscardAll(card -> CardType.CONDITION == card.getPhysicalCard().getBlueprint().getCardType())
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_85
         // 1_86 Treachery Deeper Than You Know - Spell Fellowship: Spot Gandalf to reveal an opponent's hand.
         else if (card.getBlueprintId().equals("1_86")) {
-            return new BotCard(card) {
-
+            return new BotEventCard(card, Timeword.FELLOWSHIP) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new EventAbility() {
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new RevealOpponentsHand()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_87
@@ -202,7 +223,7 @@ public class BotCardFactory {
         // 1_89
         // 1_90
         // 1_91
-        // 1_92 Armor - Bearer must be a Man.<br>Bearer takes no more than 1 wound during each skirmish phase.
+        // 1_92 Armor - Bearer must be a Man.<br>Bearer takes no more than 1 wound during each skirmish Timeword.
         else if (card.getBlueprintId().equals("1_92")) {
             return new BotItemCard(card) {
 
@@ -226,6 +247,7 @@ public class BotCardFactory {
         // 1_94 Athelas - Bearer must be a [gondor] Man.<br><b>Fellowship:</b> Discard this possession to heal a companion or to remove a Shadow condition from a companion.
         else if (card.getBlueprintId().equals("1_94")) {
             return new BotItemCard(card) {
+                private final BotItemCard self = this;
 
                 @Override
                 public boolean canBearThis(DefaultLotroGame game, BotCard target) {
@@ -248,15 +270,15 @@ public class BotCardFactory {
                     return List.of(
                             new ActivatedAbility() {
                                 @Override
-                                public Phase getPhase() {
-                                    return Phase.FELLOWSHIP;
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
                                 }
 
                                 @Override
                                 public List<AbilityStep> getSteps() {
                                     return List.of(
-                                            new DiscardSelf(),
-                                            new Heal()
+                                            new DiscardSelf(self),
+                                            new Heal(card -> CardType.COMPANION == card.getPhysicalCard().getBlueprint().getCardType())
                                     );
                                 }
                             });
@@ -296,16 +318,16 @@ public class BotCardFactory {
         }
         // 1_102
         // 1_103
-        // 1_104 Eregion's Trails - Maneuver: Exert a ranger to make each roaming minion strength -3 until the regroup phase.
+        // 1_104 Eregion's Trails - Maneuver: Exert a ranger to make each roaming minion strength -3 until the regroup Timeword.
         else if (card.getBlueprintId().equals("1_104")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.MANEUVER) {
 
             };
         }
         // 1_105
         // 1_106 Gondor's Vengeance - Regroup: Exert a ranger companion to discard a minion.
         else if (card.getBlueprintId().equals("1_106")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.REGROUP) {
 
             };
         }
@@ -338,8 +360,19 @@ public class BotCardFactory {
         // 1_109
         // 1_110 Pathfinder - Fellowship or Regroup: Spot a ranger to play the fellowship's next site (replacing opponent's site if necessary).
         else if (card.getBlueprintId().equals("1_110")) {
-            return new BotCard(card) {
-
+            return new BotEventCard(card, List.of(Timeword.FELLOWSHIP, Timeword.REGROUP)) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new EventAbility() {
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new PlayNextSite()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_111
@@ -349,13 +382,13 @@ public class BotCardFactory {
         // 1_115
         // 1_116 Swordarm of the White Tower - Skirmish: Make a [gondor] companion strength +2 (or +4 if he or she is defender +1).
         else if (card.getBlueprintId().equals("1_116")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
         // 1_117 Swordsman of the Northern Kingdom - Skirmish: Make a ranger strength +2 (or +4 when skirmishing a roaming minion).
         else if (card.getBlueprintId().equals("1_117")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -364,7 +397,7 @@ public class BotCardFactory {
         // 1_120
         // 1_121 Bred for Battle - Skirmish: Exert an Uruk-hai to make it strength +3.
         else if (card.getBlueprintId().equals("1_121")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -466,7 +499,7 @@ public class BotCardFactory {
         // 1_167
         // 1_168 Drums in the Deep - Skirmish: Make a [moria] Orc strength +2 (or +4 if skirmishing a Dwarf).
         else if (card.getBlueprintId().equals("1_168")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -535,7 +568,7 @@ public class BotCardFactory {
         // 1_186
         // 1_187 Host of Thousands - Shadow: Play a [moria] Orc from your discard pile.
         else if (card.getBlueprintId().equals("1_187")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SHADOW) {
 
             };
         }
@@ -658,8 +691,30 @@ public class BotCardFactory {
         // 1_289
         // 1_290 Frodo, Son of Drogo - <b>Ring-bearer (resistance 10).</b><br><b>Fellowship:</b> Exert another companion who has the Frodo signet to heal Frodo.
         else if (card.getBlueprintId().equals("1_290")) {
-            return new BotCard(card) {
+            return new BotCompanionCard(card) {
+                private final BotCard self = this;
 
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
+
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new Exert(card ->
+                                                    CardType.COMPANION == card.getPhysicalCard().getBlueprint().getCardType()
+                                                    && Signet.FRODO == card.getPhysicalCard().getBlueprint().getSignet()
+                                                    && !card.equals(self)),
+                                            new HealSelf(self)
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_291
@@ -669,7 +724,7 @@ public class BotCardFactory {
         // 1_295
         // 1_296 Hobbit Intuition - Stealth. Skirmish: At sites 1 to 4, cancel a skirmish involving a Hobbit. At any other site, make a Hobbit strength +3.
         else if (card.getBlueprintId().equals("1_296")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -701,7 +756,7 @@ public class BotCardFactory {
         // 1_303
         // 1_304 Noble Intentions - Skirmish: Exert a companion (except a Hobbit) to make a Hobbit strength +3.
         else if (card.getBlueprintId().equals("1_304")) {
-            return new BotCard(card) {
+            return new BotEventCard(card, Timeword.SKIRMISH) {
 
             };
         }
@@ -711,21 +766,74 @@ public class BotCardFactory {
         // 1_308
         // 1_309 Rosie Cotton, Hobbiton Lass - Sam is strength +1.<br><b>Fellowship:</b> Exert Rosie Cotton to heal Sam.
         else if (card.getBlueprintId().equals("1_309")) {
-            return new BotCard(card) {
+            return new BotAllyCard(card) {
+                private final BotCard self = this;
 
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
+
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new ExertSelf(self),
+                                            new Heal(card -> "Sam".equals(card.getPhysicalCard().getBlueprint().getTitle()))
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_310
         // 1_311 Sam, Son of Hamfast - <b>Fellowship:</b> Exert Sam to remove a burden.<br><b>Response:</b> If Frodo dies, make Sam the <b>Ring-bearer (resistance 5)</b>.
         else if (card.getBlueprintId().equals("1_311")) {
-            return new BotCard(card) {
+            return new BotCompanionCard(card) {
+                private final BotCard self = this;
 
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
+
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new ExertSelf(self),
+                                            new RemoveBurden()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_312 Sorry About Everything - Fellowship: Exert a Hobbit companion to remove a burden.
         else if (card.getBlueprintId().equals("1_312")) {
-            return new BotCard(card) {
-
+            return new BotEventCard(card, Timeword.FELLOWSHIP) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new EventAbility() {
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new Exert(card ->
+                                                    Race.HOBBIT == card.getPhysicalCard().getBlueprint().getRace()
+                                                    && CardType.COMPANION == card.getPhysicalCard().getBlueprint().getCardType()
+                                            ),
+                                            new RemoveBurden()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_313
@@ -810,7 +918,7 @@ public class BotCardFactory {
 
             };
         }
-        // 1_350 Dimrill Dale - <b>Sanctuary</b>. The twilight cost of the first [moria] Orc played each Shadow phase is -2.
+        // 1_350 Dimrill Dale - <b>Sanctuary</b>. The twilight cost of the first [moria] Orc played each Shadow Timeword is -2.
         else if (card.getBlueprintId().equals("1_350")) {
             return new BotCard(card) {
 
@@ -846,15 +954,18 @@ public class BotCardFactory {
                     return List.of(
                             new ActivatedAbility() {
                                 @Override
-                                public Phase getPhase() {
-                                    return Phase.FELLOWSHIP;
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
                                 }
 
                                 @Override
                                 public List<AbilityStep> getSteps() {
                                     return List.of(
-                                            new DiscardCardsFromHand(),
-                                            new Heal()
+                                            new DiscardCardsFromHand(card -> Culture.GONDOR == card.getPhysicalCard().getBlueprint().getCulture()),
+                                            new Heal(card ->
+                                                    Culture.GONDOR == card.getPhysicalCard().getBlueprint().getCulture()
+                                                    && CardType.COMPANION == card.getPhysicalCard().getBlueprint().getCardType()
+                                            )
                                     );
                                 }
                             });
@@ -867,7 +978,7 @@ public class BotCardFactory {
 
             };
         }
-        // 1_360 Emyn Muil - <b>Maneuver:</b> Exert your minion to make that minion <b>fierce</b> until the regroup phase.
+        // 1_360 Emyn Muil - <b>Maneuver:</b> Exert your minion to make that minion <b>fierce</b> until the regroup Timeword.
         else if (card.getBlueprintId().equals("1_360")) {
             return new BotCard(card) {
 

@@ -1,17 +1,20 @@
 package com.gempukku.lotro.bots.forge.plan;
 
-import com.gempukku.lotro.bots.forge.plan.action.ActionToTake;
-import com.gempukku.lotro.bots.forge.plan.action.ChooseTargetsAction;
-import com.gempukku.lotro.bots.forge.plan.action.PassAction;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotEventCard;
+import com.gempukku.lotro.bots.forge.plan.action.*;
 import com.gempukku.lotro.bots.forge.utils.DecisionToActions;
 import com.gempukku.lotro.bots.forge.utils.TargetFinderUtil;
+import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
+import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.DefaultUserFeedback;
 import com.gempukku.lotro.logic.decisions.AwaitingDecision;
 import com.gempukku.lotro.logic.decisions.DecisionResultInvalidException;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
+import java.util.function.BiPredicate;
 
 import static com.gempukku.lotro.bots.forge.utils.BotLogging.log;
 
@@ -25,6 +28,8 @@ public class FellowshipPhasePlan implements Plan {
 
     private final DefaultLotroGame copy;
     private final DefaultUserFeedback feedback = new DefaultUserFeedback();
+
+    private boolean opponentsHandRevealed = false;
 
     public FellowshipPhasePlan(DefaultLotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
@@ -73,177 +78,241 @@ public class FellowshipPhasePlan implements Plan {
         if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsAction)) {
             return TargetFinderUtil.getBestTarget(possibleActions.stream().map(actionToTake -> ((ChooseTargetsAction) actionToTake)).toList(), copy, playerName);
         }
-        //TODO
-        return possibleActions.getFirst();
+
+        // Reveal opponent's hand
+        ActionToTake bestRevealHandAction = getBestRevealOpponentsHandAction(possibleActions);
+        if (bestRevealHandAction != null) {
+            opponentsHandRevealed = true;
+            return bestRevealHandAction;
+        }
+
+        // Put cards from discard to hand
+        ActionToTake bestTakeIntoHandFromDiscardAction = getBestTakeIntoHandFromDiscardAction(possibleActions);
+        if (bestTakeIntoHandFromDiscardAction != null) {
+            return bestTakeIntoHandFromDiscardAction;
+        }
+
+        // Remove burdens
+        ActionToTake bestRemoveBurdenAction = getBestRemoveBurdenAction(possibleActions);
+        if (bestRemoveBurdenAction != null) {
+            return bestRemoveBurdenAction;
+        }
+
+        // Heal
+        ActionToTake bestHealAction = getBestHealAction(possibleActions);
+        if (bestHealAction != null) {
+            return bestHealAction;
+        }
+
+        // Play fellowship's next site
+        ActionToTake bestPlayNextSiteAction = getBestPlayNextSiteAction(possibleActions);
+        if (bestPlayNextSiteAction != null) {
+            return bestPlayNextSiteAction;
+        }
+
+        // Discard cards from play
+        ActionToTake bestDiscardCardsFromPlayAction = getBestDiscardCardsFromPlayAction(possibleActions);
+        if (bestDiscardCardsFromPlayAction != null) {
+            return bestDiscardCardsFromPlayAction;
+        }
+
+        // Check for heal companion by discard actions
+        Optional<ActionToTake> healAction = possibleActions.stream()
+                .filter(actionToTake -> actionToTake instanceof DiscardCompanionToHealAction)
+                .findFirst();
+        if (healAction.isPresent()) {
+            return healAction.get();
+        }
+
+        // TODO play with bonus
+
+        // Play permanents from hand
+        ActionToTake bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
+        if (bestPlayPermanentAction != null) {
+            return bestPlayPermanentAction;
+        }
+
+        // Unclog hand
+        ActionToTake bestUnclogHandAction = getBestUnclogHandAction(possibleActions);
+        if (bestUnclogHandAction != null) {
+            return bestUnclogHandAction;
+        }
+
+        // Finally pass if no other action with value is found
+        return possibleActions.stream()
+                .filter(actionToTake -> actionToTake instanceof PassAction)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No pass action available. Possible actions: " + possibleActions));
     }
 
-//    private ActionToTake chooseAction(List<ActionToTake> possibleActions) {
-//        if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsAction2)) {
-//            return TargetFinderUtil.getBestTarget(possibleActions.stream().map(actionToTake -> ((ChooseTargetsAction2) actionToTake)).toList(), copy, playerName);
-//        }
-//
-//        // Priority order of effects to consider
-//        List<Class<? extends Effect>> effectPriority = List.of(
-//                EffectRevealOpponentsHand.class,
-//                EffectDiscardFromPlay.class,
-//                EffectRemoveBurden.class,
-//                EffectPlayFellowshipsNextSite.class,
-//                EffectHeal.class,
-//                EffectTakeIntoHandFromDiscard.class,
-//                EffectPlayWithBonus.class
-//        );
-//
-//        for (Class<? extends Effect> effectClass : effectPriority) {
-//            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
-//            if (bestAction != null) {
-//                return bestAction;
-//            }
-//        }
-//
-//        // Check for heal companion by discard actions
-//        Optional<ActionToTake> healAction = possibleActions.stream()
-//                .filter(actionToTake -> actionToTake instanceof DiscardCompanionToHealAction2)
-//                .findFirst();
-//        if (healAction.isPresent()) {
-//            return healAction.get();
-//        }
-//
-//        // Play permanents from hand
-//        ActionToTake bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
-//        if (bestPlayPermanentAction != null) {
-//            return bestPlayPermanentAction;
-//        }
-//
-//        // Priority order of effects to unclog hand
-//        List<Class<? extends Effect>> unclogEffectPriority = List.of(
-//                EffectPutFromHandToBottomOfDeck.class
-//        );
-//
-//        for (Class<? extends Effect> effectClass : unclogEffectPriority) {
-//            ActionToTake bestAction = getBestActionWithEffect(possibleActions, effectClass);
-//            if (bestAction != null) {
-//                return bestAction;
-//            }
-//        }
-//
-//        // Finally pass if no other action with value is found
-//        return possibleActions.stream()
-//                .filter(actionToTake -> actionToTake instanceof PassAction2)
-//                .findFirst()
-//                .orElseThrow(() -> new IllegalStateException("No valid action found, and no pass action available."));
-//
-//    }
-//
-//    private ActionToTake getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
-//        List<ActionToTake> playPermanentActions = new ArrayList<>(possibleActions.stream()
-//                .filter(action -> action instanceof PlayCardFromHandAction2 playCardFromHandAction
-//                        && !(playCardFromHandAction.getCard() instanceof BotEventCard))
-//                .sorted(playPermanentComparator())
-//                .toList());
-//
-//        if (playPermanentActions.isEmpty()) {
-//            return null;
-//        }
-//        return playPermanentActions.getFirst();
-//    }
-//
-//    private ActionToTake getBestActionWithEffect(List<ActionToTake> possibleActions, Class<? extends Effect> effectClass) {
-//        List<ActionToTake> actionsWithEffect = new ArrayList<>(possibleActions.stream().filter(valuableCardsWithEffect(effectClass)).sorted(eventAbilityComparator(effectClass)).toList());
-//        if (actionsWithEffect.isEmpty()) {
-//            return null;
-//        }
-//        return actionsWithEffect.getFirst();
-//    }
-//
-//    private Comparator<ActionToTake> eventAbilityComparator(Class<? extends Effect> effectClass) {
-//        // Sort actions: events first, then abilities, each group sorted by value (highest first)
-//        return (action1, action2) -> {
-//            boolean isEvent1 = action1 instanceof PlayCardFromHandAction2;
-//            boolean isEvent2 = action2 instanceof PlayCardFromHandAction2;
-//
-//            // Events come before abilities
-//            if (isEvent1 && !isEvent2) return -1;
-//            if (!isEvent1 && isEvent2) return 1;
-//
-//            // Both are same type, sort by value (highest first)
-//            double value1 = getActionValue(action1, effectClass);
-//            double value2 = getActionValue(action2, effectClass);
-//            return Double.compare(value2, value1); // Reversed for descending order
-//        };
-//    }
-//
-//    private Comparator<ActionToTake> playPermanentComparator() {
-//        return (action1, action2) -> {
-//            if (!(action1 instanceof PlayCardFromHandAction2 play1) || !(action2 instanceof PlayCardFromHandAction2 play2)) {
-//                return 0;
-//            }
-//
-//            CardType type1 = play1.getCard().getSelf().getBlueprint().getCardType();
-//            CardType type2 = play2.getCard().getSelf().getBlueprint().getCardType();
-//
-//            // Define priority order: companion (0), ally (1), possession (2), condition (3)
-//            int priority1 = getCardTypePriority(type1);
-//            int priority2 = getCardTypePriority(type2);
-//
-//            if (priority1 != priority2) {
-//                return Integer.compare(priority1, priority2);
-//            }
-//
-//            // If both are companions, sort by strength (highest first)
-//            if (type1 == CardType.COMPANION && type2 == CardType.COMPANION) {
-//                int strength1 = play1.getCard().getSelf().getBlueprint().getStrength();
-//                int strength2 = play2.getCard().getSelf().getBlueprint().getStrength();
-//                return Integer.compare(strength2, strength1); // Reversed for descending order
-//            }
-//
-//            return 0;
-//        };
-//    }
-//
-//    private int getCardTypePriority(CardType cardType) {
-//        return switch (cardType) {
-//            case COMPANION -> 0;
-//            case ALLY -> 1;
-//            case POSSESSION -> 2;
-//            case CONDITION -> 3;
-//            default -> 4;
-//        };
-//    }
-//
-//    private double getActionValue(ActionToTake action, Class<? extends Effect> effectClass) {
-//        if (action instanceof PlayCardFromHandAction2 playCardFromHandAction) {
-//            if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard
-//                    && botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-//                return botEventCard.getEventAbility().getPossibleValue(playerName, copy);
-//            }
-//        } else if (action instanceof UseCardAction2 useCardAction) {
-//            BotCard botCard = useCardAction.getCard();
-//            ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-//            return activatedAbility.getPossibleValue(playerName, copy);
-//        }
-//        return 0.0;
-//    }
-//
-//    private Predicate<ActionToTake> valuableCardsWithEffect(Class<? extends Effect> effectClass) {
-//        return action -> {
-//            if (action instanceof PlayCardFromHandAction2 playCardFromHandAction) {
-//                if (playCardFromHandAction.getCard() instanceof BotEventCard botEventCard) {
-//                    if (botEventCard.getEventAbility().getEffect().getClass().equals(effectClass)) {
-//                        double value = botEventCard.getEventAbility().getPossibleValue(playerName, copy);
-//                        return value >= 0.0; // play cards with 0 value to cycle hand
-//                    }
-//                }
-//            } else if (action instanceof UseCardAction2 useCardAction) {
-//                BotCard botCard = useCardAction.getCard();
-//                ActivatedAbility activatedAbility = botCard.getActivatedAbility(effectClass);
-//                if (activatedAbility != null) {
-//                    double value = activatedAbility.getPossibleValue(playerName, copy);
-//                    return value > 0.0;
-//                }
-//            }
-//            return false;
-//        };
-//    }
+    private ActionToTake getBestUnclogHandAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canUnclogHand,
+                "unclog hand");
+    }
+
+    private ActionToTake getBestDiscardCardsFromPlayAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canDiscardCardsFromPlay,
+                "discard cards from play");
+    }
+
+    private ActionToTake getBestPlayNextSiteAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canPlayNextSite,
+                "play fellowship's next site");
+    }
+
+    private ActionToTake getBestHealAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canHeal,
+                "heal");
+    }
+
+    private ActionToTake getBestRemoveBurdenAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canRemoveBurdens,
+                "remove burden");
+    }
+
+    private ActionToTake getBestTakeIntoHandFromDiscardAction(List<ActionToTake> possibleActions) {
+        return getBestActionWithAbility(possibleActions,
+                BotCard::canPutCardsFromDiscardIntoHand,
+                "take from discard to hand");
+    }
+
+    private ActionToTake getBestRevealOpponentsHandAction(List<ActionToTake> possibleActions) {
+        ActionToTake tbr = getBestActionWithAbility(possibleActions,
+                BotCard::canRevealOpponentsHand,
+                "reveal opponent's hand");
+
+        if (opponentsHandRevealed && tbr != null) {
+            log(2, "Opponent's hand already revealed, skipping reveal opponent's hand actions");
+            return null;
+        }
+
+        return tbr;
+    }
+
+    private ActionToTake getBestActionWithAbility(List<ActionToTake> possibleActions,
+                                                  BiPredicate<BotCard, Timeword> abilityChecker,
+                                                  String actionTypeName) {
+        List<PlayCardFromHandAction> eventActions = getEventActionsWithEffect(possibleActions, abilityChecker);
+        List<UseCardAction> activatedAbilityActions = getActivatedAbilityActionsWithEffect(possibleActions, abilityChecker);
+
+        PlayCardFromHandAction bestEventAction = getBestEventAction(eventActions);
+        if (bestEventAction != null) {
+            double bestEventValue = ((BotEventCard) bestEventAction.getCard()).valueIfPlayed(copy, playerName);
+            if (bestEventValue > 0.0) {
+                return bestEventAction;
+            } else {
+                log(2, "No '" + actionTypeName + "' action with positive value found among events. Best event: " +
+                        bestEventAction.getCard().getFullName() + " with value " + bestEventValue);
+            }
+        }
+
+        UseCardAction bestAbilityAction = getBestActivatedAbilityAction(activatedAbilityActions);
+        if (bestAbilityAction != null) {
+            double bestAbilityValue = bestAbilityAction.getCard().getActivatedAbility(Timeword.FELLOWSHIP).valueIfActivated(copy, playerName);
+            if (bestAbilityValue > 0.0) {
+                return bestAbilityAction;
+            } else {
+                log(2, "No '" + actionTypeName + "' action with positive value found among activated abilities. Best ability: " +
+                        bestAbilityAction.getCard().getFullName() + " with value " + bestAbilityValue);
+            }
+        }
+        return null;
+    }
+
+    private List<PlayCardFromHandAction> getEventActionsWithEffect(List<ActionToTake> possibleActions,
+                                                                   BiPredicate<BotCard, Timeword> abilityChecker) {
+        return possibleActions.stream()
+                .filter(action -> action instanceof PlayCardFromHandAction playCardFromHandAction
+                        && playCardFromHandAction.getCard() instanceof BotEventCard botEventCard
+                        && abilityChecker.test(botEventCard, Timeword.FELLOWSHIP))
+                .map(action -> (PlayCardFromHandAction) action)
+                .toList();
+    }
+
+    private List<UseCardAction> getActivatedAbilityActionsWithEffect(List<ActionToTake> possibleActions,
+                                                                     java.util.function.BiPredicate<com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard, Timeword> abilityChecker) {
+        return possibleActions.stream()
+                .filter(action -> action instanceof UseCardAction useCardAction
+                        && abilityChecker.test(useCardAction.getCard(), Timeword.FELLOWSHIP))
+                .map(action -> (UseCardAction) action)
+                .toList();
+    }
+
+    private PlayCardFromHandAction getBestEventAction(List<PlayCardFromHandAction> eventActions) {
+        if (eventActions.isEmpty()) {
+            return null;
+        }
+        return eventActions.stream().max((o1, o2) -> Double.compare(
+                ((BotEventCard) o1.getCard()).valueIfPlayed(copy, playerName),
+                ((BotEventCard) o2.getCard()).valueIfPlayed(copy, playerName)
+        )).orElseThrow();
+    }
+
+    private UseCardAction getBestActivatedAbilityAction(List<UseCardAction> activatedAbilityActions) {
+        if (activatedAbilityActions.isEmpty()) {
+            return null;
+        }
+        return activatedAbilityActions.stream().max((o1, o2) -> Double.compare(
+                o1.getCard().getActivatedAbility(Timeword.FELLOWSHIP).valueIfActivated(copy, playerName),
+                o2.getCard().getActivatedAbility(Timeword.FELLOWSHIP).valueIfActivated(copy, playerName))
+        ).orElseThrow();
+    }
+
+    private ActionToTake getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
+        List<ActionToTake> playPermanentActions = new ArrayList<>(possibleActions.stream()
+                .filter(action -> action instanceof PlayCardFromHandAction playCardFromHandAction
+                        && !(playCardFromHandAction.getCard() instanceof BotEventCard))
+                .sorted(playPermanentComparator())
+                .toList());
+
+        if (playPermanentActions.isEmpty()) {
+            return null;
+        }
+        return playPermanentActions.getFirst();
+    }
+
+    private Comparator<ActionToTake> playPermanentComparator() {
+        return (action1, action2) -> {
+            if (!(action1 instanceof PlayCardFromHandAction play1) || !(action2 instanceof PlayCardFromHandAction play2)) {
+                return 0;
+            }
+
+            CardType type1 = play1.getCard().getPhysicalCard().getBlueprint().getCardType();
+            CardType type2 = play2.getCard().getPhysicalCard().getBlueprint().getCardType();
+
+            // Define priority order: companion (0), ally (1), possession (2), condition (3)
+            int priority1 = getCardTypePriority(type1);
+            int priority2 = getCardTypePriority(type2);
+
+            if (priority1 != priority2) {
+                return Integer.compare(priority1, priority2);
+            }
+
+            // If both are companions, sort by strength (highest first)
+            if (type1 == CardType.COMPANION && type2 == CardType.COMPANION) {
+                int strength1 = play1.getCard().getPhysicalCard().getBlueprint().getStrength();
+                int strength2 = play2.getCard().getPhysicalCard().getBlueprint().getStrength();
+                return Integer.compare(strength2, strength1); // Reversed for descending order
+            }
+
+            return 0;
+        };
+    }
+
+    private int getCardTypePriority(CardType cardType) {
+        return switch (cardType) {
+            case COMPANION -> 0;
+            case ALLY -> 1;
+            case POSSESSION -> 2;
+            case CONDITION -> 3;
+            default -> 4;
+        };
+    }
 
     @Override
     public String chooseActionToTakeOrPass(DefaultLotroGame game, AwaitingDecision awaitingDecision) {

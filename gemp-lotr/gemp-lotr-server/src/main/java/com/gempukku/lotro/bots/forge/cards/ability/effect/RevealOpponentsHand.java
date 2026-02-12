@@ -1,16 +1,9 @@
-package com.gempukku.lotro.bots.forge.cards.ability.cost;
+package com.gempukku.lotro.bots.forge.cards.ability.effect;
 
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
-import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-public class DiscardSelf extends Cost {
-    private final BotCard self;
-
-    public DiscardSelf(BotCard self) {
-        this.self = self;
-    }
-
+public class RevealOpponentsHand extends Effect {
     @Override
     public BotTargetingPolicy getBotTargetingPolicy() {
         return null;
@@ -18,7 +11,7 @@ public class DiscardSelf extends Cost {
 
     @Override
     public String toString() {
-        return "Discard self from play";
+        return "Reveal an opponent's hand";
     }
 
     @Override
@@ -28,6 +21,6 @@ public class DiscardSelf extends Cost {
 
     @Override
     public double getValue(DefaultLotroGame game, String playerName) {
-        return -1;
+        return 1.0;
     }
 }

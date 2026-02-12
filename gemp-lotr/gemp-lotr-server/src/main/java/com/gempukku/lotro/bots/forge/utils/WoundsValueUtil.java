@@ -2,6 +2,7 @@ package com.gempukku.lotro.bots.forge.utils;
 
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
+import com.gempukku.lotro.common.Race;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
@@ -11,6 +12,7 @@ public class WoundsValueUtil {
 
         boolean isCompanion = target.getBlueprint().getCardType().equals(CardType.COMPANION);
         boolean isRingBearer = game.getGameState().getRingBearers().contains(target);
+        boolean isHobbitCompanion = isCompanion && target.getBlueprint().getRace().equals(Race.HOBBIT);
         int vitality = game.getModifiersQuerying().getVitality(game, target);
         int wounds = game.getGameState().getWounds(target);
 
@@ -72,6 +74,8 @@ public class WoundsValueUtil {
 
         if (isRingBearer) {
             value *= 0.35; // ring bearer wounds/heals are less impactful
+        } else if (isHobbitCompanion) {
+            value *= 0.8; // hobbit companions are generally less impactful to wound/heal
         }
 
         boolean goodTargetingOwnCards = amount < 0;
