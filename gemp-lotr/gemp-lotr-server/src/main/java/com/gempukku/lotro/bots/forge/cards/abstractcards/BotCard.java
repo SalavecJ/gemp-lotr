@@ -4,8 +4,8 @@ import com.gempukku.lotro.bots.forge.cards.ability.Ability;
 import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.AbilityType;
 import com.gempukku.lotro.bots.forge.cards.ability.ActivatedAbility;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.DiscardCardsFromHand;
-import com.gempukku.lotro.bots.forge.cards.ability.effect.*;
+import com.gempukku.lotro.bots.forge.cards.ability.step.DiscardCardsFromHand;
+import com.gempukku.lotro.bots.forge.cards.ability.step.*;
 import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
@@ -67,6 +67,12 @@ public abstract class BotCard {
     @Override
     public final String toString() {
         return getFullName();
+    }
+
+    public final boolean canPlayCardFromHand(Timeword timeword, BotCard botCard) {
+        return getAbilities().stream().anyMatch(ability -> ability instanceof ActivatedAbility activatedAbility
+                && activatedAbility.getTimeword() == timeword
+                && ability.getSteps().stream().anyMatch(abilityStep -> abilityStep instanceof PlayCard playCardEffect && playCardEffect.canPlayCard(botCard)));
     }
 
     public final boolean canUnclogHand(Timeword timeword) {

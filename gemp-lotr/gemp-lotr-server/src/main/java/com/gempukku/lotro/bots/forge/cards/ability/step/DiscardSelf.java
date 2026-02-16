@@ -1,10 +1,11 @@
-package com.gempukku.lotro.bots.forge.cards.ability.cost;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-public class DiscardSelf extends Cost {
+public class DiscardSelf extends AbilityStep {
     private final BotCard self;
 
     public DiscardSelf(BotCard self) {

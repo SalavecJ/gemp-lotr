@@ -1,9 +1,10 @@
-package com.gempukku.lotro.bots.forge.cards.ability.cost;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-public class AddTwilight extends Cost {
+public class AddTwilight extends AbilityStep {
     private final int twilightAmount;
 
     public AddTwilight(int twilightAmount) {

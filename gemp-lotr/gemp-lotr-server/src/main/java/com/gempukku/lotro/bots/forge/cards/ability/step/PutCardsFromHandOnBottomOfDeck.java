@@ -1,6 +1,7 @@
-package com.gempukku.lotro.bots.forge.cards.ability.cost;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
 import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.LowestValueInHandTargeting;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
@@ -12,19 +13,16 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
-public class DiscardCardsFromHand extends Cost {
+public class PutCardsFromHandOnBottomOfDeck extends AbilityStep {
     private final int count;
-    private final Predicate<BotCard> cardFilter;
 
-    public DiscardCardsFromHand(Predicate<BotCard> cardFilter, int count) {
-        this.cardFilter = cardFilter;
+    public PutCardsFromHandOnBottomOfDeck(int count) {
         this.count = count;
     }
 
-    public DiscardCardsFromHand(Predicate<BotCard> cardFilter) {
-        this(cardFilter, 1);
+    public PutCardsFromHandOnBottomOfDeck() {
+        this(1);
     }
 
     @Override
@@ -35,23 +33,20 @@ public class DiscardCardsFromHand extends Cost {
     @Override
     public String toString() {
         if (count == 1) {
-            return "Discard card from hand";
+            return "Put a card from hand on bottom of deck";
         } else {
-            return "Discard " + count + " cards from hand";
+            return "Put " + count + " cards from hand on bottom of deck";
         }
     }
 
     @Override
     public boolean decisionTextMatches(String decisionText) {
-        return decisionText.equals("Choose cards from hand to discard");
+        return decisionText.equals("Choose cards from hand");
     }
 
     @Override
     public double getValue(DefaultLotroGame game, String playerName) {
-        List<BotCard> cardsInHand = new ArrayList<>(game.getGameState().getHand(playerName).stream()
-                .map((Function<PhysicalCard, BotCard>) BotCardFactory::create)
-                .filter(cardFilter)
-                .toList());
+        List<BotCard> cardsInHand = new ArrayList<>(game.getGameState().getHand(playerName).stream().map((Function<PhysicalCard, BotCard>) BotCardFactory::create).toList());
         cardsInHand.sort(Comparator.comparingDouble(o -> HandValueUtil.getHandValue(o, game)));
         double totalHandValue = 0;
         for (int i = 0; i < Math.min(count, cardsInHand.size()); i++) {

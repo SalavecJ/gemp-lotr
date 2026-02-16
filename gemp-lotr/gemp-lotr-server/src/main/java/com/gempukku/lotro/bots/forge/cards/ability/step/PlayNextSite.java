@@ -1,12 +1,13 @@
-package com.gempukku.lotro.bots.forge.cards.ability.effect;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.function.Predicate;
 
-public class PlayNextSite extends Effect {
+public class PlayNextSite extends AbilityStep {
 
     public PlayNextSite() {
 

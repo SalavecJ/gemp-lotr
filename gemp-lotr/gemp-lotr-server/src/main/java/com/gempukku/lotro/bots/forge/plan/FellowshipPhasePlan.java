@@ -30,6 +30,7 @@ public class FellowshipPhasePlan implements Plan {
     private final DefaultUserFeedback feedback = new DefaultUserFeedback();
 
     private boolean opponentsHandRevealed = false;
+    private BotCard cardToPlayFromHand = null;
 
     public FellowshipPhasePlan(DefaultLotroGame game) {
         this.siteNumber = game.getGameState().getCurrentSiteNumber();
@@ -52,12 +53,12 @@ public class FellowshipPhasePlan implements Plan {
             for (ActionToTake decisionAction : decisionActions) {
                 log(2, decisionAction.toString());
             }
-            ActionToTake chosenAction2 = chooseAction(decisionActions);
+            ActionToTake chosenAction = chooseAction(decisionActions);
 
-            actions2.add(chosenAction2);
-            log(1, "  " + actions2.size() + ". " + chosenAction2);
+            actions2.add(chosenAction);
+            log(1, "  " + actions2.size() + ". " + chosenAction);
 
-            String answer = chosenAction2.carryOut();
+            String answer = chosenAction.carryOut();
             feedback.participantDecided(playerName, answer);
             try {
                 awaitingDecision.decisionMade(answer);
@@ -66,7 +67,7 @@ public class FellowshipPhasePlan implements Plan {
             }
             copy.carryOutPendingActionsUntilDecisionNeeded();
 
-            if (chosenAction2 instanceof PassAction && awaitingDecision.getText().equals("Play Fellowship action or Pass")) {
+            if (chosenAction instanceof PassAction && awaitingDecision.getText().equals("Play Fellowship action or Pass")) {
                 break;
             }
         }
@@ -76,6 +77,11 @@ public class FellowshipPhasePlan implements Plan {
 
     private ActionToTake chooseAction(List<ActionToTake> possibleActions) {
         if (possibleActions.stream().allMatch(actionToTake -> actionToTake instanceof ChooseTargetsAction)) {
+            if (possibleActions.getFirst().getDecisionText().equals("Choose card to play from hand")) {
+                return possibleActions.stream().filter(action -> action instanceof ChooseTargetsAction chooseTargetsAction
+                        && chooseTargetsAction.getTargets().size() == 1
+                        && chooseTargetsAction.getTargets().contains(cardToPlayFromHand)).findFirst().orElseThrow();
+            }
             return TargetFinderUtil.getBestTarget(possibleActions.stream().map(actionToTake -> ((ChooseTargetsAction) actionToTake)).toList(), copy, playerName);
         }
 
@@ -124,11 +130,15 @@ public class FellowshipPhasePlan implements Plan {
             return healAction.get();
         }
 
-        // TODO play with bonus
-
         // Play permanents from hand
-        ActionToTake bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
+        PlayCardFromHandAction bestPlayPermanentAction = getBestPlayPermanentFromHandAction(possibleActions);
         if (bestPlayPermanentAction != null) {
+            BotCard toPlay = bestPlayPermanentAction.getCard();
+            UseCardAction bestPlayPermanentWithBonusAction = getBestPlayPermanentFromHandWithBonusAction(possibleActions, toPlay);
+            if (bestPlayPermanentWithBonusAction != null) {
+                cardToPlayFromHand = toPlay;
+                return bestPlayPermanentWithBonusAction;
+            }
             return bestPlayPermanentAction;
         }
 
@@ -143,6 +153,26 @@ public class FellowshipPhasePlan implements Plan {
                 .filter(actionToTake -> actionToTake instanceof PassAction)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No pass action available. Possible actions: " + possibleActions));
+    }
+
+    private UseCardAction getBestPlayPermanentFromHandWithBonusAction(List<ActionToTake> possibleActions, BotCard toPlay) {
+        List<UseCardAction> playWithBonusActions = possibleActions.stream()
+                .filter(action -> action instanceof UseCardAction useCardAction
+                        && useCardAction.getCard().canPlayCardFromHand(Timeword.FELLOWSHIP, toPlay))
+                .map(action -> (UseCardAction) action)
+                .toList();
+
+        UseCardAction bestAbilityAction = getBestActivatedAbilityAction(playWithBonusActions);
+        if (bestAbilityAction != null) {
+            double bestAbilityValue = bestAbilityAction.getCard().getActivatedAbility(Timeword.FELLOWSHIP).valueIfActivated(copy, playerName);
+            if (bestAbilityValue > 0.0) {
+                return bestAbilityAction;
+            } else {
+                log(2, "No 'play with bonus' action with positive value found among activated abilities. Best ability: " +
+                        bestAbilityAction.getCard().getFullName() + " with value " + bestAbilityValue);
+            }
+        }
+        return null;
     }
 
     private ActionToTake getBestUnclogHandAction(List<ActionToTake> possibleActions) {
@@ -263,11 +293,12 @@ public class FellowshipPhasePlan implements Plan {
         ).orElseThrow();
     }
 
-    private ActionToTake getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
-        List<ActionToTake> playPermanentActions = new ArrayList<>(possibleActions.stream()
+    private PlayCardFromHandAction getBestPlayPermanentFromHandAction(List<ActionToTake> possibleActions) {
+        List<PlayCardFromHandAction> playPermanentActions = new ArrayList<>(possibleActions.stream()
                 .filter(action -> action instanceof PlayCardFromHandAction playCardFromHandAction
                         && !(playCardFromHandAction.getCard() instanceof BotEventCard))
                 .sorted(playPermanentComparator())
+                .map(action -> (PlayCardFromHandAction) action)
                 .toList());
 
         if (playPermanentActions.isEmpty()) {

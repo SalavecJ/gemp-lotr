@@ -1,8 +1,7 @@
 package com.gempukku.lotro.bots.forge.cards;
 
 import com.gempukku.lotro.bots.forge.cards.ability.*;
-import com.gempukku.lotro.bots.forge.cards.ability.cost.*;
-import com.gempukku.lotro.bots.forge.cards.ability.effect.*;
+import com.gempukku.lotro.bots.forge.cards.ability.step.*;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.*;
 import com.gempukku.lotro.common.*;
 import com.gempukku.lotro.game.PhysicalCard;
@@ -856,8 +855,29 @@ public class BotCardFactory {
         // 1_325
         // 1_326 Westfarthing - <b>Fellowship:</b> Exert a Hobbit to play a companion or ally; that character's twilight cost is -1.
         else if (card.getBlueprintId().equals("1_326")) {
-            return new BotCard(card) {
+            return new BotSiteCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new Exert(card -> Race.HOBBIT == card.getPhysicalCard().getBlueprint().getRace()),
+                                            new PlayCard(card ->
+                                                    CardType.COMPANION == card.getPhysicalCard().getBlueprint().getCardType()
+                                                    || CardType.ALLY == card.getPhysicalCard().getBlueprint().getCardType(),
+                                                    -1
+                                            )
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_327 Bree Gate - While you can spot a ranger, the move limit is +1 for this turn.
@@ -890,8 +910,25 @@ public class BotCardFactory {
         // 1_339
         // 1_340 Rivendell Terrace - <b>Sanctuary</b>. <b>Fellowship:</b> Play a Man to draw a card.
         else if (card.getBlueprintId().equals("1_340")) {
-            return new BotCard(card) {
+            return new BotSiteCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new PlayCard(card -> Race.MAN == card.getPhysicalCard().getBlueprint().getRace()),
+                                            new DrawCard()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_341
@@ -926,8 +963,25 @@ public class BotCardFactory {
         }
         // 1_351 Galadriel's Glade - <b>Sanctuary</b>. <b>Fellowship:</b> Exert an Elf to look at an opponent's hand.
         else if (card.getBlueprintId().equals("1_351")) {
-            return new BotCard(card) {
+            return new BotSiteCard(card) {
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
 
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new Exert(card -> Race.ELF == card.getPhysicalCard().getBlueprint().getRace()),
+                                            new RevealOpponentsHand()
+                                    );
+                                }
+                            });
+                }
             };
         }
         // 1_352
@@ -994,7 +1048,30 @@ public class BotCardFactory {
         // 1_363
         // 1_364 Gandalf, The Grey Wizard - <b>Fellowship:</b> Exert Gandalf to play a companion who has the Gandalf signet. The twilight cost of that companion is -2.
         else if (card.getBlueprintId().equals("1_364")) {
-            return new BotCard(card) {
+            return new BotCompanionCard(card) {
+                private final BotCard self = this;
+
+                @Override
+                public List<Ability> getAbilities() {
+                    return List.of(
+                            new ActivatedAbility() {
+                                @Override
+                                public Timeword getTimeword() {
+                                    return Timeword.FELLOWSHIP;
+                                }
+
+                                @Override
+                                public List<AbilityStep> getSteps() {
+                                    return List.of(
+                                            new ExertSelf(self),
+                                            new PlayCard(card ->
+                                                    Signet.GANDALF == card.getPhysicalCard().getBlueprint().getSignet(),
+                                                    -2
+                                            )
+                                    );
+                                }
+                            });
+                }
 
             };
         }

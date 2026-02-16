@@ -1,6 +1,7 @@
-package com.gempukku.lotro.bots.forge.cards.ability.effect;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
 import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.bots.forge.utils.DiscardValueUtil;
@@ -9,7 +10,7 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class DiscardAll extends Effect {
+public class DiscardAll extends AbilityStep {
     private final Predicate<BotCard> cardFilter;
 
     public DiscardAll(Predicate<BotCard> cardFilter) {

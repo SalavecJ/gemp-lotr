@@ -1,9 +1,20 @@
-package com.gempukku.lotro.bots.forge.cards.ability.effect;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-public class RevealOpponentsHand extends Effect {
+public class DrawCard extends AbilityStep {
+    private final int amount;
+
+    public DrawCard(int amount) {
+        this.amount = amount;
+    }
+
+    public DrawCard() {
+        this(1);
+    }
+
     @Override
     public BotTargetingPolicy getBotTargetingPolicy() {
         return null;
@@ -11,7 +22,11 @@ public class RevealOpponentsHand extends Effect {
 
     @Override
     public String toString() {
-        return "Reveal an opponent's hand";
+        if (amount == 1) {
+            return "Draw a card";
+        } else {
+            return "Draw " + amount + " cards";
+        }
     }
 
     @Override
@@ -21,6 +36,6 @@ public class RevealOpponentsHand extends Effect {
 
     @Override
     public double getValue(DefaultLotroGame game, String playerName) {
-        return 1.0;
+        return amount * 0.6;
     }
 }

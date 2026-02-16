@@ -1,8 +1,9 @@
-package com.gempukku.lotro.bots.forge.cards.ability.cost;
+package com.gempukku.lotro.bots.forge.cards.ability.step;
 
 import com.gempukku.lotro.bots.forge.cards.BotCardFactory;
+import com.gempukku.lotro.bots.forge.cards.ability.AbilityStep;
 import com.gempukku.lotro.bots.forge.cards.ability.targeting.BotTargetingPolicy;
-import com.gempukku.lotro.bots.forge.cards.ability.targeting.ExertTargeting;
+import com.gempukku.lotro.bots.forge.cards.ability.targeting.HealTargeting;
 import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.bots.forge.utils.WoundsValueUtil;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
@@ -10,35 +11,36 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class Exert extends Cost {
-    private final int count;
+public class Heal extends AbilityStep {
+    private final int healAmount;
     private final Predicate<BotCard> cardFilter;
 
-    public Exert(Predicate<BotCard> cardFilter, int count) {
+    public Heal(Predicate<BotCard> cardFilter, int healAmount) {
         this.cardFilter = cardFilter;
-        this.count = count;
+        this.healAmount = healAmount;
     }
 
-    public Exert(Predicate<BotCard> cardFilter) {
+    public Heal(Predicate<BotCard> cardFilter) {
         this(cardFilter, 1);
     }
 
     @Override
     public BotTargetingPolicy getBotTargetingPolicy() {
-        return new ExertTargeting(count);
+        return new HealTargeting(healAmount);
     }
 
     @Override
     public String toString() {
-        if (count == 1) {
-            return "Exert";
+        if (healAmount == 1) {
+            return "Heal";
+        } else {
+            return "Heal " + healAmount + " wounds";
         }
-        return "Exert " + count + " times";
     }
 
     @Override
     public boolean decisionTextMatches(String decisionText) {
-        return decisionText.equals("Choose cards to exert");
+        return decisionText.equals("Choose cards to heal");
     }
 
     @Override
@@ -46,7 +48,6 @@ public class Exert extends Cost {
         List<BotCard> potentialTargets = game.getGameState().getActiveCards().stream()
                 .map(BotCardFactory::create)
                 .filter(cardFilter)
-                .filter(card -> game.getModifiersQuerying().getVitality(game, card.getPhysicalCard()) > 1)
                 .toList();
 
         if (potentialTargets.isEmpty()) {
@@ -59,6 +60,6 @@ public class Exert extends Cost {
 
         BotCard chosenTarget = getBotTargetingPolicy().getTargets(tagetingFormatted, game, playerName).getFirst();
 
-        return WoundsValueUtil.evaluateWoundsChangeValue(playerName, game, chosenTarget.getPhysicalCard(), count);
+        return WoundsValueUtil.evaluateWoundsChangeValue(playerName, game, chosenTarget.getPhysicalCard(), -healAmount);
     }
 }
