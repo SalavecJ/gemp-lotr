@@ -180,21 +180,23 @@ public class DecisionToActions {
 //
 //                return List.of(new AssignMinionsAction2(decision.getText(), minions, freeCharacters, fpAssignment, game));
 //            }
-//            case ActionSelectionDecision actionSelectionDecision -> {
-//                if (decision.getText().equals(REQUIRED_RESPONSES)) {
-//                    List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
-//                    List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
-////                for (int i = 0; i < actionIds.size(); i++) {
-//                    for (int i = 0; i < 1; i++) { // Whatever order, minimalize branching
-//                        String actionId = actionIds.get(i);
-//                        String actionText = actionTexts.get(i);
-//
-//                        tbr.add(new AcceptRequiredResponseAction2(decision.getText(), Integer.parseInt(actionId), actionText));
-//                    }
-//                } else {
-//                    throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
-//                }
-//            }
+            case ActionSelectionDecision actionSelectionDecision -> {
+                if (decision.getText().equals(REQUIRED_RESPONSES)) {
+                    List<String> actionIds = Arrays.asList(decision.getDecisionParameters().get("actionId"));
+                    List<String> actionTexts = Arrays.asList(decision.getDecisionParameters().get("actionText"));
+                    List<String> sources = Arrays.asList(decision.getDecisionParameters().get("sourceId"));
+                    for (int i = 0; i < actionIds.size(); i++) {
+                        String actionId = actionIds.get(i);
+                        String actionText = actionTexts.get(i);
+                        int sourceId = Integer.parseInt(sources.get(i));
+                        BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
+
+                        tbr.add(new AcceptRequiredResponseAction(decision.getText(), sourceCard, actionId));
+                    }
+                } else {
+                    throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
+                }
+            }
             case MultipleChoiceAwaitingDecision multipleChoiceAwaitingDecision -> {
                 String[] results = decision.getDecisionParameters().get("results");
                 for (String result : results) {
