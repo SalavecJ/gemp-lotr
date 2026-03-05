@@ -24,7 +24,7 @@ public class FellowshipPhasePlan implements Plan {
     private final DefaultLotroGame game;
 
     private int nextStep = 0;
-    List<ActionToTake> actions2 = new ArrayList<>();
+    List<ActionToTake> actions = new ArrayList<>();
 
     private final DefaultLotroGame copy;
     private final DefaultUserFeedback feedback = new DefaultUserFeedback();
@@ -55,8 +55,8 @@ public class FellowshipPhasePlan implements Plan {
             }
             ActionToTake chosenAction = chooseAction(decisionActions);
 
-            actions2.add(chosenAction);
-            log(1, "  " + actions2.size() + ". " + chosenAction);
+            actions.add(chosenAction);
+            log(1, "  " + actions.size() + ". " + chosenAction);
 
             String answer = chosenAction.carryOut();
             feedback.participantDecided(playerName, answer);
@@ -354,20 +354,20 @@ public class FellowshipPhasePlan implements Plan {
             throw new IllegalStateException("Plan is outdated");
         }
 
-        if (nextStep >= actions2.size()) {
+        if (nextStep >= actions.size()) {
             log(1, "All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
-        ActionToTake action = actions2.get(nextStep);
-        log(1, "Action " + (nextStep + 1) + " out of " + actions2.size() + ": "+ action.toString());
+        ActionToTake action = actions.get(nextStep);
+        log(1, "Action " + (nextStep + 1) + " out of " + actions.size() + ": "+ action.toString());
         nextStep++;
         return action.carryOut();
     }
 
     @Override
     public boolean isOutdated() {
-        return !isActive() || nextStep >= actions2.size();
+        return !isActive() || nextStep >= actions.size();
     }
 
     private boolean isActive() {

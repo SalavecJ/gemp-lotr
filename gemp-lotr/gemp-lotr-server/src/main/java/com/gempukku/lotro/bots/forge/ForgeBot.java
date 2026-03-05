@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.BotPlayer;
 import com.gempukku.lotro.bots.BotService;
 import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
 import com.gempukku.lotro.bots.forge.plan.Plan;
+import com.gempukku.lotro.bots.forge.plan.ShadowAssigningPlan;
 import com.gempukku.lotro.bots.forge.plan.specific.SpecificPlanMaker;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
@@ -79,6 +80,18 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
             plan = SpecificPlanMaker.makePlan(game, awaitingDecision);
         } else if (game.getGameState().getCurrentPhase() == Phase.FELLOWSHIP && game.getGameState().getCurrentPlayerId().equals(getName())){
             plan = new FellowshipPhasePlan(game);
+        } else if (game.getGameState().getCurrentPhase() == Phase.ASSIGNMENT) {
+            if (awaitingDecision.getText().equals("Assign minions to companions or allies at home")) {
+                if (game.getGameState().getCurrentPlayerId().equals(getName())) {
+                    // TODO
+                    throw new UnsupportedOperationException("Making fp assigning plan not implemented yet. Decision: " + awaitingDecision.toJson().toString());
+                } else {
+                    plan = new ShadowAssigningPlan(game);
+                }
+            } else {
+                // TODO
+                throw new UnsupportedOperationException("Making assignment phase plans for not assigning not implemented yet. Decision: " + awaitingDecision.toJson().toString());
+            }
         } else {
             throw new UnsupportedOperationException("Making non-fellowship phase plans not implemented yet. Decision: " + awaitingDecision.toJson().toString());
             //TODO make plans
