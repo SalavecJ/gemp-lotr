@@ -2,9 +2,7 @@ package com.gempukku.lotro.bots.forge;
 
 import com.gempukku.lotro.bots.BotPlayer;
 import com.gempukku.lotro.bots.BotService;
-import com.gempukku.lotro.bots.forge.plan.FellowshipPhasePlan;
-import com.gempukku.lotro.bots.forge.plan.Plan;
-import com.gempukku.lotro.bots.forge.plan.ShadowAssigningPlan;
+import com.gempukku.lotro.bots.forge.plan.*;
 import com.gempukku.lotro.bots.forge.plan.specific.SpecificPlanMaker;
 import com.gempukku.lotro.bots.forge.utils.StartingFellowshipUtil;
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
@@ -78,6 +76,8 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
     private void makeNewPlan(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         if (SpecificPlanMaker.canMakePlan(game, awaitingDecision)) {
             plan = SpecificPlanMaker.makePlan(game, awaitingDecision);
+        } else if (awaitingDecision.getText().equals("Choose next skirmish to resolve")){
+            plan = new SkirmishOrderPlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.FELLOWSHIP && game.getGameState().getCurrentPlayerId().equals(getName())){
             plan = new FellowshipPhasePlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.ASSIGNMENT) {
@@ -89,8 +89,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
                     plan = new ShadowAssigningPlan(game);
                 }
             } else {
-                // TODO
-                throw new UnsupportedOperationException("Making assignment phase plans for not assigning not implemented yet. Decision: " + awaitingDecision.toJson().toString());
+                plan = new AssignmentPhasePlan(game, getName());
             }
         } else {
             throw new UnsupportedOperationException("Making non-fellowship phase plans not implemented yet. Decision: " + awaitingDecision.toJson().toString());
@@ -107,7 +106,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
 
     private String makeGamePreparationDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
         if (isBurdenBidDecision(awaitingDecision)) {
-            return makeBurdenBidDecision(game, awaitingDecision);
+            return makeBurdenBidDecision(game);
         } else if (isGoFirstDecision(awaitingDecision)) {
             return makeGoFirstDecision(game, awaitingDecision);
         } else if (isStartingFellowshipDecision(awaitingDecision)) {
@@ -123,7 +122,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
                 && awaitingDecision.getText().equals("Choose a number of burdens to bid");
     }
 
-    private String makeBurdenBidDecision(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
+    private String makeBurdenBidDecision(DefaultLotroGame game) {
         log(1, "Chosing number to bid", true);
 
         // Bid randomly less than half of resistance

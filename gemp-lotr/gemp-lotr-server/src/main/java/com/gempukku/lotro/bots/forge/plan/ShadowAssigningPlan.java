@@ -43,10 +43,9 @@ public class ShadowAssigningPlan implements Plan {
         if (decisionActions.size() != 1) {
             throw new IllegalStateException("Expected exactly 1 possible action for shadow assigning plan, but got " + decisionActions.size());
         }
-        if (!(decisionActions.getFirst() instanceof AssignMinionsAction)) {
+        if (!(decisionActions.getFirst() instanceof AssignMinionsAction assignMinionsAction)) {
             throw new IllegalStateException("Expected only possible action for shadow assigning plan to be AssignMinionsAction, but got " + decisionActions.getFirst().getClass().getSimpleName());
         }
-        AssignMinionsAction assignMinionsAction = (AssignMinionsAction) decisionActions.getFirst();
 
         int actionNumber = 1;
         while (!assignMinionsAction.isComplete()) {
@@ -85,20 +84,20 @@ public class ShadowAssigningPlan implements Plan {
 
     @Override
     public String chooseActionToTakeOrPass(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
-        log(1, "Shadow assigning plan asked to take action on " + awaitingDecision.toJson().toString(), true);
+        log(2, "Shadow assigning plan asked to take action on " + awaitingDecision.toJson().toString(), true);
 
         if (!isActive()) {
-            log(1, "Shadow assigning plan is outdated");
+            log(2, "Shadow assigning plan is outdated");
             throw new IllegalStateException("Plan is outdated");
         }
 
         if (nextStep >= actions.size()) {
-            log(1, "All actions from plan already taken");
+            log(2, "All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
         ActionToTake action = actions.get(nextStep);
-        log(1, "Action " + (nextStep + 1) + " out of " + actions.size() + ": "+ action.toString());
+        log(2, "Action " + (nextStep + 1) + " out of " + actions.size() + ": "+ action.toString());
         nextStep++;
         return action.carryOut();
     }

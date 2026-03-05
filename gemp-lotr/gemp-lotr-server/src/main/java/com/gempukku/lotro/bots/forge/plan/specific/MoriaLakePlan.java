@@ -20,7 +20,6 @@ import static com.gempukku.lotro.bots.forge.utils.BotLogging.log;
 
 public class MoriaLakePlan implements Plan {
     private final String playerName;
-    private final DefaultLotroGame game;
     private final DefaultLotroGame copy;
     private final DefaultUserFeedback feedback = new DefaultUserFeedback();
     List<ActionToTake> actions = new ArrayList<>();
@@ -32,7 +31,6 @@ public class MoriaLakePlan implements Plan {
         }
 
         this.playerName = game.getGameState().getCurrentPlayerId();
-        this.game = game;
 
         log(1, "Making new plan for Moria Lake", true);
 
@@ -123,15 +121,15 @@ public class MoriaLakePlan implements Plan {
 
     @Override
     public String chooseActionToTakeOrPass(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
-        log(1, "Moria Lake plan asked to take action on " + awaitingDecision.toJson().toString(), true);
+        log(2, "Moria Lake plan asked to take action on " + awaitingDecision.toJson().toString(), true);
 
         if (nextStep >= actions.size()) {
-            log(1, "All actions from plan already taken");
+            log(2, "All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
         ActionToTake action = actions.get(nextStep);
-        log(1, "Action " + (nextStep + 1) + " out of " + actions.size() + ": " + action.toString());
+        log(2, "Action " + (nextStep + 1) + " out of " + actions.size() + ": " + action.toString());
         nextStep++;
         return action.carryOut();
     }

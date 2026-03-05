@@ -347,20 +347,20 @@ public class FellowshipPhasePlan implements Plan {
 
     @Override
     public String chooseActionToTakeOrPass(DefaultLotroGame game, AwaitingDecision awaitingDecision) {
-        log(1, "Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString(), true);
+        log(2, "Fellowship phase plan asked to take action on " + awaitingDecision.toJson().toString(), true);
 
         if (!isActive()) {
-            log(1, "Fellowship plan is outdated");
+            log(2, "Fellowship plan is outdated");
             throw new IllegalStateException("Plan is outdated");
         }
 
         if (nextStep >= actions.size()) {
-            log(1, "All actions from plan already taken");
+            log(2, "All actions from plan already taken");
             throw new IllegalStateException("All actions from plan already taken");
         }
 
         ActionToTake action = actions.get(nextStep);
-        log(1, "Action " + (nextStep + 1) + " out of " + actions.size() + ": "+ action.toString());
+        log(2, "Action " + (nextStep + 1) + " out of " + actions.size() + ": "+ action.toString());
         nextStep++;
         return action.carryOut();
     }
