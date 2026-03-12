@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.forge.plan.action;
 
-import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.bots.forge.cards.abstractcards.BotCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.*;
@@ -9,31 +9,31 @@ import java.util.stream.Collectors;
 
 public class AssignMinionsAction extends ActionToTake {
 
-    private final List<PhysicalCard> minionsToAssign;
-    private final List<PhysicalCard> fpCharactersToAssignTo;
+    private final List<BotCard> minionsToAssign;
+    private final List<BotCard> fpCharactersToAssignTo;
     private final boolean fpAssignment;
 
     private final DefaultLotroGame game;
 
-    private final Map<PhysicalCard, List<PhysicalCard>> assignments = new HashMap<>();
-    private final List<PhysicalCard> unassignedMinions;
+    private final Map<BotCard, List<BotCard>> assignments = new HashMap<>();
+    private final List<BotCard> unassignedMinions;
 
     public static class SubAction {
-        public final PhysicalCard minion;
-        public PhysicalCard fpCharacter;
+        public final BotCard minion;
+        public BotCard fpCharacter;
 
-        public SubAction(PhysicalCard minion, PhysicalCard fpCharacter) {
+        public SubAction(BotCard minion, BotCard fpCharacter) {
             this.minion = minion;
             this.fpCharacter = fpCharacter;
         }
 
         @Override
         public String toString() {
-            return "SubAction: Assign " + minion.getBlueprint().getFullName() + " to " + fpCharacter.getBlueprint().getFullName();
+            return "SubAction: Assign " + minion.getFullName() + " to " + fpCharacter.getFullName();
         }
     }
 
-    public AssignMinionsAction(String decisionText, List<PhysicalCard> minionsToAssign, List<PhysicalCard> fpCharactersToAssignTo,
+    public AssignMinionsAction(String decisionText, List<BotCard> minionsToAssign, List<BotCard> fpCharactersToAssignTo,
                                 boolean fpAssignment, DefaultLotroGame game) {
         super(decisionText);
         this.minionsToAssign = minionsToAssign;
@@ -56,18 +56,19 @@ public class AssignMinionsAction extends ActionToTake {
             throw new IllegalStateException("Assignment action is already complete");
         }
         List<SubAction> result = new ArrayList<>();
-        PhysicalCard minion = unassignedMinions.stream().max((o1, o2) -> Integer.compare(game.getModifiersQuerying().getStrength(game, o1), game.getModifiersQuerying().getStrength(game, o2))).orElseThrow();
-        if (fpAssignment) {
-            List<PhysicalCard> freeFpCharacters = new ArrayList<>(fpCharactersToAssignTo);
-            for (PhysicalCard assignedFpCharacter : assignments.keySet()) {
-                freeFpCharacters.remove(assignedFpCharacter);
-            }
-            for (PhysicalCard fpCharacter : freeFpCharacters) {
-                result.add(new SubAction(minion, fpCharacter));
-            }
-        } else {
-            for (PhysicalCard fpCharacter : fpCharactersToAssignTo) {
-                result.add(new SubAction(minion, fpCharacter));
+        for (BotCard minion : unassignedMinions) {
+            if (fpAssignment) {
+                List<BotCard> freeFpCharacters = new ArrayList<>(fpCharactersToAssignTo);
+                for (BotCard assignedFpCharacter : assignments.keySet()) {
+                    freeFpCharacters.remove(assignedFpCharacter);
+                }
+                for (BotCard fpCharacter : freeFpCharacters) {
+                    result.add(new SubAction(minion, fpCharacter));
+                }
+            } else {
+                for (BotCard fpCharacter : fpCharactersToAssignTo) {
+                    result.add(new SubAction(minion, fpCharacter));
+                }
             }
         }
         return result;
@@ -78,10 +79,18 @@ public class AssignMinionsAction extends ActionToTake {
             throw new IllegalStateException("Assignment action is already complete");
         }
         if (!unassignedMinions.contains(action.minion)) {
-            throw new IllegalArgumentException("Minion " + action.minion.getCardId() + " is already assigned");
+            throw new IllegalArgumentException("Minion " + action.minion.getPhysicalCard().getCardId() + " is already assigned");
         }
         assignments.computeIfAbsent(action.fpCharacter, k -> new ArrayList<>()).add(action.minion);
         unassignedMinions.remove(action.minion);
+    }
+
+    public List<BotCard> getMinionsToAssign() {
+        return minionsToAssign;
+    }
+
+    public List<BotCard> getFpCharactersToAssignTo() {
+        return fpCharactersToAssignTo;
     }
 
     @Override
@@ -91,10 +100,10 @@ public class AssignMinionsAction extends ActionToTake {
         }
 
         return assignments.entrySet().stream()
-                .map((Function<Map.Entry<PhysicalCard, List<PhysicalCard>>, Map.Entry<String, List<String>>>) physicalCardListEntry -> new AbstractMap.SimpleEntry<>(
-                        String.valueOf(physicalCardListEntry.getKey().getCardId()),
-                        physicalCardListEntry.getValue().stream()
-                                .map(card -> String.valueOf(card.getCardId()))
+                .map((Function<Map.Entry<BotCard, List<BotCard>>, Map.Entry<String, List<String>>>) BotCardListEntry -> new AbstractMap.SimpleEntry<>(
+                        String.valueOf(BotCardListEntry.getKey().getPhysicalCard().getCardId()),
+                        BotCardListEntry.getValue().stream()
+                                .map(card -> String.valueOf(card.getPhysicalCard().getCardId()))
                                 .collect(Collectors.toList())))
                 .map(entry -> entry.getKey() + " " + String.join(" ", entry.getValue()))
                 .collect(Collectors.joining(","));
@@ -106,16 +115,16 @@ public class AssignMinionsAction extends ActionToTake {
             throw new IllegalStateException("Assignment action not complete");
         }
         StringBuilder builder = new StringBuilder();
-        for (Map.Entry<PhysicalCard, List<PhysicalCard>> entry : assignments.entrySet()) {
+        for (Map.Entry<BotCard, List<BotCard>> entry : assignments.entrySet()) {
             builder.append("[");
-            builder.append(entry.getKey().getBlueprint().getFullName());
+            builder.append(entry.getKey().getFullName());
             builder.append(": ");
-            builder.append(entry.getValue().stream().map(physicalCard -> physicalCard.getBlueprint().getFullName()).collect(Collectors.joining(", ")));
+            builder.append(entry.getValue().stream().map(BotCard::getFullName).collect(Collectors.joining(", ")));
             builder.append("] ");
         }
         if (!unassignedMinions.isEmpty()) {
             builder.append("[Unassigned: ");
-            builder.append(unassignedMinions.stream().map(physicalCard -> physicalCard.getBlueprint().getFullName()).collect(Collectors.joining(", ")));
+            builder.append(unassignedMinions.stream().map(BotCard::getFullName).collect(Collectors.joining(", ")));
             builder.append("]");
         }
 

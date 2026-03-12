@@ -73,7 +73,7 @@ public class ShadowAssigningPlan implements Plan {
     private AssignMinionsAction.SubAction chooseAction(List<AssignMinionsAction.SubAction> availableActions) {
         //TODO something with skirmish prediction
         for (AssignMinionsAction.SubAction availableAction : availableActions) {
-            if (game.getGameState().getRingBearer(game.getGameState().getCurrentPlayerId()).getCardId() == availableAction.fpCharacter.getCardId()) {
+            if (game.getGameState().getRingBearer(game.getGameState().getCurrentPlayerId()).getCardId() == availableAction.fpCharacter.getPhysicalCard().getCardId()) {
                 log(2, "Choosing " + availableAction + " because it assigns to ring-bearer");
                 return availableAction;
             }

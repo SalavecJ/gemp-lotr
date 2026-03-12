@@ -165,15 +165,15 @@ public class DecisionToActions {
             }
             case PlayerAssignMinionsDecision playerAssignMinionsDecision -> {
                 List<String> minionIds = Arrays.asList(decision.getDecisionParameters().get("minions"));
-                List<PhysicalCard> minions = minionIds.stream().map(s -> {
+                List<BotCard> minions = minionIds.stream().map(s -> {
                     int physicalId = Integer.parseInt(s);
-                    return game.getGameState().findCardById(physicalId);
+                    return BotCardFactory.create(game.getGameState().findCardById(physicalId));
                 }).toList();
 
                 List<String> freeCharacterIds = Arrays.asList(decision.getDecisionParameters().get("freeCharacters"));
-                List<PhysicalCard> freeCharacters = freeCharacterIds.stream().map(s -> {
+                List<BotCard> freeCharacters = freeCharacterIds.stream().map(s -> {
                     int physicalId = Integer.parseInt(s);
-                    return game.getGameState().findCardById(physicalId);
+                    return BotCardFactory.create(game.getGameState().findCardById(physicalId));
                 }).toList();
 
                 boolean fpAssignment = decision.getDecisionParameters().get("player")[0].equals("fp");
