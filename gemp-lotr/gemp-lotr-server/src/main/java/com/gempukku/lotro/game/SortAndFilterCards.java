@@ -119,6 +119,12 @@ public class SortAndFilterCards {
                     case "pack" -> {
                         continue;
                     }
+                    case "special" -> {
+                        if (cardLibrary.getBaseCards().containsKey(blueprintId))
+                            continue;
+                        if (cardLibrary.getBaseCards().containsKey(strippedId) && !blueprintId.contains("T"))
+                            continue;
+                    }
                 }
             }
 

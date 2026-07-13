@@ -333,6 +333,7 @@ var CardFilter = Class.extend({
 			+ "<option value='foil'>Foils</option>"
 			+ "<option value='nonFoil'>Non-foils</option>"
 			+ "<option value='tengwar'>Tengwar</option>"
+			+ "<option value='special'>Special</option>"
 			+ "</select>");
 		
 		this.sortLabel = $("<label for='sortSelect' class='filterLabel'>Sort by:</label>");
