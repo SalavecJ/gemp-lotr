@@ -100,7 +100,10 @@ var GempLotrDeckBuildingUI = Class.extend({
 				},
 				function () {
 					that.finishCollection();
-				});
+				},
+                function () {
+                    return that.getCardsInDeck();
+                });
 		
 		//this.cardFilter.setFilterOverride(this.defaultSelection);
 
@@ -1342,29 +1345,22 @@ var GempLotrDeckBuildingUI = Class.extend({
 		this.deckModified(false);
 	},
 
+    getCardsInDeck:function () {
+        var cards = [];
+        $(".cardInDeck").each(
+            function () {
+                var cardData = $(this).data("card").bareBlueprint;
+                cards.push(cardData);
+            });
+        return cards;
+    },
+
 	setupDeck:function (xml, deckName) {
 		var root = xml.documentElement;
 		if (root.tagName == "deck") {
 			this.clearDeck();
 			this.deckName = deckName;
 			$("#editingDeck").text(deckName);
-			
-			var targetFormat = root.getElementsByTagName("targetFormat");
-			if (targetFormat.length > 0)
-			{
-				var formatCode = targetFormat[0].getAttribute("formatCode");
-				var leagueCode = targetFormat[0].getAttribute("leagueCode");
-
-				// If the deck is associated with an active RTMD league,
-				// select that league entry in the dropdown instead of the
-				// underlying format.
-				if (leagueCode && this.rtmdLeagues && this.rtmdLeagues[leagueCode]) {
-					this.formatSelect.val(leagueCode);
-				} else {
-					this.formatSelect.val(formatCode);
-				}
-				this.formatSelect.change();
-			}
 			
 			var notes = root.getElementsByTagName("notes");
 			this.notes = notes[0].innerHTML;
@@ -1388,6 +1384,23 @@ var GempLotrDeckBuildingUI = Class.extend({
 			var cards = root.getElementsByTagName("card");
 			for (var i = 0; i < cards.length; i++)
 				this.addCardToDeck(cards[i].getAttribute("blueprintId"), cards[i].getAttribute("side"));
+
+			var targetFormat = root.getElementsByTagName("targetFormat");
+			if (targetFormat.length > 0)
+			{
+				var formatCode = targetFormat[0].getAttribute("formatCode");
+				var leagueCode = targetFormat[0].getAttribute("leagueCode");
+
+				// If the deck is associated with an active RTMD league,
+				// select that league entry in the dropdown instead of the
+				// underlying format.
+				if (leagueCode && this.rtmdLeagues && this.rtmdLeagues[leagueCode]) {
+					this.formatSelect.val(leagueCode);
+				} else {
+					this.formatSelect.val(formatCode);
+				}
+				this.formatSelect.change();
+			}
 
 			this.layoutUI(false);
 

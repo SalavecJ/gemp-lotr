@@ -3,6 +3,7 @@ var CardFilter = Class.extend({
 	addCardFunc: null,
 	finishCollectionFunc: null,
 	getCollectionFunc: null,
+	getCardsInDeckFunc: null,
 
 	collectionType: null,
 
@@ -79,13 +80,14 @@ var CardFilter = Class.extend({
 	siteOverride: false,
 	
 
-	init: function (pageElem, getCollectionFunc, clearCollectionFunc, addCardFunc, finishCollectionFunc) {
+	init: function (pageElem, getCollectionFunc, clearCollectionFunc, addCardFunc, finishCollectionFunc, getCardsInDeckFunc) {
 		this.initialStartup = false;
 		
 		this.getCollectionFunc = getCollectionFunc;
 		this.clearCollectionFunc = clearCollectionFunc;
 		this.addCardFunc = addCardFunc;
 		this.finishCollectionFunc = finishCollectionFunc;
+		this.getCardsInDeckFunc = getCardsInDeckFunc;
 
 		this.filter = "";
 
@@ -334,6 +336,7 @@ var CardFilter = Class.extend({
 			+ "<option value='nonFoil'>Non-foils</option>"
 			+ "<option value='tengwar'>Tengwar</option>"
 			+ "<option value='special'>Special</option>"
+			+ "<option value='specialForDeck'>Special in Deck</option>"
 			+ "</select>");
 		
 		this.sortLabel = $("<label for='sortSelect' class='filterLabel'>Sort by:</label>");
@@ -972,11 +975,17 @@ var CardFilter = Class.extend({
 			siteOverrideParam = " siteOverride:true";
 		}
 
+        var blueprints = "";
+        if (product == " product:specialForDeck") {
+            blueprints = " blueprints:" + this.getCardsInDeckFunc();
+        }
+
 		var filterString = side + format + block + set + cardType + rarity + sort + product + culture
 				+ name + gametext
 				+ keyword + phase + race + itemClass
 				+ twilight + strength + vitality + resistance + siteNumber + signet
 				+ siteOverrideParam
+				+ blueprints
 				+ " " + predefFilter;
 
 		console.log("Regenerating filter: " + filterString);
