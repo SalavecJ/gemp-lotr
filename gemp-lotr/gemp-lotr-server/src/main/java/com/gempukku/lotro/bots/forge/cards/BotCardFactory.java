@@ -167,6 +167,10 @@ public class BotCardFactory {
         else if (card.getBlueprintId().equals("1_76")) {
             return new BotEventCard(card, Timeword.RESPONSE) {
 
+                @Override
+                public boolean canBePlayedFromHandDuringCombat() {
+                    return true;
+                }
             };
         }
         // 1_77

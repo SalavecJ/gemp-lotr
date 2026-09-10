@@ -10,11 +10,13 @@ import com.gempukku.lotro.common.Timeword;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public abstract class BotCard {
     private final PhysicalCard physicalCard;
+    private final List<BotCard> attachedCards = new ArrayList<>();
 
     public BotCard(PhysicalCard physicalCard) {
         this.physicalCard = physicalCard;
@@ -30,6 +32,14 @@ public abstract class BotCard {
 
     public boolean discardFromHandIfPossible(DefaultLotroGame game) {
         return false;
+    }
+
+    public final void attachCard(BotCard card) {
+        attachedCards.add(card);
+    }
+
+    public final List<BotCard> getAttachedCards() {
+        return new ArrayList<>(attachedCards);
     }
 
     public List<Ability> getAbilities() {
@@ -67,6 +77,10 @@ public abstract class BotCard {
     @Override
     public final String toString() {
         return getFullName();
+    }
+
+    public boolean canBePlayedFromHandDuringCombat() {
+        return false;
     }
 
     public final boolean canPlayCardFromHand(Timeword timeword, BotCard botCard) {

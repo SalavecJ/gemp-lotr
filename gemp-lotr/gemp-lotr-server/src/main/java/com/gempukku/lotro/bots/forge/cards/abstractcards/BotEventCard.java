@@ -45,4 +45,13 @@ public class BotEventCard extends BotCard {
         }
         return value;
     }
+
+    @Override
+    public boolean canBePlayedFromHandDuringCombat() {
+        return timewords.contains(Timeword.MANEUVER)
+                || timewords.contains(Timeword.ARCHERY)
+                || timewords.contains(Timeword.ASSIGNMENT)
+                || timewords.contains(Timeword.SKIRMISH)
+                || timewords.contains(Timeword.REGROUP);
+    }
 }

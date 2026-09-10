@@ -80,6 +80,8 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
             plan = new SkirmishOrderPlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.FELLOWSHIP && game.getGameState().getCurrentPlayerId().equals(getName())){
             plan = new FellowshipPhasePlan(game);
+        } else if (game.getGameState().getCurrentPlayerId().equals(getName())){
+            plan = new CombatFpPlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.ASSIGNMENT) {
             if (awaitingDecision.getText().equals("Assign minions to companions or allies at home")) {
                 if (game.getGameState().getCurrentPlayerId().equals(getName())) {

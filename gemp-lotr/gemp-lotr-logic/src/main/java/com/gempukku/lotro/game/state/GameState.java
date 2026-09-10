@@ -1157,6 +1157,15 @@ public class GameState {
         return count;
     }
 
+    public List<PhysicalCard> getAttachedCards(int physicalCardId) {
+        for (PhysicalCard physicalCard : getInPlay()) {
+            if (physicalCard.getCardId() == physicalCardId) {
+                return getAttachedCards(physicalCard);
+            }
+        }
+        return new LinkedList<>();
+    }
+
     public List<PhysicalCard> getAttachedCards(PhysicalCard card) {
         List<PhysicalCard> result = new LinkedList<>();
         for (PhysicalCardImpl physicalCard : _inPlay) {
