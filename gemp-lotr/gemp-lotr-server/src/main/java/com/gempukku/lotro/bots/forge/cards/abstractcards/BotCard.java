@@ -83,6 +83,10 @@ public abstract class BotCard {
         return false;
     }
 
+    public boolean canBeActivatedDuringCombat() {
+        return getAbilities().stream().anyMatch(ability -> ability instanceof ActivatedAbility activatedAbility && activatedAbility.getTimeword() != Timeword.FELLOWSHIP);
+    }
+
     public final boolean canPlayCardFromHand(Timeword timeword, BotCard botCard) {
         return getAbilities().stream().anyMatch(ability -> ability instanceof ActivatedAbility activatedAbility
                 && activatedAbility.getTimeword() == timeword

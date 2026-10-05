@@ -39,7 +39,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
     @Override
     public void decisionMadeByPlayer(DefaultLotroGame game, AwaitingDecision awaitingDecision, String answer, String player) {
         if (plan != null) {
-            plan.decisionMadeByPlayer(awaitingDecision, answer, player);
+            plan.decisionMadeByPlayer(game, awaitingDecision, answer, player);
         }
     }
 
@@ -80,7 +80,7 @@ public class ForgeBot extends RandomDecisionBot implements BotPlayer {
             plan = new SkirmishOrderPlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.FELLOWSHIP && game.getGameState().getCurrentPlayerId().equals(getName())){
             plan = new FellowshipPhasePlan(game);
-        } else if (game.getGameState().getCurrentPlayerId().equals(getName())){
+        } else if (game.getGameState().getCurrentPlayerId().equals(getName()) && game.getGameState().getCurrentPhase() == Phase.MANEUVER){
             plan = new CombatFpPlan(game);
         } else if (game.getGameState().getCurrentPhase() == Phase.ASSIGNMENT) {
             if (awaitingDecision.getText().equals("Assign minions to companions or allies at home")) {

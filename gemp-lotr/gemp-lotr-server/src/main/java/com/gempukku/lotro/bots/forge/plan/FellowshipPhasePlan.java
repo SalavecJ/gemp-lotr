@@ -377,7 +377,7 @@ public class FellowshipPhasePlan implements Plan {
     }
 
     @Override
-    public void decisionMadeByPlayer(AwaitingDecision awaitingDecision, String answer, String player) {
+    public void decisionMadeByPlayer(DefaultLotroGame game, AwaitingDecision awaitingDecision, String answer, String player) {
         // During fellowship phase the player plays without interruptions, opponent makes no decisions
     }
 }

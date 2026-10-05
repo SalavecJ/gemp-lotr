@@ -23,6 +23,8 @@ public class DecisionToActions {
     private static final String HEAL_BY_DISCARDING = "Heal by discarding";
     private static final String CHOOSE_NEXT_SKIRMISH = "Choose next skirmish to resolve";
     private static final String REQUIRED_RESPONSES = "Required responses";
+    private static final String RECONCILE_OPTIONAL = "Reconcile - choose card to discard or press DONE";
+    private static final String RECONCILE_REQUIRED = "Choose cards to discard down to 8";
 
 
     public static List<ActionToTake> toActions(AwaitingDecision decision, DefaultLotroGame game) {
@@ -62,14 +64,6 @@ public class DecisionToActions {
                     }
                     tbr.add(new PassAction(decision.getText()));
                 } else {
-                    // Assume nothing can be used and play maneuver to regroup
-                    if (decision.getText().equals("Play Maneuver action or Pass") ||
-                            decision.getText().equals("Play Archery action or Pass") ||
-                            decision.getText().equals("Play Assignment action or Pass") ||
-                            decision.getText().equals("Choose action to play or Pass") ||
-                            decision.getText().equals("Play Regroup action or Pass")) {
-                        return List.of(new PassAction(decision.getText()));
-                    }
 
                     for (int i = 0; i < actionIds.size(); i++) {
                         String actionId = actionIds.get(i);
@@ -117,6 +111,27 @@ public class DecisionToActions {
                             PhysicalCard card = game.getGameState().findCardById(Integer.parseInt(physicalId));
                             tbr.add(new AssignArcheryWoundAction(decision.getText(), BotCardFactory.create(card)));
                         }
+                    } else if (decision.getText().equals(RECONCILE_OPTIONAL)) {
+                        for (String physicalId : physicalIds) {
+                            PhysicalCard card = game.getGameState().findCardById(Integer.parseInt(physicalId));
+                            tbr.add(new DiscardToReconcileAction(decision.getText(), BotCardFactory.create(card)));
+                        }
+                        tbr.add(new PassAction(decision.getText()));
+                    } else if(decision.getText().equals(RECONCILE_REQUIRED)) {
+                        // Convert physical IDs to BotCards
+                        List<BotCard> availableTargets = new ArrayList<>();
+                        for (String physicalId : physicalIds) {
+                            availableTargets.add(BotCardFactory.create(game.getGameState().findCardById(Integer.parseInt(physicalId))));
+                        }
+
+                        // Generate all combinations of size 'min' (which equals 'max')
+                        List<List<BotCard>> combinations = generateCombinations(availableTargets, min);
+
+                        // Create an action for each combination
+                        for (List<BotCard> combination : combinations) {
+                            tbr.add(new ForcedReconcileAction(decision.getText(), combination));
+                        }
+
                     } else {
                         throw new IllegalStateException("Only skirmish selection without source card is supported, but got decision text: " + decision.getText());
                     }
@@ -188,10 +203,14 @@ public class DecisionToActions {
                     for (int i = 0; i < actionIds.size(); i++) {
                         String actionId = actionIds.get(i);
                         String actionText = actionTexts.get(i);
-                        int sourceId = Integer.parseInt(sources.get(i));
-                        BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
+                        if (sources.get(i).equals("rules")) {
+                            tbr.add(new AcceptRequiredRulesResponseAction(decision.getText(), actionText, actionId));
+                        } else {
+                            int sourceId = Integer.parseInt(sources.get(i));
+                            BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
 
-                        tbr.add(new AcceptRequiredResponseAction(decision.getText(), sourceCard, actionId));
+                            tbr.add(new AcceptRequiredResponseAction(decision.getText(), sourceCard, actionId));
+                        }
                     }
                 } else {
                     throw new IllegalStateException("Unknown action selection decision: " + decision.toJson());
@@ -201,6 +220,15 @@ public class DecisionToActions {
                 String[] results = decision.getDecisionParameters().get("results");
                 for (String result : results) {
                     tbr.add(new ChooseOptionAction(decision, result));
+                }
+            }
+            case IntegerAwaitingDecision integerAwaitingDecision -> {
+                int min = Integer.parseInt(decision.getDecisionParameters().get("min")[0]);
+                int max = Integer.parseInt(decision.getDecisionParameters().get("max")[0]);
+                int sourceId = Integer.parseInt(decision.getDecisionParameters().get("source")[0]);
+                BotCard sourceCard = BotCardFactory.create(game.getGameState().findCardById(sourceId));
+                for (int i = min; i <= max; i++) {
+                    tbr.add(new ChooseIntegerAction(decision.getText(), sourceCard, i));
                 }
             }
             default -> {

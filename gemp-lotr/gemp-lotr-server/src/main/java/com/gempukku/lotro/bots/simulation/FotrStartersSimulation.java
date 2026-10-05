@@ -88,7 +88,7 @@ public class FotrStartersSimulation implements Simulation {
             lotroGame.carryOutPendingActionsUntilDecisionNeeded();
         } catch (DecisionResultInvalidException e) {
             // Bot provided wrong answer - ask again for the same decision
-            System.out.println(bot.getName() + " wrong answer - " + e.getWarningMessage());
+            System.out.println(bot.getName() + " wrong answer during simulation - " + e.getWarningMessage());
             System.out.println("Asked decision: " + awaitingDecision.toJson());
             System.out.println("Provided answer: " + action);
             userFeedback.sendAwaitingDecision(bot.getName(), awaitingDecision);

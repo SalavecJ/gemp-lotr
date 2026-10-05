@@ -5,6 +5,6 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 public interface Plan {
     String chooseActionToTakeOrPass(DefaultLotroGame game, AwaitingDecision awaitingDecision);
-    void decisionMadeByPlayer(AwaitingDecision awaitingDecision, String answer, String player);
+    void decisionMadeByPlayer(DefaultLotroGame game, AwaitingDecision awaitingDecision, String answer, String player);
     boolean isOutdated();
 }
