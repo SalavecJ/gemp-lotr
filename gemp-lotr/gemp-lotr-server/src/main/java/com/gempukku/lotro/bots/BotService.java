@@ -1,7 +1,5 @@
 package com.gempukku.lotro.bots;
 
-import com.gempukku.lotro.bots.forge.ForgeBot;
-import com.gempukku.lotro.bots.forge.utils.BotLogging;
 import com.gempukku.lotro.bots.random.RandomDecisionBot;
 import com.gempukku.lotro.bots.random.RandomLearningBot;
 import com.gempukku.lotro.bots.rl.learning.LearningStep;
@@ -27,6 +25,9 @@ import com.gempukku.lotro.bots.simulation.FotrStartersSimulation;
 import com.gempukku.lotro.bots.simulation.SimpleBatchSimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationStats;
+import com.gempukku.lotro.bots.v2.BotLogging;
+import com.gempukku.lotro.bots.v2.BotV2;
+import com.gempukku.lotro.bots.v2.random.RandomDecider;
 import com.gempukku.lotro.common.DateUtils;
 import com.gempukku.lotro.db.DeckSerialization;
 import com.gempukku.lotro.db.LoginInvalidException;
@@ -133,16 +134,16 @@ public class BotService {
 
         if (START_NEW_BOT_SIMULATION_AT_STARTUP) {
             BotLogging.setLogLevel(1);
-            System.out.println("Random vs Forge");
+            System.out.println("Random vs V2");
             startFotrStartersSimulation(
                     new RandomDecisionBot("~randomBot"),
-                    new ForgeBot("~forgeBot"),
+                    new BotV2("~v2Bot", new RandomDecider()),
                     100);
 
-            System.out.println("Old vs Forge");
+            System.out.println("Old vs V2");
             startFotrStartersSimulation(
                     new FotrStarterBot(new FotrStartersRLGameStateFeatures(), "~oldBot", modelRegistry, null),
-                    new ForgeBot("~forgeBot"),
+                    new BotV2("~v2Bot", new RandomDecider()),
                     100);
         }
     }
