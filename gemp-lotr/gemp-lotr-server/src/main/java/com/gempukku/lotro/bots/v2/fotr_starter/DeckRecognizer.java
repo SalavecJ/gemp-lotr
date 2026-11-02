@@ -1,4 +1,4 @@
-package com.gempukku.lotro.bots.v2;
+package com.gempukku.lotro.bots.v2.fotr_starter;
 
 import com.gempukku.lotro.logic.vo.LotroDeck;
 
@@ -7,20 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class StartingFellowshipUtil {
-    public static List<String> getStartingFellowship(LotroDeck deck) {
-        // Gandalf Starter
-        if (isGandalfFotrStarter(deck)) {
-            return List.of("1_364");
-        }
-        // Aragorn Starter
-        if (isAragornFotrStarter(deck)) {
-            return List.of("1_365");
-        }
+public class DeckRecognizer {
 
-        // TODO expand
-
-        throw new UnsupportedOperationException("Cannot decide on starting fellowship for deck: " + deck.getDeckName());
+    public static FotrStarterDeck recognize(LotroDeck deck) {
+        if (isAragornFotrStarter(deck))
+            return FotrStarterDeck.ARAGORN_STARTER;
+        if (isGandalfFotrStarter(deck))
+            return FotrStarterDeck.GANDALF_STARTER;
+        throw new IllegalArgumentException("Deck is not a recognized Fotr starter deck");
     }
 
     private static boolean isAragornFotrStarter(LotroDeck deck) {
@@ -59,4 +53,5 @@ public class StartingFellowshipUtil {
         }
         return true;
     }
+
 }

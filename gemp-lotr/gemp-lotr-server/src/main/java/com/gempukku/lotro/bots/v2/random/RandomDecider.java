@@ -13,7 +13,7 @@ import java.util.List;
 public class RandomDecider implements Decider {
 
     @Override
-    public List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game) {
+    public List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
         int minToSelect = decisionRequest.getMinToSelect();
         int maxToSelect = decisionRequest.getMaxToSelect();
 

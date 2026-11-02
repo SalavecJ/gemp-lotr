@@ -34,4 +34,16 @@ public abstract class DecisionRequest {
         }
     }
 
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+        result.append(text);
+
+        for (int i = 0; i < getOptions().size(); i++) {
+            result.append("\n");
+            result.append(i + 1).append(": ").append(getOptions().get(i));
+        }
+
+        return result.toString();
+    }
 }

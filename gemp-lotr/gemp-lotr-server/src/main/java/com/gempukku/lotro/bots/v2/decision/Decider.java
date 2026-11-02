@@ -7,5 +7,5 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import java.util.List;
 
 public interface Decider {
-    List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game);
+    List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game, String player);
 }

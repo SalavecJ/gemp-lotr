@@ -27,7 +27,7 @@ import com.gempukku.lotro.bots.simulation.SimulationRunner;
 import com.gempukku.lotro.bots.simulation.SimulationStats;
 import com.gempukku.lotro.bots.v2.BotLogging;
 import com.gempukku.lotro.bots.v2.BotV2;
-import com.gempukku.lotro.bots.v2.random.RandomDecider;
+import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDecider;
 import com.gempukku.lotro.common.DateUtils;
 import com.gempukku.lotro.db.DeckSerialization;
 import com.gempukku.lotro.db.LoginInvalidException;
@@ -133,17 +133,17 @@ public class BotService {
         }
 
         if (START_NEW_BOT_SIMULATION_AT_STARTUP) {
-            BotLogging.setLogLevel(1);
+            BotLogging.setLogLevel(2);
             System.out.println("Random vs V2");
             startFotrStartersSimulation(
                     new RandomDecisionBot("~randomBot"),
-                    new BotV2("~v2Bot", new RandomDecider()),
+                    new BotV2("~v2Bot", new FotrStarterDecider()),
                     100);
 
             System.out.println("Old vs V2");
             startFotrStartersSimulation(
                     new FotrStarterBot(new FotrStartersRLGameStateFeatures(), "~oldBot", modelRegistry, null),
-                    new BotV2("~v2Bot", new RandomDecider()),
+                    new BotV2("~v2Bot", new FotrStarterDecider()),
                     100);
         }
     }

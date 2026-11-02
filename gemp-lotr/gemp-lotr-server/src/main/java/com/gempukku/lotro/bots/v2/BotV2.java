@@ -24,12 +24,9 @@ public class BotV2 implements BotPlayer {
         try {
             DecisionRequest decisionRequest = DecisionRequestFactory.create(game, awaitingDecision);
 
-            BotLogging.log(1, decisionRequest.getText(), true);
-            for (int i = 0; i < decisionRequest.getOptions().size(); i++) {
-                BotLogging.log(1, (i + 1) + ": " + decisionRequest.getOptions().get(i));
-            }
+            BotLogging.log(1, game.getGameState().getCurrentPhase() + ": " + decisionRequest.toString(), true);
 
-            List<Option> chosenOptions = decider.decide(decisionRequest, game);
+            List<Option> chosenOptions = decider.decide(decisionRequest, game, botName);
             if (chosenOptions.isEmpty()) {
                 throw new IllegalStateException("No options chosen for decision: " + awaitingDecision.toJson().toString());
             } else if (chosenOptions.size() == 1) {
