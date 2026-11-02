@@ -4,6 +4,7 @@ import com.gempukku.lotro.bots.v2.decision.Decider;
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.AssignMinionsDecisionRequest;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
+import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.MulliganDecider;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
@@ -36,6 +37,11 @@ public class FotrStarterDecider implements Decider {
             return List.of(StartingPositionChooser.choosePosition(decisionRequest));
         } else if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof StartingCompanionOption)) {
             return List.of(StartingCompanionChooser.chooseStartingCompanion(decisionRequest, game, player));
+        }
+
+        // between turns
+        if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof MulliganOption)) {
+            return List.of(MulliganDecider.decide(decisionRequest, game, player));
         }
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {

@@ -34,7 +34,7 @@ public class BurdenBidder {
 
         int randomIndex = (int) (Math.random() * optionList.size());
         BotLogging.log(2, "Maximum burdens to bid " + max + " for " + deck);
-        BotLogging.log(2, "Randomly bidding " + optionList.get(randomIndex).getBid());
+        BotLogging.log(2, "Random bid in range: " + optionList.get(randomIndex).getBid());
         return optionList.get(randomIndex);
     }
 }

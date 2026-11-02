@@ -15,7 +15,7 @@ public class StartingPositionChooser {
         for (Option option : decisionRequest.getOptions()) {
             StartingPositionOption startingPositionOption = (StartingPositionOption) option;
             if (startingPositionOption.getStartingPosition() == 1) {
-                BotLogging.log(2, "Always choosing to go first");
+                BotLogging.log(2, "Always choose to go first");
                 return startingPositionOption;
             }
         }
