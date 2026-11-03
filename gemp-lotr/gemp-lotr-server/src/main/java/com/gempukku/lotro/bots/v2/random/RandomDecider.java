@@ -55,6 +55,11 @@ public class RandomDecider implements Decider {
         }
     }
 
+    @Override
+    public void cleanUpAfterGame() {
+
+    }
+
     private List<Option> randomlyDecideAssignment(AssignMinionsDecisionRequest assignMinionsDecisionRequest) {
         while (assignMinionsDecisionRequest.getNextMinion() != null) {
             int randomIndex = (int) (Math.random() * assignMinionsDecisionRequest.getOptions().size());

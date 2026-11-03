@@ -33,7 +33,7 @@ public class BotV2 implements BotPlayer {
                 BotLogging.log(1, "Chosen option: " + chosenOptions.getFirst());
                 return chosenOptions.getFirst().getAnswerForGame();
             } else {
-                BotLogging.log(1, "Chosen options: " + String.join("; ", chosenOptions.stream().map(Option::toString).toList()));
+                BotLogging.log(1, "Chosen options: " + chosenOptions);
                 return decisionRequest.combineSelected(chosenOptions);
             }
         } catch (Exception e) {
@@ -50,7 +50,7 @@ public class BotV2 implements BotPlayer {
 
     @Override
     public void cleanUpAfterGame() {
-
+        decider.cleanUpAfterGame();
     }
 
     @Override

@@ -1,10 +1,12 @@
 package com.gempukku.lotro.bots.v2.fotr_starter;
 
+import com.gempukku.lotro.bots.v2.BotLogging;
 import com.gempukku.lotro.bots.v2.decision.Decider;
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.AssignMinionsDecisionRequest;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.MulliganDecider;
+import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.SanctuaryPlanner;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FotrStarterDecider implements Decider {
+    private Plan currentPlan = null;
 
     @Override
     public List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
@@ -30,6 +33,13 @@ public class FotrStarterDecider implements Decider {
             throw new IllegalArgumentException("Not enough options to select the minimum required");
         }
 
+        // check plan
+        if (currentPlan != null && !currentPlan.isComplete()) {
+            List<Option> nextAction = currentPlan.nextAction(decisionRequest);
+            BotLogging.log(2, "Choosing planned action");
+            return nextAction;
+        }
+
         // pregame decisions
         if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof BurdenBidOption)) {
             return List.of(BurdenBidder.bid(decisionRequest, game, player));
@@ -42,6 +52,10 @@ public class FotrStarterDecider implements Decider {
         // between turns
         if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof MulliganOption)) {
             return List.of(MulliganDecider.decide(decisionRequest, game, player));
+        } if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof SanctuaryHealOption)) {
+            currentPlan = SanctuaryPlanner.getPlan(decisionRequest, game, player);
+            BotLogging.log(2, "Sanctuary plan:\n" + currentPlan);
+            return decide(decisionRequest, game, player);
         }
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {
@@ -70,6 +84,11 @@ public class FotrStarterDecider implements Decider {
 
             return selectedOptions;
         }
+    }
+
+    @Override
+    public void cleanUpAfterGame() {
+        currentPlan = null;
     }
 
     private List<Option> randomlyDecideAssignment(AssignMinionsDecisionRequest assignMinionsDecisionRequest) {

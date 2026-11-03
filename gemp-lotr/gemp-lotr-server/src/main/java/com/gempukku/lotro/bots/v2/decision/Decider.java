@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface Decider {
     List<Option> decide(DecisionRequest decisionRequest, DefaultLotroGame game, String player);
+    void cleanUpAfterGame();
 }
