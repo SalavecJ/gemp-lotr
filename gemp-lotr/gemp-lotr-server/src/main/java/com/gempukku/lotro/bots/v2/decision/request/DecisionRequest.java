@@ -1,6 +1,6 @@
 package com.gempukku.lotro.bots.v2.decision.request;
 
-import com.gempukku.lotro.bots.v2.decision.option.Option;
+import com.gempukku.lotro.bots.v2.decision.option.*;
 
 import java.util.List;
 
@@ -32,6 +32,26 @@ public abstract class DecisionRequest {
         } else {
             return String.join(",", picked.stream().map(Option::getAnswerForGame).toList());
         }
+    }
+
+    public boolean isBurdenBidDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
+    }
+
+    public boolean isStartingPositionDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof StartingPositionOption);
+    }
+
+    public boolean isStartingCompanionDecision() {
+        return getOptions().stream().anyMatch(option -> option instanceof StartingCompanionOption);
+    }
+
+    public boolean isMulliganDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof MulliganOption);
+    }
+
+    public boolean isSanctuaryHealDecision() {
+        return getOptions().stream().anyMatch(option -> option instanceof SanctuaryHealOption);
     }
 
     @Override

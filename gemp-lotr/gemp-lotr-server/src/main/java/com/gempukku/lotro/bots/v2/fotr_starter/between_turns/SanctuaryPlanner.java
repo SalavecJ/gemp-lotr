@@ -157,7 +157,7 @@ public class SanctuaryPlanner {
         List<List<Option>> actionsToTake = new ArrayList<>();
         DecisionRequest nextDecision = simulatedGame.getDecisionRequest(player);
 
-        while (nextDecision != null && nextDecision.getOptions().stream().anyMatch(option -> option instanceof SanctuaryHealOption)) {
+        while (nextDecision != null && nextDecision.isSanctuaryHealDecision()) {
             DecisionRequest finalNextDecision = nextDecision;
             Option optionToTake = nextDecision.getOptions().stream()
                     .filter(option -> option instanceof SanctuaryHealOption)

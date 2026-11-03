@@ -41,18 +41,18 @@ public class FotrStarterDecider implements Decider {
         }
 
         // pregame decisions
-        if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof BurdenBidOption)) {
+        if (decisionRequest.isBurdenBidDecision()) {
             return List.of(BurdenBidder.bid(decisionRequest, game, player));
-        } else if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof StartingPositionOption)) {
+        } else if (decisionRequest.isStartingPositionDecision()) {
             return List.of(StartingPositionChooser.choosePosition(decisionRequest));
-        } else if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof StartingCompanionOption)) {
+        } else if (decisionRequest.isStartingCompanionDecision()) {
             return List.of(StartingCompanionChooser.chooseStartingCompanion(decisionRequest, game, player));
         }
 
         // between turns
-        if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof MulliganOption)) {
+        if (decisionRequest.isMulliganDecision()) {
             return List.of(MulliganDecider.decide(decisionRequest, game, player));
-        } if (decisionRequest.getOptions().stream().anyMatch(option -> option instanceof SanctuaryHealOption)) {
+        } else if (decisionRequest.isSanctuaryHealDecision()) {
             currentPlan = SanctuaryPlanner.getPlan(decisionRequest, game, player);
             BotLogging.log(2, "Sanctuary plan:\n" + currentPlan);
             return decide(decisionRequest, game, player);
