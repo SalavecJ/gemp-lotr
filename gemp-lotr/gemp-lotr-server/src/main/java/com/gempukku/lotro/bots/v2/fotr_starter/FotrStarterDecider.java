@@ -62,10 +62,8 @@ public class FotrStarterDecider implements Decider {
         // fellowship phase
         if (decisionRequest.isFellowshipPhaseDecision()) {
             currentPlan = FellowshipPhasePlanner.getPlan(game, player);
-            if (currentPlan != null) {
-                BotLogging.log(2, "Fellowship phase plan:\n" + currentPlan);
-                return decide(decisionRequest, game, player);
-            }
+            BotLogging.log(2, "Fellowship phase plan:\n" + currentPlan);
+            return decide(decisionRequest, game, player);
         }
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {

@@ -2,7 +2,6 @@ package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
 
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
-import com.gempukku.lotro.bots.v2.fotr_starter.DeckRecognizer;
 import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
 import com.gempukku.lotro.bots.v2.fotr_starter.Plan;
 import com.gempukku.lotro.bots.v2.fotr_starter.SimplePlan;
@@ -10,6 +9,7 @@ import com.gempukku.lotro.bots.v2.fotr_starter.utility.DeadCardEvaluator;
 import com.gempukku.lotro.bots.v2.simulation.SimulatedGame;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.common.Phase;
+import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.LotroCardBlueprint;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
@@ -17,7 +17,10 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
+
+import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.CardPredicates.*;
+import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.GameQueries.*;
+import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.OptionFinders.*;
 
 public class GandalfFellowshipPhasePlanner {
     private static final String FRODO = "Frodo, Son of Drogo";
@@ -157,10 +160,6 @@ public class GandalfFellowshipPhasePlanner {
         }
     }
 
-    private static boolean sourceHasFullName(DecisionRequest decision, String fullName) {
-        return decision.getSource().getBlueprint().getFullName().equals(fullName);
-    }
-
     private static Option chooseMoriaLakeChoice(List<Option> options) {
         // choose 'Exert Frodo' option for Moria Lake
         return findChoice(options, EXERT_FRODO_CHOICE)
@@ -218,11 +217,11 @@ public class GandalfFellowshipPhasePlanner {
         return findArbitraryTarget(options, target.getFullName())
                 .orElseThrow(() -> new IllegalStateException("Target for Barliman Butterbur not found: " + target.getFullName()));
     }
+
     private static List<PhysicalCard> chooseTargetsForMoriaLake(List<PhysicalCard> possibleTargets, SimulatedGame simulatedGame, String player) {
         // choose two to exert
         List<PhysicalCard> tbr = new ArrayList<>();
 
-        FotrStarterDeck opponentDeck = DeckRecognizer.recognize(simulatedGame.getGame().getGameState().getLotroDeck(simulatedGame.getGame().getGameState().getOpponent(player)));
         Map<PhysicalCard, Integer> vitalityMap = new HashMap<>();
         for (PhysicalCard target : possibleTargets) {
             int vitality = simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), target);
@@ -232,8 +231,7 @@ public class GandalfFellowshipPhasePlanner {
         // whom losing hurts the least
         List<String> exertPriority = List.of(GIMLI, LEGOLAS, BOROMIR, GANDALF);
 
-        // need more than 3 vitality to exert against Uruks, more than 2 against Moria
-        int vitalitySaveThreshold = opponentDeck == FotrStarterDeck.ARAGORN_STARTER ? 3 : 2;
+        int vitalitySaveThreshold = getVitalitySaveThreshold(simulatedGame, player);
         List<PhysicalCard> safeToExertTargets = possibleTargets.stream()
                 .filter(target -> vitalityMap.get(target) > vitalitySaveThreshold)
                 .toList();
@@ -263,7 +261,7 @@ public class GandalfFellowshipPhasePlanner {
     }
 
     private static PhysicalCard chooseTargetForGimli(List<PhysicalCard> possibleTargets, SimulatedGame simulatedGame, String player) {
-        List<PhysicalCard> deadCards = DeadCardEvaluator.getDeadCards(simulatedGame.getGame(), player);
+        List<PhysicalCard> deadCards = DeadCardEvaluator.getUnplayableCardsInHand(simulatedGame.getGame(), player);
         // choose the first dead card in hand
         for (PhysicalCard target : possibleTargets) {
             for (PhysicalCard deadCard : deadCards) {
@@ -330,12 +328,12 @@ public class GandalfFellowshipPhasePlanner {
 
     private static long countEnemyConditionsInPlay(SimulatedGame simulatedGame, String player) {
         return simulatedGame.getGame().getGameState().getInPlay().stream()
-                .filter(card -> card.getBlueprint().getCardType() == CardType.CONDITION && !card.getOwner().equals(player))
+                .filter(card -> card.getBlueprint().getCardType() == CardType.CONDITION && !card.getOwner().equals(player) && card.getBlueprint().getSide() == Side.SHADOW)
                 .count();
     }
 
     private static boolean wantToActivateGandalf(SimulatedGame simulatedGame, String player) {
-        FotrStarterDeck opponentDeck = DeckRecognizer.recognize(simulatedGame.getGame().getGameState().getLotroDeck(simulatedGame.getGame().getGameState().getOpponent(player)));
+        FotrStarterDeck opponentDeck = getOpponentDeck(simulatedGame, player);
         int gandalfVitality = getVitality(simulatedGame, GANDALF, player);
 
         if (gandalfVitality == 3 && opponentDeck == FotrStarterDeck.ARAGORN_STARTER) {
@@ -351,89 +349,12 @@ public class GandalfFellowshipPhasePlanner {
 
     private static boolean wantToActivateGimli(SimulatedGame simulatedGame, String player) {
         // one card can be discarded to reconcile at the end of turn
-        return DeadCardEvaluator.getDeadCards(simulatedGame.getGame(), player).size() >= 2;
-    }
-
-    private static int getVitality(SimulatedGame simulatedGame, String fullName, String player) {
-        PhysicalCard character = simulatedGame.getGame().getGameState().getInPlay().stream()
-                .filter(card -> card.getBlueprint().getFullName().equals(fullName) && card.getOwner().equals(player))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(fullName + " not in play"));
-        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), character);
-    }
-
-    private static Predicate<PhysicalCard> hasFullName(String fullName) {
-        return card -> card.getBlueprint().getFullName().equals(fullName);
-    }
-
-    private static Predicate<PhysicalCard> hasCardType(CardType cardType) {
-        return card -> card.getBlueprint().getCardType() == cardType;
-    }
-
-    private static Option findActivate(List<Option> options, Predicate<PhysicalCard> cardFilter) {
-        return options.stream()
-                .filter(option -> option instanceof ActivateCardOption activateCardOption && cardFilter.test(activateCardOption.getCard()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static Option findPlay(List<Option> options, Predicate<PhysicalCard> cardFilter) {
-        return options.stream()
-                .filter(option -> option instanceof PlayCardOption playCardOption && cardFilter.test(playCardOption.getCard()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static Option findOptionOfType(List<Option> options, Class<? extends Option> optionType) {
-        return options.stream()
-                .filter(optionType::isInstance)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static List<PhysicalCard> getTargets(List<Option> options) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseTargetForCardOption)
-                .map(option -> ((ChooseTargetForCardOption) option).getTarget())
-                .toList();
-    }
-
-    private static Option findOptionForTarget(List<Option> options, PhysicalCard target) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getCardId() == target.getCardId())
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static Optional<Option> findChoice(List<Option> options, String choice) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseOptionForCardOption chooseOptionForCardOption && chooseOptionForCardOption.getChoice().equals(choice))
-                .findFirst();
-    }
-
-    private static List<LotroCardBlueprint> getArbitraryTargets(List<Option> options) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseArbitraryTargetForCardOption)
-                .map(option -> ((ChooseArbitraryTargetForCardOption) option).getBlueprint())
-                .toList();
-    }
-
-    private static Optional<Option> findArbitraryTarget(List<Option> options, String fullName) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseArbitraryTargetForCardOption chooseArbitraryTargetForCardOption && chooseArbitraryTargetForCardOption.getBlueprint().getFullName().equals(fullName))
-                .findFirst();
+        return DeadCardEvaluator.getUnplayableCardsInHand(simulatedGame.getGame(), player).size() >= 2;
     }
 
     private static LotroCardBlueprint findByFullName(List<LotroCardBlueprint> blueprints, String fullName) {
         return blueprints.stream()
                 .filter(blueprint -> blueprint.getFullName().equals(fullName))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static Option findTargetWithFullName(List<Option> options, String fullName) {
-        return options.stream()
-                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && hasFullName(fullName).test(chooseTargetForCardOption.getTarget()))
                 .findFirst()
                 .orElse(null);
     }
