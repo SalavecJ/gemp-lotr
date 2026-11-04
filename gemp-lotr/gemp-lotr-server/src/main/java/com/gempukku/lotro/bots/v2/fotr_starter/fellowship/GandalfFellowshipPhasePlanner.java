@@ -16,201 +16,43 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 public class GandalfFellowshipPhasePlanner {
+    private static final String FRODO = "Frodo, Son of Drogo";
+    private static final String GIMLI = "Gimli, Dwarf of Erebor";
+    private static final String GANDALF = "Gandalf, The Grey Wizard";
+    private static final String LEGOLAS = "Legolas, Prince of Mirkwood";
+    private static final String BOROMIR = "Boromir, Son of Denethor";
+    private static final String BARLIMAN_BUTTERBUR = "Barliman Butterbur, Prancing Pony Proprietor";
+    private static final String WESTFARTHING = "Westfarthing";
+    private static final String RIVENDELL_TERRACE = "Rivendell Terrace";
+    private static final String MORIA_LAKE = "Moria Lake";
+    private static final String HOBBIT_SWORD = "Hobbit Sword";
+    private static final String SLEEP_CARADHRAS = "Sleep, Caradhras";
+    private static final String TREACHERY_DEEPER_THAN_YOU_KNOW = "Treachery Deeper Than You Know";
+    private static final String SORRY_ABOUT_EVERYTHING = "Sorry About Everything";
+    private static final String MYSTERIOUS_WIZARD = "Mysterious Wizard";
+    private static final String INTIMIDATE = "Intimidate";
+    private static final String EXERT_FRODO_CHOICE = "Exert Frodo";
+
     public static Plan getPlan(DefaultLotroGame game, String player) {
         SimulatedGame simulatedGame = new SimulatedGame(game);
         List<List<Option>> actionsToTake = new ArrayList<>();
         DecisionRequest nextDecision = simulatedGame.getDecisionRequest(player);
 
         while (nextDecision != null && simulatedGame.getGame().getGameState().getCurrentPhase() == Phase.FELLOWSHIP) {
-            List<Option> options = nextDecision.getOptions();
-            Option optionToTake;
-            List<Option> multiChoiceOptions = new ArrayList<>();
-
-            if (nextDecision.isFellowshipPhaseDecision()) {
-                // play cards or activate abilities
-
-                Option activateGimliOption = options.stream()
-                        .filter(option -> option instanceof ActivateCardOption activateCardOption && activateCardOption.getCard().getBlueprint().getTitle().equals("Gimli"))
-                        .findFirst()
-                        .orElse(null);
-                Option discardCompanionToHealOption = options.stream()
-                        .filter(option -> option instanceof DiscardCardToHealOption)
-                        .findFirst()
-                        .orElse(null);
-                Option activateGandalfOption = options.stream()
-                        .filter(option -> option instanceof ActivateCardOption activateCardOption && activateCardOption.getCard().getBlueprint().getTitle().equals("Gandalf"))
-                        .findFirst()
-                        .orElse(null);
-                Option activateWestfarthingOption = options.stream()
-                        .filter(option -> option instanceof ActivateCardOption activateCardOption && activateCardOption.getCard().getBlueprint().getFullName().equals("Westfarthing"))
-                        .findFirst()
-                        .orElse(null);
-                Option activateRivendellTerrace = options.stream()
-                        .filter(option -> option instanceof ActivateCardOption activateCardOption && activateCardOption.getCard().getBlueprint().getFullName().equals("Rivendell Terrace"))
-                        .findFirst()
-                        .orElse(null);
-                Option playCompanionOption = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getCardType() == CardType.COMPANION)
-                        .findFirst()
-                        .orElse(null);
-                Option playAllyOption = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getCardType() == CardType.ALLY)
-                        .findFirst()
-                        .orElse(null);
-                Option playHobbitSword = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getFullName().equals("Hobbit Sword"))
-                        .findFirst()
-                        .orElse(null);
-                Option playSleep = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getFullName().equals("Sleep, Caradhras"))
-                        .findFirst()
-                        .orElse(null);
-                Option playTreachery = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getFullName().equals("Treachery Deeper Than You Know"))
-                        .findFirst()
-                        .orElse(null);
-                Option playSorryAboutEverything = options.stream()
-                        .filter(option -> option instanceof PlayCardOption playCardOption && playCardOption.getCard().getBlueprint().getFullName().equals("Sorry About Everything"))
-                        .findFirst()
-                        .orElse(null);
-                Option activateBarlimanOption = options.stream()
-                        .filter(option -> option instanceof ActivateCardOption activateCardOption && activateCardOption.getCard().getBlueprint().getTitle().equals("Barliman Butterbur"))
-                        .findFirst()
-                        .orElse(null);
-
-                Option passOption = options.stream()
-                        .filter(option -> option instanceof PassOption)
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("No pass option available in fellowship phase decision"));
-
-                if (activateGimliOption != null && wantToActivateGimli(simulatedGame, player)) {
-                    // check Gimli's ability first because of twilight restriction, activate if there are at least 2 dead cards in hand
-                    optionToTake = activateGimliOption;
-                } else if (discardCompanionToHealOption != null) {
-                    // if we can discard a companion to heal, we should do that to get rid of card in hand and get value
-                    optionToTake = discardCompanionToHealOption;
-                } else if (activateGandalfOption != null && wantToActivateGandalf(simulatedGame, player)) {
-                    // activate Gandalf's ability before playing companions, if the exert is not too punishing
-                    optionToTake = activateGandalfOption;
-                } else if (activateWestfarthingOption != null && wantToActivateWestfarthing(simulatedGame, player)) {
-                    // activate Westfarthing's ability if Frodo can be exerted, before playing companions or allies
-                    optionToTake = activateWestfarthingOption;
-                } else if (activateRivendellTerrace != null) {
-                    // activate Rivendell Terrace before playing companions
-                    optionToTake = activateRivendellTerrace;
-                } else if (playCompanionOption != null) {
-                    // always play more companions
-                    optionToTake = playCompanionOption;
-                } else if (playAllyOption != null) {
-                    // always play more allies
-                    optionToTake = playAllyOption;
-                } else if (playHobbitSword != null) {
-                    // always play Hobbit Sword if available
-                    optionToTake = playHobbitSword;
-                } else if (playSleep != null && wantToPlaySleep(simulatedGame, player)) {
-                    // play Sleep if there are enemy conditions in play
-                    optionToTake = playSleep;
-                } else if (playTreachery != null) {
-                    // play Treachery Deeper Than You Know if available
-                    optionToTake = playTreachery;
-                } else if (playSorryAboutEverything != null && wantToPlaySorryAboutEverything(simulatedGame, player)) {
-                    // play Sorry About Everything if there is a burden to be removed
-                    optionToTake = playSorryAboutEverything;
-                } else if (activateBarlimanOption != null && wantToActivateBarliman(simulatedGame, player)) {
-                    // activate Barliman Butterbur's ability if there is good target in the discard pile
-                    optionToTake = activateBarlimanOption;
-                } else {
-                    optionToTake = passOption;
-                }
+            if (isMoriaLakeExertTargetsDecision(nextDecision)) {
+                List<Option> chosenOptions = chooseMoriaLakeExertOptions(nextDecision, simulatedGame, player);
+                actionsToTake.add(chosenOptions);
+                simulatedGame.makeDecision(player, nextDecision.combineSelected(chosenOptions));
             } else {
-                // choose targets etc. for the above actions and for the move responses
-
-                if (nextDecision.isChooseOptionForCardDecision() && nextDecision.getSource().getBlueprint().getFullName().equals("Moria Lake")) {
-                    // choose 'Exert Frodo' option for Moria Lake
-                    optionToTake = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseOptionForCardOption chooseOptionForCardOption && chooseOptionForCardOption.getChoice().equals("Exert Frodo"))
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("No 'Exert Frodo' option available for Moria Lake"));
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getFullName().equals("Moria Lake")) {
-                    // exerting Frodo was not possible, need to exert two others
-                    List<PhysicalCard> possibleTargets = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseTargetForCardOption)
-                            .map(option -> ((ChooseTargetForCardOption) option).getTarget())
-                            .toList();
-                    List<PhysicalCard> targetsToExert = chooseTargetsForMoriaLake(possibleTargets, simulatedGame, player);
-                    // choosing two
-                    multiChoiceOptions = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && targetsToExert.stream().anyMatch(target -> target.getCardId() == chooseTargetForCardOption.getTarget().getCardId()))
-                            .toList();
-                    optionToTake = null;
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getTitle().equals("Gimli")) {
-                    // choose one of the dead cards in hand for Gimli's ability
-                    PhysicalCard target = chooseTargetForGimli(nextDecision.getOptions().stream()
-                                    .filter(option -> option instanceof ChooseTargetForCardOption)
-                                    .map(option -> ((ChooseTargetForCardOption) option).getTarget())
-                                    .toList(),
-                            simulatedGame, player);
-                    optionToTake = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getCardId() == target.getCardId())
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("Target for Gimli not found"));
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getTitle().equals("Gandalf")) {
-                    // choose whatever for Gandalf's ability, the options are the same
-                    optionToTake = nextDecision.getOptions().getFirst();
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getFullName().equals("Westfarthing")) {
-                    PhysicalCard firstTarget = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseTargetForCardOption)
-                            .map(option -> ((ChooseTargetForCardOption) option).getTarget())
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("No target available for Westfarthing's ability"));
-                    boolean isTargetInHand = simulatedGame.getGame().getGameState().getHand(player).stream().anyMatch(card -> card.getCardId() == firstTarget.getCardId());
-
-                    if (isTargetInHand) {
-                        // choose whatever for Westfarthing's ability, will play everything anyway
-                        optionToTake = nextDecision.getOptions().getFirst();
-                    } else {
-                        // target in play, exert targeting, choose Frodo if possible
-                        optionToTake = nextDecision.getOptions().stream()
-                                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getBlueprint().getTitle().equals("Frodo"))
-                                .findFirst()
-                                .orElse(nextDecision.getOptions().getFirst());
-                    }
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getFullName().equals("Rivendell Terrace")) {
-                    // choose whatever for Rivendell Terrace's ability, will play everything anyway
-                    optionToTake = nextDecision.getOptions().getFirst();
-                } else if (nextDecision.isChooseTargetForCardDecision() && nextDecision.getSource().getBlueprint().getFullName().equals("Hobbit Sword")) {
-                    // attach Hobbit Sword to Frodo
-                    optionToTake = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getBlueprint().getTitle().equals("Frodo"))
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("No Frodo target available for Hobbit Sword"));
-                } else if (nextDecision.isHandReveal()) {
-                    // always pass when opponent's hand is revealed, nothing else to do
-                    optionToTake = nextDecision.getOptions().getFirst();
-                } else if (nextDecision.isChooseArbitraryTargetForCardDecision() && nextDecision.getSource().getBlueprint().getTitle().equals("Barliman Butterbur")) {
-                    // choose the best event to return
-                    LotroCardBlueprint target = chooseTargetForBarliman(nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseArbitraryTargetForCardOption)
-                            .map(option -> ((ChooseArbitraryTargetForCardOption) option).getBlueprint())
-                            .toList(),
-                            simulatedGame, player);
-                    optionToTake = nextDecision.getOptions().stream()
-                            .filter(option -> option instanceof ChooseArbitraryTargetForCardOption chooseArbitraryTargetForCardOption && chooseArbitraryTargetForCardOption.getBlueprint().getFullName().equals(target.getFullName()))
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("Target for Barliman Butterbur not found: " + target.getFullName()));
-                } else {
-                    throw new NotImplementedException("Unsupported decision: " + nextDecision);
-                }
-            }
-
-            if (optionToTake != null) {
+                Option optionToTake = nextDecision.isFellowshipPhaseDecision()
+                        ? chooseFellowshipAction(nextDecision, simulatedGame, player)
+                        : chooseFollowUpOption(nextDecision, simulatedGame, player);
                 actionsToTake.add(List.of(optionToTake));
                 simulatedGame.makeDecision(player, optionToTake.getAnswerForGame());
-            } else {
-                actionsToTake.add(multiChoiceOptions);
-                simulatedGame.makeDecision(player, nextDecision.combineSelected(multiChoiceOptions));
             }
             nextDecision = simulatedGame.getDecisionRequest(player);
         }
@@ -218,6 +60,164 @@ public class GandalfFellowshipPhasePlanner {
         return new SimplePlan(actionsToTake);
     }
 
+    private record FellowshipRule(Option option, BooleanSupplier condition) {
+    }
+
+    private static FellowshipRule rule(Option option) {
+        return new FellowshipRule(option, () -> true);
+    }
+
+    private static FellowshipRule rule(Option option, BooleanSupplier condition) {
+        return new FellowshipRule(option, condition);
+    }
+
+    private static Option chooseFellowshipAction(DecisionRequest nextDecision, SimulatedGame simulatedGame, String player) {
+        // play cards or activate abilities
+        List<Option> options = nextDecision.getOptions();
+
+        Option passOption = findOptionOfType(options, PassOption.class);
+        if (passOption == null) {
+            throw new IllegalStateException("No pass option available in fellowship phase decision");
+        }
+
+        // ordered by priority, the first rule with an available option and a satisfied condition wins
+        List<FellowshipRule> rules = List.of(
+                // check Gimli's ability first because of twilight restriction, activate if there are at least 2 dead cards in hand
+                rule(findActivate(options, hasFullName(GIMLI)), () -> wantToActivateGimli(simulatedGame, player)),
+                // if we can discard a companion to heal, we should do that to get rid of card in hand and get value
+                rule(findOptionOfType(options, DiscardCardToHealOption.class)),
+                // activate Gandalf's ability before playing companions, if the exert is not too punishing
+                rule(findActivate(options, hasFullName(GANDALF)), () -> wantToActivateGandalf(simulatedGame, player)),
+                // activate Westfarthing's ability if Frodo can be exerted, before playing companions or allies
+                rule(findActivate(options, hasFullName(WESTFARTHING)), () -> wantToActivateWestfarthing(simulatedGame, player)),
+                // activate Rivendell Terrace before playing companions
+                rule(findActivate(options, hasFullName(RIVENDELL_TERRACE))),
+                // always play more companions
+                rule(findPlay(options, hasCardType(CardType.COMPANION))),
+                // always play more allies
+                rule(findPlay(options, hasCardType(CardType.ALLY))),
+                // always play Hobbit Sword if available
+                rule(findPlay(options, hasFullName(HOBBIT_SWORD))),
+                // play Sleep if there are enemy conditions in play
+                rule(findPlay(options, hasFullName(SLEEP_CARADHRAS)), () -> wantToPlaySleep(simulatedGame, player)),
+                // play Treachery Deeper Than You Know if available
+                rule(findPlay(options, hasFullName(TREACHERY_DEEPER_THAN_YOU_KNOW))),
+                // play Sorry About Everything if there is a burden to be removed
+                rule(findPlay(options, hasFullName(SORRY_ABOUT_EVERYTHING)), () -> wantToPlaySorryAboutEverything(simulatedGame, player)),
+                // activate Barliman Butterbur's ability if there is good target in the discard pile
+                rule(findActivate(options, hasFullName(BARLIMAN_BUTTERBUR)), () -> wantToActivateBarliman(simulatedGame, player))
+        );
+
+        // conditions are evaluated lazily, only for rules whose option is available
+        return rules.stream()
+                .filter(rule -> rule.option() != null && rule.condition().getAsBoolean())
+                .map(FellowshipRule::option)
+                .findFirst()
+                .orElse(passOption);
+    }
+
+    private static boolean isMoriaLakeExertTargetsDecision(DecisionRequest decision) {
+        return !decision.isFellowshipPhaseDecision()
+                && decision.isChooseTargetForCardDecision()
+                && decision.getSource().getBlueprint().getFullName().equals(MORIA_LAKE);
+    }
+
+    private static List<Option> chooseMoriaLakeExertOptions(DecisionRequest decision, SimulatedGame simulatedGame, String player) {
+        // exerting Frodo was not possible, need to exert two others
+        List<PhysicalCard> targetsToExert = chooseTargetsForMoriaLake(getTargets(decision.getOptions()), simulatedGame, player);
+        // choosing two
+        return decision.getOptions().stream()
+                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && targetsToExert.stream().anyMatch(target -> target.getCardId() == chooseTargetForCardOption.getTarget().getCardId()))
+                .toList();
+    }
+
+    private static Option chooseFollowUpOption(DecisionRequest decision, SimulatedGame simulatedGame, String player) {
+        // choose targets etc. for the fellowship actions and for the move responses
+        List<Option> options = decision.getOptions();
+
+        if (decision.isChooseOptionForCardDecision() && sourceHasFullName(decision, MORIA_LAKE)) {
+            return chooseMoriaLakeChoice(options);
+        } else if (decision.isChooseTargetForCardDecision() && sourceHasFullName(decision, GIMLI)) {
+            return chooseGimliTarget(options, simulatedGame, player);
+        } else if (decision.isChooseTargetForCardDecision() && sourceHasFullName(decision, GANDALF)) {
+            return chooseGandalfTarget(options);
+        } else if (decision.isChooseTargetForCardDecision() && sourceHasFullName(decision, WESTFARTHING)) {
+            return chooseWestfarthingTarget(options, simulatedGame, player);
+        } else if (decision.isChooseTargetForCardDecision() && sourceHasFullName(decision, RIVENDELL_TERRACE)) {
+            return chooseRivendellTerraceTarget(options);
+        } else if (decision.isChooseTargetForCardDecision() && sourceHasFullName(decision, HOBBIT_SWORD)) {
+            return chooseHobbitSwordTarget(options);
+        } else if (decision.isHandReveal()) {
+            // always pass when opponent's hand is revealed, nothing else to do
+            return options.getFirst();
+        } else if (decision.isChooseArbitraryTargetForCardDecision() && sourceHasFullName(decision, BARLIMAN_BUTTERBUR)) {
+            return chooseBarlimanTarget(options, simulatedGame, player);
+        } else {
+            throw new NotImplementedException("Unsupported decision: " + decision);
+        }
+    }
+
+    private static boolean sourceHasFullName(DecisionRequest decision, String fullName) {
+        return decision.getSource().getBlueprint().getFullName().equals(fullName);
+    }
+
+    private static Option chooseMoriaLakeChoice(List<Option> options) {
+        // choose 'Exert Frodo' option for Moria Lake
+        return findChoice(options, EXERT_FRODO_CHOICE)
+                .orElseThrow(() -> new IllegalStateException("No 'Exert Frodo' option available for Moria Lake"));
+    }
+
+    private static Option chooseGimliTarget(List<Option> options, SimulatedGame simulatedGame, String player) {
+        // choose one of the dead cards in hand for Gimli's ability
+        PhysicalCard target = chooseTargetForGimli(getTargets(options), simulatedGame, player);
+        Option targetOption = findOptionForTarget(options, target);
+        if (targetOption == null) {
+            throw new IllegalStateException("Target for Gimli not found");
+        }
+        return targetOption;
+    }
+
+    private static Option chooseGandalfTarget(List<Option> options) {
+        // choose whatever for Gandalf's ability, the options are the same
+        return options.getFirst();
+    }
+
+    private static Option chooseWestfarthingTarget(List<Option> options, SimulatedGame simulatedGame, String player) {
+        PhysicalCard firstTarget = getTargets(options).stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No target available for Westfarthing's ability"));
+        boolean isTargetInHand = simulatedGame.getGame().getGameState().getHand(player).stream().anyMatch(card -> card.getCardId() == firstTarget.getCardId());
+
+        if (isTargetInHand) {
+            // choose whatever for Westfarthing's ability, will play everything anyway
+            return options.getFirst();
+        } else {
+            // target in play, exert targeting, choose Frodo if possible
+            Option frodoOption = findTargetWithFullName(options, FRODO);
+            return frodoOption != null ? frodoOption : options.getFirst();
+        }
+    }
+
+    private static Option chooseRivendellTerraceTarget(List<Option> options) {
+        // choose whatever for Rivendell Terrace's ability, will play everything anyway
+        return options.getFirst();
+    }
+
+    private static Option chooseHobbitSwordTarget(List<Option> options) {
+        // attach Hobbit Sword to Frodo
+        Option frodoOption = findTargetWithFullName(options, FRODO);
+        if (frodoOption == null) {
+            throw new IllegalStateException("No Frodo target available for Hobbit Sword");
+        }
+        return frodoOption;
+    }
+
+    private static Option chooseBarlimanTarget(List<Option> options, SimulatedGame simulatedGame, String player) {
+        // choose the best event to return
+        LotroCardBlueprint target = chooseTargetForBarliman(getArbitraryTargets(options), simulatedGame, player);
+        return findArbitraryTarget(options, target.getFullName())
+                .orElseThrow(() -> new IllegalStateException("Target for Barliman Butterbur not found: " + target.getFullName()));
+    }
     private static List<PhysicalCard> chooseTargetsForMoriaLake(List<PhysicalCard> possibleTargets, SimulatedGame simulatedGame, String player) {
         // choose two to exert
         List<PhysicalCard> tbr = new ArrayList<>();
@@ -230,7 +230,7 @@ public class GandalfFellowshipPhasePlanner {
         }
 
         // whom losing hurts the least
-        List<String> exertPriority = List.of("Gimli", "Legolas", "Boromir", "Gandalf");
+        List<String> exertPriority = List.of(GIMLI, LEGOLAS, BOROMIR, GANDALF);
 
         // need more than 3 vitality to exert against Uruks, more than 2 against Moria
         int vitalitySaveThreshold = opponentDeck == FotrStarterDeck.ARAGORN_STARTER ? 3 : 2;
@@ -244,17 +244,17 @@ public class GandalfFellowshipPhasePlanner {
         } else if (safeToExertTargets.size() >= 3) {
             // choose the two with the highest exert priority
             List<PhysicalCard> sortedTargets = safeToExertTargets.stream()
-                    .sorted(Comparator.comparingInt(a -> exertPriority.indexOf(a.getBlueprint().getTitle())))
+                    .sorted(Comparator.comparingInt(a -> exertPriority.indexOf(a.getBlueprint().getFullName())))
                     .toList();
             tbr.add(sortedTargets.getFirst());
             tbr.add(sortedTargets.get(1));
         }
 
-        while (tbr .size() < 2) {
+        while (tbr.size() < 2) {
             // fill with the highest exert priority
             List<PhysicalCard> sortedTargets = possibleTargets.stream()
                     .filter(target -> !tbr.contains(target))
-                    .sorted(Comparator.comparingInt(a -> exertPriority.indexOf(a.getBlueprint().getTitle())))
+                    .sorted(Comparator.comparingInt(a -> exertPriority.indexOf(a.getBlueprint().getFullName())))
                     .toList();
             tbr.add(sortedTargets.getFirst());
         }
@@ -278,26 +278,16 @@ public class GandalfFellowshipPhasePlanner {
     }
 
     private static LotroCardBlueprint chooseTargetForBarliman(List<LotroCardBlueprint> possibleTargets, SimulatedGame simulatedGame, String player) {
-        LotroCardBlueprint sleep = possibleTargets.stream()
-                .filter(card -> card.getFullName().equals("Sleep, Caradhras"))
-                .findFirst()
-                .orElse(null);
-        LotroCardBlueprint mysteriousWizard = possibleTargets.stream()
-                .filter(card -> card.getFullName().equals("Mysterious Wizard"))
-                .findFirst()
-                .orElse(null);
-        LotroCardBlueprint intimidate = possibleTargets.stream()
-                .filter(card -> card.getFullName().equals("Intimidate"))
-                .findFirst()
-                .orElse(null);
+        LotroCardBlueprint sleep = findByFullName(possibleTargets, SLEEP_CARADHRAS);
+        LotroCardBlueprint mysteriousWizard = findByFullName(possibleTargets, MYSTERIOUS_WIZARD);
+        LotroCardBlueprint intimidate = findByFullName(possibleTargets, INTIMIDATE);
 
         // return Sleep if 2 or more enemy conditions in play
         // else return Mysterious Wizard if in discard pile
         // else return Intimidate if in discard pile
         // else return whatever
 
-        if (sleep != null && simulatedGame.getGame().getGameState().getInPlay().stream()
-                .filter(card -> card.getBlueprint().getCardType() == CardType.CONDITION && !card.getOwner().equals(player)).count() >= 2) {
+        if (sleep != null && countEnemyConditionsInPlay(simulatedGame, player) >= 2) {
             return sleep;
         } else if (mysteriousWizard != null) {
             return mysteriousWizard;
@@ -310,54 +300,43 @@ public class GandalfFellowshipPhasePlanner {
 
     private static boolean wantToActivateBarliman(SimulatedGame simulatedGame, String player) {
         // never use if Gandalf is in the dead pile
-        boolean gandalfDead = false;
-        for (PhysicalCard deadCard : simulatedGame.getGame().getGameState().getDeadPile(player)) {
-            if (deadCard.getBlueprint().getTitle().equals("Gandalf")) {
-                gandalfDead = true;
-            }
-        }
+        boolean gandalfDead = simulatedGame.getGame().getGameState().getDeadPile(player).stream()
+                .anyMatch(deadCard -> deadCard.getBlueprint().getFullName().equals(GANDALF));
         if (gandalfDead) {
             return false;
         }
 
         // check if there is a good target in the discard pile
-        boolean goodTargetInDiscard = false;
-        List<PhysicalCard> discardPile = (List<PhysicalCard>) simulatedGame.getGame().getGameState().getDiscard(player);
         boolean wantSleep = wantToPlaySleep(simulatedGame, player);
 
-        for (PhysicalCard physicalCard : discardPile) {
-            if (physicalCard.getBlueprint().getFullName().equals("Mysterious Wizard")) {
-                goodTargetInDiscard = true;
-            } else if (physicalCard.getBlueprint().getFullName().equals("Intimidate")) {
-                goodTargetInDiscard = true;
-            } else if (physicalCard.getBlueprint().getFullName().equals("Sleep, Caradhras") && wantSleep) {
-                goodTargetInDiscard = true;
-            }
-        }
-
-        return goodTargetInDiscard;
+        return simulatedGame.getGame().getGameState().getDiscard(player).stream()
+                .map(card -> card.getBlueprint().getFullName())
+                .anyMatch(name -> name.equals(MYSTERIOUS_WIZARD) || name.equals(INTIMIDATE) || (name.equals(SLEEP_CARADHRAS) && wantSleep));
     }
 
     private static boolean wantToActivateWestfarthing(SimulatedGame simulatedGame, String player) {
-        int frodoVitality = simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), simulatedGame.getGame().getGameState().getInPlay().stream().filter(card -> card.getBlueprint().getTitle().equals("Frodo") && card.getOwner().equals(player)).findFirst().orElseThrow(() -> new IllegalStateException("Frodo not in play")));
-        return frodoVitality > 1;
+        return getVitality(simulatedGame, FRODO, player) > 1;
     }
 
     private static boolean wantToPlaySorryAboutEverything(SimulatedGame simulatedGame, String player) {
         // do not exhaust Frodo to remove a burden
-        int frodoVitality = simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), simulatedGame.getGame().getGameState().getInPlay().stream().filter(card -> card.getBlueprint().getTitle().equals("Frodo") && card.getOwner().equals(player)).findFirst().orElseThrow(() -> new IllegalStateException("Frodo not in play")));
-        return simulatedGame.getGame().getGameState().getPlayerBurdens(player) > 0 && frodoVitality >= 3;
+        return simulatedGame.getGame().getGameState().getPlayerBurdens(player) > 0 && getVitality(simulatedGame, FRODO, player) >= 3;
     }
 
     private static boolean wantToPlaySleep(SimulatedGame simulatedGame, String player) {
         // check if there are any enemy conditions in play that we want to discard with Sleep
+        return countEnemyConditionsInPlay(simulatedGame, player) > 0;
+    }
+
+    private static long countEnemyConditionsInPlay(SimulatedGame simulatedGame, String player) {
         return simulatedGame.getGame().getGameState().getInPlay().stream()
-                .anyMatch(card -> card.getBlueprint().getCardType() == CardType.CONDITION && !card.getOwner().equals(player));
+                .filter(card -> card.getBlueprint().getCardType() == CardType.CONDITION && !card.getOwner().equals(player))
+                .count();
     }
 
     private static boolean wantToActivateGandalf(SimulatedGame simulatedGame, String player) {
         FotrStarterDeck opponentDeck = DeckRecognizer.recognize(simulatedGame.getGame().getGameState().getLotroDeck(simulatedGame.getGame().getGameState().getOpponent(player)));
-        int gandalfVitality = simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), simulatedGame.getGame().getGameState().getInPlay().stream().filter(card -> card.getBlueprint().getTitle().equals("Gandalf") && card.getOwner().equals(player)).findFirst().orElseThrow(() -> new IllegalStateException("Gandalf not in play")));
+        int gandalfVitality = getVitality(simulatedGame, GANDALF, player);
 
         if (gandalfVitality == 3 && opponentDeck == FotrStarterDeck.ARAGORN_STARTER) {
             // do not want to drop to 2 vitality against Uruk shadow
@@ -373,5 +352,89 @@ public class GandalfFellowshipPhasePlanner {
     private static boolean wantToActivateGimli(SimulatedGame simulatedGame, String player) {
         // one card can be discarded to reconcile at the end of turn
         return DeadCardEvaluator.getDeadCards(simulatedGame.getGame(), player).size() >= 2;
+    }
+
+    private static int getVitality(SimulatedGame simulatedGame, String fullName, String player) {
+        PhysicalCard character = simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(card -> card.getBlueprint().getFullName().equals(fullName) && card.getOwner().equals(player))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(fullName + " not in play"));
+        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), character);
+    }
+
+    private static Predicate<PhysicalCard> hasFullName(String fullName) {
+        return card -> card.getBlueprint().getFullName().equals(fullName);
+    }
+
+    private static Predicate<PhysicalCard> hasCardType(CardType cardType) {
+        return card -> card.getBlueprint().getCardType() == cardType;
+    }
+
+    private static Option findActivate(List<Option> options, Predicate<PhysicalCard> cardFilter) {
+        return options.stream()
+                .filter(option -> option instanceof ActivateCardOption activateCardOption && cardFilter.test(activateCardOption.getCard()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Option findPlay(List<Option> options, Predicate<PhysicalCard> cardFilter) {
+        return options.stream()
+                .filter(option -> option instanceof PlayCardOption playCardOption && cardFilter.test(playCardOption.getCard()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Option findOptionOfType(List<Option> options, Class<? extends Option> optionType) {
+        return options.stream()
+                .filter(optionType::isInstance)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static List<PhysicalCard> getTargets(List<Option> options) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseTargetForCardOption)
+                .map(option -> ((ChooseTargetForCardOption) option).getTarget())
+                .toList();
+    }
+
+    private static Option findOptionForTarget(List<Option> options, PhysicalCard target) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getCardId() == target.getCardId())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Optional<Option> findChoice(List<Option> options, String choice) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseOptionForCardOption chooseOptionForCardOption && chooseOptionForCardOption.getChoice().equals(choice))
+                .findFirst();
+    }
+
+    private static List<LotroCardBlueprint> getArbitraryTargets(List<Option> options) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseArbitraryTargetForCardOption)
+                .map(option -> ((ChooseArbitraryTargetForCardOption) option).getBlueprint())
+                .toList();
+    }
+
+    private static Optional<Option> findArbitraryTarget(List<Option> options, String fullName) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseArbitraryTargetForCardOption chooseArbitraryTargetForCardOption && chooseArbitraryTargetForCardOption.getBlueprint().getFullName().equals(fullName))
+                .findFirst();
+    }
+
+    private static LotroCardBlueprint findByFullName(List<LotroCardBlueprint> blueprints, String fullName) {
+        return blueprints.stream()
+                .filter(blueprint -> blueprint.getFullName().equals(fullName))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Option findTargetWithFullName(List<Option> options, String fullName) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && hasFullName(fullName).test(chooseTargetForCardOption.getTarget()))
+                .findFirst()
+                .orElse(null);
     }
 }
