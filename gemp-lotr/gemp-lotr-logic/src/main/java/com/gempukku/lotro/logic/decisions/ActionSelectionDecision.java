@@ -4,48 +4,62 @@ import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.game.state.LotroGame;
 import com.gempukku.lotro.logic.timing.Action;
 
+import java.util.Comparator;
 import java.util.List;
 
 public abstract class ActionSelectionDecision extends AbstractAwaitingDecision {
+    private static final String RULES_SOURCE = "rules";
+
     private final LotroGame _game;
-    private final List<? extends Action> _actions;
+    private final List<Action> _actions;
+
+    private record SortableAction(Action action, PhysicalCard source, String text) {
+    }
 
     public ActionSelectionDecision(LotroGame game, int decisionId, String text, List<? extends Action> actions) {
         super(decisionId, text, AwaitingDecisionType.ACTION_CHOICE);
         _game = game;
-        _actions = actions;
 
-        setParam("actionId", getActionIds(actions));
-        setParam("sourceId", getSourceIds(actions));
-        setParam("actionText", getActionTexts(actions));
+        // rule actions first (ordered by text), then card actions ordered by card id and text
+        List<SortableAction> sortedActions = actions.stream()
+                .map(action -> new SortableAction(action, action.getActionAttachedToCard(), action.getText(_game)))
+                .sorted(Comparator
+                        .comparing((SortableAction sortable) -> sortable.source() != null)
+                        .thenComparingInt(sortable -> sortable.source() != null ? sortable.source().getCardId() : 0)
+                        .thenComparing(SortableAction::text, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
+        _actions = sortedActions.stream().map(SortableAction::action).toList();
+
+        setParam("actionId", getActionIds(sortedActions));
+        setParam("sourceId", getSourceIds(sortedActions));
+        setParam("actionText", getActionTexts(sortedActions));
     }
 
-    private String[] getActionIds(List<? extends Action> actions) {
+    private String[] getActionIds(List<SortableAction> actions) {
         String[] result = new String[actions.size()];
         for (int i = 0; i < result.length; i++)
             result[i] = String.valueOf(i);
         return result;
     }
 
-    private String[] getSourceIds(List<? extends Action> actions) {
+    private String[] getSourceIds(List<SortableAction> actions) {
         String[] result = new String[actions.size()];
         for (int i = 0; i < result.length; i++) {
-            PhysicalCard physicalCard = actions.get(i).getActionAttachedToCard();
+            PhysicalCard physicalCard = actions.get(i).source();
             if (physicalCard != null)
                 result[i] = String.valueOf(physicalCard.getCardId());
             else
-                result[i] = "rules";
+                result[i] = RULES_SOURCE;
         }
         return result;
     }
 
-    private String[] getActionTexts(List<? extends Action> actions) {
+    private String[] getActionTexts(List<SortableAction> actions) {
         String[] result = new String[actions.size()];
         for (int i = 0; i < result.length; i++)
-            result[i] = actions.get(i).getText(_game);
+            result[i] = actions.get(i).text();
         return result;
     }
-
     protected Action getSelectedAction(String result) throws DecisionResultInvalidException {
         if (result.equals(""))
             throw new DecisionResultInvalidException();
