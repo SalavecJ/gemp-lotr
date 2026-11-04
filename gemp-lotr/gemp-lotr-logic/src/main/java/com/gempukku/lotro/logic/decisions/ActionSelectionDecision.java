@@ -32,6 +32,7 @@ public abstract class ActionSelectionDecision extends AbstractAwaitingDecision {
 
         setParam("actionId", getActionIds(sortedActions));
         setParam("sourceId", getSourceIds(sortedActions));
+        setParam("blueprintId", getBlueprintIds(sortedActions));
         setParam("actionText", getActionTexts(sortedActions));
     }
 
@@ -54,6 +55,18 @@ public abstract class ActionSelectionDecision extends AbstractAwaitingDecision {
         return result;
     }
 
+    private String[] getBlueprintIds(List<SortableAction> actions) {
+        String[] result = new String[actions.size()];
+        for (int i = 0; i < result.length; i++) {
+            PhysicalCard physicalCard = actions.get(i).source();
+            if (physicalCard != null)
+                result[i] = String.valueOf(physicalCard.getBlueprintId());
+            else
+                result[i] = RULES_SOURCE;
+        }
+        return result;
+    }
+
     private String[] getActionTexts(List<SortableAction> actions) {
         String[] result = new String[actions.size()];
         for (int i = 0; i < result.length; i++)
@@ -61,7 +74,7 @@ public abstract class ActionSelectionDecision extends AbstractAwaitingDecision {
         return result;
     }
     protected Action getSelectedAction(String result) throws DecisionResultInvalidException {
-        if (result.equals(""))
+        if (result.isEmpty())
             throw new DecisionResultInvalidException();
 
         try {
