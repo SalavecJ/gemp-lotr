@@ -7,6 +7,7 @@ import com.gempukku.lotro.bots.v2.decision.request.AssignMinionsDecisionRequest;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.MulliganDecider;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.SanctuaryPlanner;
+import com.gempukku.lotro.bots.v2.fotr_starter.fellowship.FellowshipPhasePlanner;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
@@ -56,6 +57,15 @@ public class FotrStarterDecider implements Decider {
             currentPlan = SanctuaryPlanner.getPlan(decisionRequest, game, player);
             BotLogging.log(2, "Sanctuary plan:\n" + currentPlan);
             return decide(decisionRequest, game, player);
+        }
+
+        // fellowship phase
+        if (decisionRequest.isFellowshipPhaseDecision()) {
+            currentPlan = FellowshipPhasePlanner.getPlan(game, player);
+            if (currentPlan != null) {
+                BotLogging.log(2, "Fellowship phase plan:\n" + currentPlan);
+                return decide(decisionRequest, game, player);
+            }
         }
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {

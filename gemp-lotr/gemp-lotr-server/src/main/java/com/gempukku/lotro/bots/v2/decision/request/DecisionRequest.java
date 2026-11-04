@@ -1,6 +1,7 @@
 package com.gempukku.lotro.bots.v2.decision.request;
 
 import com.gempukku.lotro.bots.v2.decision.option.*;
+import com.gempukku.lotro.game.PhysicalCard;
 
 import java.util.List;
 
@@ -34,6 +35,10 @@ public abstract class DecisionRequest {
         }
     }
 
+    public boolean isFellowshipPhaseDecision() {
+        return getText().equals("Play Fellowship action or Pass");
+    }
+
     public boolean isBurdenBidDecision() {
         return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
     }
@@ -52,6 +57,34 @@ public abstract class DecisionRequest {
 
     public boolean isSanctuaryHealDecision() {
         return getOptions().stream().anyMatch(option -> option instanceof SanctuaryHealOption);
+    }
+
+    public boolean isHandReveal() {
+        return getText().startsWith("Hand of ") && getOptions().size() == 1 && getOptions().getFirst() instanceof PassOption;
+    }
+
+    public boolean isChooseTargetForCardDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof ChooseTargetForCardOption);
+    }
+
+    public boolean isChooseArbitraryTargetForCardDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof ChooseArbitraryTargetForCardOption);
+    }
+
+    public boolean isChooseOptionForCardDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof ChooseOptionForCardOption);
+    }
+
+    public PhysicalCard getSource() {
+        if (isChooseTargetForCardDecision()) {
+            return ((ChooseTargetForCardOption) getOptions().getFirst()).getSource();
+        } else if (isChooseOptionForCardDecision()) {
+            return ((ChooseOptionForCardOption) getOptions().getFirst()).getSource();
+        } else if (isChooseArbitraryTargetForCardDecision()) {
+            return ((ChooseArbitraryTargetForCardOption) getOptions().getFirst()).getSource();
+        } else {
+            throw new UnsupportedOperationException("This decision is not a choose target for card decision");
+        }
     }
 
     @Override
