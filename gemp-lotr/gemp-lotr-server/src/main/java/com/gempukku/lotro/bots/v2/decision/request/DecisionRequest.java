@@ -75,6 +75,10 @@ public abstract class DecisionRequest {
         return getOptions().stream().allMatch(option -> option instanceof ChooseOptionForCardOption);
     }
 
+    public boolean isOptionalResponsesDecision() {
+        return this instanceof CardActionSelectionDecisionRequest && getText().equals(CardActionSelectionDecisionRequest.OPTIONAL_TRIGGER_RESPONSES_TEXT);
+    }
+
     public PhysicalCard getSource() {
         if (isChooseTargetForCardDecision()) {
             return ((ChooseTargetForCardOption) getOptions().getFirst()).getSource();

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CardActionSelectionDecisionRequest extends DecisionRequest {
-    private static final String OPTIONAL_TRIGGER_RESPONSES_TEXT = "Optional responses";
+    public static final String OPTIONAL_TRIGGER_RESPONSES_TEXT = "Optional responses";
     private static final String RESPONSES_KEYWORD_SUFFIX = " - Optional \"is about to\" responses";
     private static final String FELLOWSHIP_TEXT = "Play Fellowship action or Pass";
     private static final String SHADOW_TEXT = "Play Shadow action or Pass";
