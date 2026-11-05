@@ -1,4 +1,4 @@
-package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
+package com.gempukku.lotro.bots.v2.fotr_starter.utility;
 
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.PhysicalCard;

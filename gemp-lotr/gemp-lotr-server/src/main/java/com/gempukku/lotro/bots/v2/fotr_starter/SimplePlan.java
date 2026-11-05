@@ -23,6 +23,11 @@ public class SimplePlan implements Plan {
     }
 
     @Override
+    public List<List<Option>> getAllOptions() {
+        return actionsToTake;
+    }
+
+    @Override
     public boolean isComplete() {
         return actionsTaken >= actionsToTake.size();
     }

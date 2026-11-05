@@ -15,9 +15,9 @@ import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.CardPredicates.*;
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.GameQueries.*;
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.OptionFinders.*;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.*;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.GameQueries.*;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.OptionFinders.*;
 
 public class AragornFellowshipPhasePlanner {
     private static final String FRODO = "Frodo, Son of Drogo";

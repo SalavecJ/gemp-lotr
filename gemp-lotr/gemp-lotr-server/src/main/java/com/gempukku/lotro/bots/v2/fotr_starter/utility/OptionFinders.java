@@ -1,4 +1,4 @@
-package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
+package com.gempukku.lotro.bots.v2.fotr_starter.utility;
 
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.CardPredicates.hasFullName;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.hasFullName;
 
 public final class OptionFinders {
     private OptionFinders() {

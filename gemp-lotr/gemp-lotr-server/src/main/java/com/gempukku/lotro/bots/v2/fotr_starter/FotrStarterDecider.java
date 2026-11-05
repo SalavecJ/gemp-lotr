@@ -12,6 +12,7 @@ import com.gempukku.lotro.bots.v2.fotr_starter.fellowship.FellowshipPhasePlanner
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
+import com.gempukku.lotro.bots.v2.fotr_starter.shadow.ShadowPhasePlanner;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
@@ -68,6 +69,16 @@ public class FotrStarterDecider implements Decider {
             currentPlan = FellowshipPhasePlanner.getPlan(game, player);
             BotLogging.log(2, "Fellowship phase plan:\n" + currentPlan);
             return decide(decisionRequest, game, player);
+        }
+
+        // shadow phase
+        if (decisionRequest.isShadowPhaseDecision()) {
+            currentPlan = ShadowPhasePlanner.getPlan(game, player);
+            //TODO remove null check when other part is implemented
+            if (currentPlan != null) {
+                BotLogging.log(2, "Shadow phase plan:\n" + currentPlan);
+                return decide(decisionRequest, game, player);
+            }
         }
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {

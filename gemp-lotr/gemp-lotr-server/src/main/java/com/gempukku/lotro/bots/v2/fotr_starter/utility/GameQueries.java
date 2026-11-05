@@ -1,4 +1,4 @@
-package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
+package com.gempukku.lotro.bots.v2.fotr_starter.utility;
 
 import com.gempukku.lotro.bots.v2.fotr_starter.DeckRecognizer;
 import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
@@ -8,8 +8,8 @@ import com.gempukku.lotro.game.PhysicalCard;
 
 import java.util.function.Predicate;
 
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.CardPredicates.hasCardType;
-import static com.gempukku.lotro.bots.v2.fotr_starter.fellowship.CardPredicates.hasFullName;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.hasCardType;
+import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.hasFullName;
 
 public final class GameQueries {
     private GameQueries() {
@@ -45,5 +45,19 @@ public final class GameQueries {
                 .filter(card -> card.getOwner().equals(player))
                 .filter(companionFilter)
                 .anyMatch(companion -> simulatedGame.getGame().getGameState().getWounds(companion) > 0);
+    }
+
+    public static int getNumberOfMinionsInPlay(SimulatedGame simulatedGame, String player) {
+        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(hasCardType(CardType.MINION))
+                .filter(card -> card.getOwner().equals(player))
+                .count();
+    }
+
+    public static int getNumberOfCompanionsInPlay(SimulatedGame simulatedGame, String player) {
+        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(hasCardType(CardType.COMPANION))
+                .filter(card -> card.getOwner().equals(player))
+                .count();
     }
 }

@@ -39,6 +39,10 @@ public abstract class DecisionRequest {
         return getText().equals("Play Fellowship action or Pass");
     }
 
+    public boolean isShadowPhaseDecision() {
+        return getText().equals("Play Shadow action or Pass");
+    }
+
     public boolean isBurdenBidDecision() {
         return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
     }
