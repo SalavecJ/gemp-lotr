@@ -30,6 +30,9 @@ public class AragornShadowPhasePlanner {
     private static final int SWAPPABLE_URUK_TWILIGHT_COST = 4;
 
     public static Plan getPlan(DefaultLotroGame game, String player) {
+        PhysicalCard currentSite = game.getGameState().getCurrentSite();
+        BotLogging.log(DEBUG, "Shadow phase planning for site " + currentSite.getBlueprint().getSiteNumber() + ": " + currentSite.getBlueprint().getFullName());
+
         // Try playing as many minions as possible, the simulation ends up in the state after the swarm plan
         SimulatedGame swarmSimulation = new SimulatedGame(game);
         Plan swarmPlan = getSwarmPlan(swarmSimulation, player);

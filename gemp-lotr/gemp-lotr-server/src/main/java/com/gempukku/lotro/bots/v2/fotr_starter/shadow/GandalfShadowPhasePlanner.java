@@ -40,6 +40,7 @@ public class GandalfShadowPhasePlanner {
     private static final String GREAT_SHIELD = "Great Shield";
     private static final String LEGOLAS = "Legolas, Prince of Mirkwood";
     private static final String ARAGORN = "Aragorn, King in Exile";
+    private static final String MITHRIL_MINE = "Mithril Mine";
     private static final String DIMRILL_DALE = "Dimrill Dale";
     private static final String SHORES_OF_NEN_HITHOEL = "Shores of Nen Hithoel";
     private static final int SHORES_ORC_COUNT = 5;
@@ -50,6 +51,7 @@ public class GandalfShadowPhasePlanner {
         int ourSiteNumber = game.getGameState().getPlayerPosition(player);
         PhysicalCard currentSite = game.getGameState().getCurrentSite();
         boolean opponentCanMoveAgain = canMoveAgain(game);
+        BotLogging.log(DEBUG, "Shadow phase planning for site " + currentSite.getBlueprint().getSiteNumber() + ": " + currentSite.getBlueprint().getFullName());
 
         // Try playing as many archer minions as possible, then as many other minions as possible
         SimulatedGame archerySimulation = new SimulatedGame(game);
@@ -138,6 +140,9 @@ public class GandalfShadowPhasePlanner {
         List<String> minionOrder = getStrongMinionsOrder();
         plan.run((d, s, p) -> playOtherCardsThenMinionsFromHand(d, s, minionOrder));
 
+        // Use Mithril Mine if able
+        plan.run((d, s, p) -> playScimitarsWithMithrilMine(d, s));
+
         plan.pass();
 
         return plan.build();
@@ -188,6 +193,9 @@ public class GandalfShadowPhasePlanner {
         List<String> minionOrder = getStrongMinionsOrder();
         plan.run((d, s, p) -> playOtherCardsThenMinionsFromHand(d, s, minionOrder));
 
+        // Use Mithril Mine if able
+        plan.run((d, s, p) -> playScimitarsWithMithrilMine(d, s));
+
         plan.pass();
 
         return plan.build();
@@ -202,6 +210,9 @@ public class GandalfShadowPhasePlanner {
 
         // Get as many minions into play with They Are Coming
         plan.run((d, s, p) -> playMinionsWithTheyAreComing(d, s, p, minionOrder));
+
+        // Use Mithril Mine if able
+        plan.run((d, s, p) -> playScimitarsWithMithrilMine(d, s));
 
         plan.pass();
 
@@ -223,6 +234,9 @@ public class GandalfShadowPhasePlanner {
 
         // Get as many minions into play with They Are Coming
         plan.run((d, s, p) -> playMinionsWithTheyAreComing(d, s, p, minionOrder));
+
+        // Use Mithril Mine if able
+        plan.run((d, s, p) -> playScimitarsWithMithrilMine(d, s));
 
         plan.pass();
 
@@ -363,6 +377,16 @@ public class GandalfShadowPhasePlanner {
                 // If Goblin Scavengers get played
                 () -> attachGoblinScimitarToWeakestTarget(decision, simulation)
         )); // Null if there are no more minions to play with They Are Coming
+    }
+
+    private static List<Option> playScimitarsWithMithrilMine(DecisionRequest decision, SimulatedGame simulation) {
+        List<Option> options = decision.getOptions();
+        return asAction(firstAvailable(
+                // Activate Mithril Mine
+                () -> findActivate(options, hasFullName(MITHRIL_MINE)),
+                // Attach Goblin Scimitar
+                () -> attachGoblinScimitarToWeakestTarget(decision, simulation)
+        ));
     }
 
     private static Option attachGoblinScimitarToWeakestTarget(DecisionRequest decision, SimulatedGame simulation) {
@@ -593,6 +617,8 @@ public class GandalfShadowPhasePlanner {
                 () -> findActivate(options, hasFullName(GOBLIN_SCAVENGERS)),
                 // Always choose Goblin Scimitar for Goblin Scavengers
                 () -> isArbitraryTargetChoiceFor(decision, GOBLIN_SCAVENGERS) ? findArbitraryTarget(options, GOBLIN_SCIMITAR).get() : null,
+                // Always choose Goblin Scimitar for Mithril Mine
+                () -> isArbitraryTargetChoiceFor(decision, MITHRIL_MINE) ? findArbitraryTarget(options, GOBLIN_SCIMITAR).get() : null,
                 // Always activate Shores of Nen Hithoel if opponent can move again
                 () -> findActivate(options, hasFullName(SHORES_OF_NEN_HITHOEL)) != null && canMoveAgain(simulation.getGame()) ? findActivate(options, hasFullName(SHORES_OF_NEN_HITHOEL)) : null
         ));

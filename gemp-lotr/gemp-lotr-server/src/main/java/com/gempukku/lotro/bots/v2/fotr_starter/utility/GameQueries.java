@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
 import com.gempukku.lotro.bots.v2.simulation.SimulatedGame;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.modifiers.ModifierFlag;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import com.gempukku.lotro.logic.timing.RuleUtils;
 
@@ -82,6 +83,6 @@ public final class GameQueries {
     }
 
     public static boolean canMoveAgain(DefaultLotroGame game) {
-        return game.getGameState().getMoveCount() < RuleUtils.calculateMoveLimit(game);
+        return game.getGameState().getMoveCount() < RuleUtils.calculateMoveLimit(game) && !game.getModifiersQuerying().hasFlagActive(game, ModifierFlag.CANT_MOVE);
     }
 }
