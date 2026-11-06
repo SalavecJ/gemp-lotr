@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.v2.fotr_starter.shadow;
 
+import com.gempukku.lotro.bots.v2.BotLogging;
 import com.gempukku.lotro.bots.v2.decision.option.ActivateCardOption;
 import com.gempukku.lotro.bots.v2.decision.option.Option;
 import com.gempukku.lotro.bots.v2.decision.option.PassOption;
@@ -19,6 +20,7 @@ import java.util.function.Function;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.GameQueries.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.OptionFinders.*;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.*;
 
 public class AragornShadowPhasePlanner {
     private static final String SARUMANS_AMBITION = "Saruman's Ambition";
@@ -30,21 +32,28 @@ public class AragornShadowPhasePlanner {
     public static Plan getPlan(DefaultLotroGame game, String player) {
         // Try playing as many minions as possible, the simulation ends up in the state after the swarm plan
         SimulatedGame swarmSimulation = new SimulatedGame(game);
-        Plan swarmPlan = getSwarmPlan(game, swarmSimulation, player);
+        Plan swarmPlan = getSwarmPlan(swarmSimulation, player);
 
         // Swarm is worth it only if we can outnumber the opponent's companions
-        if (getNumberOfMinionsInPlay(swarmSimulation, player) > getNumberOfCompanionsInPlay(swarmSimulation, game.getGameState().getOpponent(player))) {
+        int minionsMax = getNumberOfMinionsInPlay(swarmSimulation, player);
+        int companionCount = getNumberOfCompanionsInPlay(swarmSimulation, game.getGameState().getOpponent(player));
+        if (minionsMax > companionCount) {
+            BotLogging.log(REASONING, "Swarm plan can outnumber companions, minions: " + minionsMax + ", companions: " + companionCount);
+            BotLogging.log(DEBUG, "Shadow phase plan: Swarm\n" + swarmPlan);
             return swarmPlan;
         }
 
         // If we can't outnumber, try to play the strongest minions
-        return getPlayStrongestMinionsPlan(game, player);
+        Plan strongestPlan = getPlayStrongestMinionsPlan(game, player);
+        BotLogging.log(REASONING, "No other plan worked well, playing the strongest minions");
+        BotLogging.log(DEBUG, "Shadow phase plan: Play Strongest Minions\n" + strongestPlan);
+        return strongestPlan;
     }
 
-    private static Plan getSwarmPlan(DefaultLotroGame game, SimulatedGame swarmSimulation, String player) {
+    private static Plan getSwarmPlan(SimulatedGame swarmSimulation, String player) {
         Comparator<PhysicalCard> cheapestFirst = Comparator.comparingInt((PhysicalCard card) -> card.getBlueprint().getTwilightCost()).reversed();
         // Try to play as many minions as possible, starting with the cheapest ones
-        SimulatedGame basicSimulation = new SimulatedGame(game);
+        SimulatedGame basicSimulation = swarmSimulation.copy();
         Plan basicPlan = runShadowPhase(basicSimulation, player,
                 decision -> chooseMinionOrAcceptResponse(decision, cheapestFirst));
 

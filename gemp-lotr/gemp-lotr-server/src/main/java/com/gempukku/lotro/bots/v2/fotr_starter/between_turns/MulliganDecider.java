@@ -12,6 +12,9 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.REASONING;
+
 public class MulliganDecider {
 
     public static Option decide(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
@@ -30,10 +33,10 @@ public class MulliganDecider {
         for (PhysicalCard physicalCard : hand) {
             builder.append(physicalCard.getBlueprint().getFullName()).append("; ");
         }
-        BotLogging.log(2, builder.toString());
+        BotLogging.log(REASONING, builder.toString());
 
         List<String> cardsToMulliganFor = cardsToMulliganFor(deck, opponentDeck, goingFirst);
-        BotLogging.log(2, "Want to see in hand: " + String.join("; ", cardsToMulliganFor));
+        BotLogging.log(REASONING, "Want to see in hand: " + String.join("; ", cardsToMulliganFor));
 
         List<String> foundCardsToMulliganFor = new ArrayList<>();
         for (String cardToMulliganFor : cardsToMulliganFor) {
@@ -45,9 +48,9 @@ public class MulliganDecider {
         boolean mulligan = false;
 
         if (!foundCardsToMulliganFor.isEmpty()) {
-            BotLogging.log(2, "No mulligan - found cards in hand: " + String.join("; ", foundCardsToMulliganFor));
+            BotLogging.log(DEBUG, "No mulligan - found cards in hand: " + String.join("; ", foundCardsToMulliganFor));
         } else {
-            BotLogging.log(2, "Mulligan - did not find any of the desired cards in hand");
+            BotLogging.log(DEBUG, "Mulligan - did not find any of the desired cards in hand");
             mulligan = true;
         }
 

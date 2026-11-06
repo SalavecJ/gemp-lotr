@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
 
+import com.gempukku.lotro.bots.v2.BotLogging;
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
@@ -18,6 +19,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.GameQueries.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.OptionFinders.*;
@@ -60,7 +62,9 @@ public class GandalfFellowshipPhasePlanner {
             nextDecision = simulatedGame.getDecisionRequest(player);
         }
 
-        return new SimplePlan(actionsToTake);
+        Plan plan = new SimplePlan(actionsToTake);
+        BotLogging.log(DEBUG, "Fellowship phase plan:\n" + plan);
+        return plan;
     }
 
     private record FellowshipRule(Option option, BooleanSupplier condition) {

@@ -5,6 +5,8 @@ import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
 import com.gempukku.lotro.bots.v2.simulation.SimulatedGame;
 import com.gempukku.lotro.common.CardType;
 import com.gempukku.lotro.game.PhysicalCard;
+import com.gempukku.lotro.logic.timing.DefaultLotroGame;
+import com.gempukku.lotro.logic.timing.RuleUtils;
 
 import java.util.function.Predicate;
 
@@ -25,8 +27,11 @@ public final class GameQueries {
     }
 
     public static boolean isInPlay(SimulatedGame simulatedGame, String fullName, String player) {
-        return simulatedGame.getGame().getGameState().getInPlay().stream()
-                .filter(card -> card.getOwner().equals(player))
+        return getNumberOfCardsInPlay(simulatedGame, fullName, player) > 0;
+    }
+
+    public static boolean isInHand(SimulatedGame simulatedGame, String fullName, String player) {
+        return simulatedGame.getGame().getGameState().getHand(player).stream()
                 .anyMatch(hasFullName(fullName));
     }
 
@@ -37,6 +42,14 @@ public final class GameQueries {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(fullName + " not in play"));
         return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), character);
+    }
+
+    public static int getTotalCompanionVitality(SimulatedGame simulatedGame, String player) {
+        return simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(hasCardType(CardType.COMPANION))
+                .filter(card -> card.getOwner().equals(player))
+                .mapToInt(card -> simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), card))
+                .sum();
     }
 
     public static boolean hasWoundedCompanion(SimulatedGame simulatedGame, String player, Predicate<PhysicalCard> companionFilter) {
@@ -54,10 +67,21 @@ public final class GameQueries {
                 .count();
     }
 
+    public static int getNumberOfCardsInPlay(SimulatedGame simulatedGame, String fullName, String player) {
+        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(card -> card.getOwner().equals(player))
+                .filter(hasFullName(fullName))
+                .count();
+    }
+
     public static int getNumberOfCompanionsInPlay(SimulatedGame simulatedGame, String player) {
         return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(hasCardType(CardType.COMPANION))
                 .filter(card -> card.getOwner().equals(player))
                 .count();
+    }
+
+    public static boolean canMoveAgain(DefaultLotroGame game) {
+        return game.getGameState().getMoveCount() < RuleUtils.calculateMoveLimit(game);
     }
 }

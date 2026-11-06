@@ -5,6 +5,8 @@ import com.gempukku.lotro.bots.v2.decision.option.Option;
 import com.gempukku.lotro.bots.v2.decision.option.StartingPositionOption;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+
 public class StartingPositionChooser {
 
     public static Option choosePosition(DecisionRequest decisionRequest) {
@@ -15,7 +17,7 @@ public class StartingPositionChooser {
         for (Option option : decisionRequest.getOptions()) {
             StartingPositionOption startingPositionOption = (StartingPositionOption) option;
             if (startingPositionOption.getStartingPosition() == 1) {
-                BotLogging.log(2, "Always choose to go first");
+                BotLogging.log(DEBUG, "Always choose to go first");
                 return startingPositionOption;
             }
         }

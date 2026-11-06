@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.REASONING;
+
 public class SanctuaryPlanner {
 
     public static Plan getPlan(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
@@ -25,24 +28,28 @@ public class SanctuaryPlanner {
 
         Map<PhysicalCard, Integer> wounds = getCompanionsWoundsMap(game, player);
         int totalWounds = wounds.values().stream().mapToInt(Integer::intValue).sum();
-        BotLogging.log(2, "Total wounds: " + totalWounds + ", heal amount: " + healAmount);
+        BotLogging.log(REASONING, "Total wounds: " + totalWounds + ", heal amount: " + healAmount);
 
         if (totalWounds <= healAmount) {
-            return getHealAllPlan(game, player);
+            Plan plan = getHealAllPlan(game, player);
+            BotLogging.log(DEBUG, "Sanctuary plan:\n" + plan);
+            return plan;
         }
 
-        wounds.forEach((physicalCard, woundCount) -> BotLogging.log(2, physicalCard.getBlueprint().getFullName() + "; " + woundCount + " wounds"));
+        wounds.forEach((physicalCard, woundCount) -> BotLogging.log(REASONING, physicalCard.getBlueprint().getFullName() + "; " + woundCount + " wounds"));
         int woundsToStay = totalWounds - healAmount;
-        BotLogging.log(2, "Wounds to stay: " + woundsToStay);
+        BotLogging.log(REASONING, "Wounds to stay: " + woundsToStay);
 
         Map<PhysicalCard, Integer> canHealLater = getCanHealLaterMap(game, player);
         canHealLater.forEach((physicalCard, integer) -> {
             if (integer > 0) {
-                BotLogging.log(2, physicalCard.getBlueprint().getFullName() + "; can heal later: " + integer);
+                BotLogging.log(REASONING, physicalCard.getBlueprint().getFullName() + "; can heal later: " + integer);
             }
         });
 
-        return getHealPlan(game, player);
+        Plan plan = getHealPlan(game, player);
+        BotLogging.log(DEBUG, "Sanctuary plan:\n" + plan);
+        return plan;
     }
 
     private static Map<PhysicalCard, Integer> getCompanionsWoundsMap(DefaultLotroGame game, String player) {

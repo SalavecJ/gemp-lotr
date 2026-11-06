@@ -3,6 +3,7 @@ package com.gempukku.lotro.bots.v2.fotr_starter.utility;
 import com.gempukku.lotro.bots.v2.fotr_starter.DeckRecognizer;
 import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
 import com.gempukku.lotro.common.CardType;
+import com.gempukku.lotro.common.Side;
 import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
@@ -56,6 +57,13 @@ public class DeadCardEvaluator {
             } else if (deadCard.getBlueprint().getTitle().equals("Boromir")) {
                 boromirDead = true;
             }
+        }
+
+        // FP cards cannot be played if player is the Shadow player and opponent is on site 9
+        if (game.getGameState().getCurrentSiteNumber() == 9 &&
+                !game.getGameState().getCurrentPlayerId().equals(player) &&
+                card.getBlueprint().getSide() == Side.FREE_PEOPLE) {
+            return true;
         }
 
         // companions cannot be played if another copy is in dead pile already

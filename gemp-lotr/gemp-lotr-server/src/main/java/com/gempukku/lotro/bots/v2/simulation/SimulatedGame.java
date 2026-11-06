@@ -38,4 +38,9 @@ public class SimulatedGame {
     public DefaultLotroGame getGame() {
         return copy;
     }
+
+    public SimulatedGame copy() {
+        return new SimulatedGame(copy);
+    }
+
 }

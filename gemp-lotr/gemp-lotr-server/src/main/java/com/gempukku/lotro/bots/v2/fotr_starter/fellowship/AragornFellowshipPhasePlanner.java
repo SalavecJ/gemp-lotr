@@ -1,5 +1,6 @@
 package com.gempukku.lotro.bots.v2.fotr_starter.fellowship;
 
+import com.gempukku.lotro.bots.v2.BotLogging;
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 import com.gempukku.lotro.bots.v2.fotr_starter.FotrStarterDeck;
@@ -18,6 +19,7 @@ import java.util.function.Predicate;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.GameQueries.*;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.OptionFinders.*;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.*;
 
 public class AragornFellowshipPhasePlanner {
     private static final String FRODO = "Frodo, Son of Drogo";
@@ -60,7 +62,9 @@ public class AragornFellowshipPhasePlanner {
             nextDecision = simulatedGame.getDecisionRequest(player);
         }
 
-        return new SimplePlan(actionsToTake);
+        Plan plan = new SimplePlan(actionsToTake);
+        BotLogging.log(DEBUG, "Fellowship phase plan:\n" + plan);
+        return plan;
     }
 
     private record FellowshipRule(Option option, BooleanSupplier condition) {

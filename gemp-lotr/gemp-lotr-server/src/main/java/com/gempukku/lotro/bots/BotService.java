@@ -133,7 +133,7 @@ public class BotService {
         }
 
         if (START_NEW_BOT_SIMULATION_AT_STARTUP) {
-            BotLogging.setLogLevel(2);
+            BotLogging.setLogLevel(BotLogging.LogLevel.REASONING);
             System.out.println("Random vs V2");
             startFotrStartersSimulation(
                     new RandomDecisionBot("~randomBot"),

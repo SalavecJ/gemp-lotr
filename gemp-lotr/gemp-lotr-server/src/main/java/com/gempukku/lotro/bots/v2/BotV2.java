@@ -10,6 +10,9 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.List;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.ERROR;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.INFO;
+
 public class BotV2 implements BotPlayer {
     private final String botName;
     private final Decider decider;
@@ -24,20 +27,20 @@ public class BotV2 implements BotPlayer {
         try {
             DecisionRequest decisionRequest = DecisionRequestFactory.create(game, awaitingDecision);
 
-            BotLogging.log(1, game.getGameState().getCurrentPhase() + ": " + decisionRequest.toString(), true);
+            BotLogging.log(INFO, game.getGameState().getCurrentPhase() + ": " + decisionRequest, true);
 
             List<Option> chosenOptions = decider.decide(decisionRequest, game, botName);
             if (chosenOptions.isEmpty()) {
                 throw new IllegalStateException("No options chosen for decision: " + awaitingDecision.toJson().toString());
             } else if (chosenOptions.size() == 1) {
-                BotLogging.log(1, "Chosen option: " + chosenOptions.getFirst());
+                BotLogging.log(INFO, "Chosen option: " + chosenOptions.getFirst());
                 return chosenOptions.getFirst().getAnswerForGame();
             } else {
-                BotLogging.log(1, "Chosen options: " + chosenOptions);
+                BotLogging.log(INFO, "Chosen options: " + chosenOptions);
                 return decisionRequest.combineSelected(chosenOptions);
             }
         } catch (Exception e) {
-            BotLogging.log(1, e.getMessage(), true);
+            BotLogging.log(ERROR, "Error while processing decision: " + awaitingDecision.toJson().toString() + "\n" + e.getMessage(), true);
             throw new UnsupportedOperationException("Error while processing decision: " + awaitingDecision.toJson().toString(), e);
 //            return new RandomDecisionBot(botName).chooseAction(game, awaitingDecision);
         }

@@ -10,6 +10,9 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.List;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.REASONING;
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+
 public class BurdenBidder {
 
     public static Option bid(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
@@ -33,8 +36,8 @@ public class BurdenBidder {
         }
 
         int randomIndex = (int) (Math.random() * optionList.size());
-        BotLogging.log(2, "Maximum burdens to bid " + max + " for " + deck);
-        BotLogging.log(2, "Random bid in range: " + optionList.get(randomIndex).getBid());
+        BotLogging.log(REASONING, "Maximum burdens to bid " + max + " for " + deck);
+        BotLogging.log(DEBUG, "Random bid: " + optionList.get(randomIndex).getBid());
         return optionList.get(randomIndex);
     }
 }

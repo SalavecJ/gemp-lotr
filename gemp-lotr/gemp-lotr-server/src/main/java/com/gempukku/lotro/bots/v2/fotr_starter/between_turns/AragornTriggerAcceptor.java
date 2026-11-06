@@ -7,6 +7,8 @@ import com.gempukku.lotro.bots.v2.decision.option.PassOption;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+
 public class AragornTriggerAcceptor {
     private static final String ARAGORN = "Aragorn, King in Exile";
     private static final String SAM = "Sam, Son of Hamfast";
@@ -34,10 +36,10 @@ public class AragornTriggerAcceptor {
                 .anyMatch(c -> game.getGameState().getWounds(c) > 0);
 
         if (woundedSamInPlay) {
-            BotLogging.log(2, "Activate Aragorn to heal Sam");
+            BotLogging.log(DEBUG, "Activate Aragorn to heal Sam");
             return activateAragornOption;
         } else {
-            BotLogging.log(2, "Pass - no wounded Sam in play");
+            BotLogging.log(DEBUG, "Pass - no wounded Sam in play");
             return passOption;
         }
     }

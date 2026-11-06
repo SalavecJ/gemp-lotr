@@ -11,6 +11,8 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.List;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+
 public class StartingCompanionChooser {
 
     public static Option chooseStartingCompanion(DecisionRequest decisionRequest, DefaultLotroGame game, String player) {
@@ -33,11 +35,11 @@ public class StartingCompanionChooser {
 
         for (StartingCompanionOption startingCompanionOption : startingCompanionOptions) {
             if (startingCompanionOption.getBlueprint().getFullName().contains("Aragorn") && isPlayingAragornDeck) {
-                BotLogging.log(2, deck + " starts with " + startingCompanionOption.getBlueprint().getFullName());
+                BotLogging.log(DEBUG, deck + " starts with " + startingCompanionOption.getBlueprint().getFullName());
                 return startingCompanionOption;
             }
             if (startingCompanionOption.getBlueprint().getFullName().contains("Gandalf") && isPlayingGandalfDeck) {
-                BotLogging.log(2, deck + " starts with " + startingCompanionOption.getBlueprint().getFullName());
+                BotLogging.log(DEBUG, deck + " starts with " + startingCompanionOption.getBlueprint().getFullName());
                 return startingCompanionOption;
             }
         }

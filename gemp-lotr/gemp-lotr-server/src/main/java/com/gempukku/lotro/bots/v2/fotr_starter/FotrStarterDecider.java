@@ -19,6 +19,8 @@ import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.gempukku.lotro.bots.v2.BotLogging.LogLevel.DEBUG;
+
 public class FotrStarterDecider implements Decider {
     private Plan currentPlan = null;
 
@@ -40,7 +42,7 @@ public class FotrStarterDecider implements Decider {
         // check plan
         if (currentPlan != null && !currentPlan.isComplete()) {
             List<Option> nextAction = currentPlan.nextAction(decisionRequest);
-            BotLogging.log(2, "Choosing planned action");
+            BotLogging.log(DEBUG, "Choosing planned action");
             return nextAction;
         }
 
@@ -58,7 +60,6 @@ public class FotrStarterDecider implements Decider {
             return List.of(MulliganDecider.decide(decisionRequest, game, player));
         } else if (decisionRequest.isSanctuaryHealDecision()) {
             currentPlan = SanctuaryPlanner.getPlan(decisionRequest, game, player);
-            BotLogging.log(2, "Sanctuary plan:\n" + currentPlan);
             return decide(decisionRequest, game, player);
         } else if (game.getGameState().getCurrentPhase() == Phase.BETWEEN_TURNS && decisionRequest.isOptionalResponsesDecision()) {
             return List.of(AragornTriggerAcceptor.decide(decisionRequest, game, player));
@@ -67,19 +68,16 @@ public class FotrStarterDecider implements Decider {
         // fellowship phase
         if (decisionRequest.isFellowshipPhaseDecision()) {
             currentPlan = FellowshipPhasePlanner.getPlan(game, player);
-            BotLogging.log(2, "Fellowship phase plan:\n" + currentPlan);
             return decide(decisionRequest, game, player);
         }
 
         // shadow phase
         if (decisionRequest.isShadowPhaseDecision()) {
             currentPlan = ShadowPhasePlanner.getPlan(game, player);
-            //TODO remove null check when other part is implemented
-            if (currentPlan != null) {
-                BotLogging.log(2, "Shadow phase plan:\n" + currentPlan);
-                return decide(decisionRequest, game, player);
-            }
+            return decide(decisionRequest, game, player);
         }
+
+        BotLogging.log(DEBUG, "Choosing action randomly");
 
         if (decisionRequest instanceof AssignMinionsDecisionRequest assignMinionsDecisionRequest) {
             return randomlyDecideAssignment(assignMinionsDecisionRequest);
