@@ -47,6 +47,10 @@ public abstract class DecisionRequest {
         return getText().equals("Play Maneuver action or Pass");
     }
 
+    public boolean isArcheryPhaseDecision() {
+        return getText().equals("Play Archery action or Pass");
+    }
+
     public boolean isBurdenBidDecision() {
         return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
     }
@@ -84,7 +88,8 @@ public abstract class DecisionRequest {
     }
 
     public boolean isOptionalResponsesDecision() {
-        return this instanceof CardActionSelectionDecisionRequest && getText().equals(CardActionSelectionDecisionRequest.OPTIONAL_TRIGGER_RESPONSES_TEXT);
+        return this instanceof CardActionSelectionDecisionRequest
+                && (getText().equals(CardActionSelectionDecisionRequest.OPTIONAL_TRIGGER_RESPONSES_TEXT) || getText().endsWith(CardActionSelectionDecisionRequest.RESPONSES_KEYWORD_SUFFIX));
     }
 
     public PhysicalCard getSource() {

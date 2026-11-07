@@ -36,6 +36,20 @@ public final class OptionFinders {
                 .orElse(null);
     }
 
+    public static List<PhysicalCard> getArcheryTargets(List<Option> options) {
+        return options.stream()
+                .filter(option -> option instanceof ArcheryWoundOption)
+                .map(option -> ((ArcheryWoundOption) option).getTarget())
+                .toList();
+    }
+
+    public static Option findOptionForArcheryTarget(List<Option> options, PhysicalCard target) {
+        return options.stream()
+                .filter(option -> option instanceof ArcheryWoundOption archeryWoundOption && archeryWoundOption.getTarget().getCardId() == target.getCardId())
+                .findFirst()
+                .orElse(null);
+    }
+
     public static List<PhysicalCard> getTargets(List<Option> options) {
         return options.stream()
                 .filter(option -> option instanceof ChooseTargetForCardOption)

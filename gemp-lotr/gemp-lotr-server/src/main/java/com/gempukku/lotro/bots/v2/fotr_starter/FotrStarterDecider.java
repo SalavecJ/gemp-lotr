@@ -5,6 +5,7 @@ import com.gempukku.lotro.bots.v2.decision.Decider;
 import com.gempukku.lotro.bots.v2.decision.option.*;
 import com.gempukku.lotro.bots.v2.decision.request.AssignMinionsDecisionRequest;
 import com.gempukku.lotro.bots.v2.decision.request.DecisionRequest;
+import com.gempukku.lotro.bots.v2.fotr_starter.archery.ArcheryPhasePlanner;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.AragornTriggerAcceptor;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.MulliganDecider;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.SanctuaryPlanner;
@@ -81,6 +82,13 @@ public class FotrStarterDecider implements Decider {
         // maneuver phase
         if (decisionRequest.isManeuverPhaseDecision()) {
             currentPlan = ManeuverPhasePlanner.getPlan(decisionRequest, game, player);
+            return decide(decisionRequest, game, player);
+        }
+
+        // archery phase
+        if (decisionRequest.isArcheryPhaseDecision()
+                || decisionRequest.getOptions().stream().allMatch(option -> option instanceof ArcheryWoundOption)) {
+            currentPlan = ArcheryPhasePlanner.getPlan(decisionRequest, game, player);
             return decide(decisionRequest, game, player);
         }
 

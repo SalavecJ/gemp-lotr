@@ -20,6 +20,10 @@ public final class GameQueries {
     private GameQueries() {
     }
 
+    public static FotrStarterDeck getDeck(SimulatedGame simulatedGame, String player) {
+        return DeckRecognizer.recognize(simulatedGame.getGame().getGameState().getLotroDeck(player));
+    }
+
     public static FotrStarterDeck getOpponentDeck(SimulatedGame simulatedGame, String player) {
         return DeckRecognizer.recognize(simulatedGame.getGame().getGameState().getLotroDeck(simulatedGame.getGame().getGameState().getOpponent(player)));
     }
@@ -38,20 +42,38 @@ public final class GameQueries {
                 .anyMatch(hasFullName(fullName));
     }
 
+    public static int getStrength(SimulatedGame simulatedGame, String fullName, String player) {
+        PhysicalCard character = simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(hasFullName(fullName))
+                .filter(card -> card.getOwner().equals(player))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(fullName + " not in play"));
+        return getStrength(simulatedGame, character);
+    }
+
+    public static int getStrength(SimulatedGame simulatedGame, PhysicalCard physicalCard) {
+        return simulatedGame.getGame().getModifiersQuerying().getStrength(simulatedGame.getGame(), physicalCard);
+    }
+
+
     public static int getVitality(SimulatedGame simulatedGame, String fullName, String player) {
         PhysicalCard character = simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(hasFullName(fullName))
                 .filter(card -> card.getOwner().equals(player))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(fullName + " not in play"));
-        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), character);
+        return getVitality(simulatedGame, character);
+    }
+
+    public static int getVitality(SimulatedGame simulatedGame, PhysicalCard physicalCard) {
+        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), physicalCard);
     }
 
     public static int getTotalCompanionVitality(SimulatedGame simulatedGame, String player) {
         return simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(hasCardType(CardType.COMPANION))
                 .filter(card -> card.getOwner().equals(player))
-                .mapToInt(card -> simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), card))
+                .mapToInt(card -> getVitality(simulatedGame, card))
                 .sum();
     }
 
@@ -82,10 +104,14 @@ public final class GameQueries {
     }
 
     public static int getNumberOfCompanionsInPlay(SimulatedGame simulatedGame, String player) {
-        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+        return getCompanionsInPlay(simulatedGame, player).size();
+    }
+
+    public static List<PhysicalCard> getCompanionsInPlay(SimulatedGame simulatedGame, String player) {
+        return simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(hasCardType(CardType.COMPANION))
                 .filter(card -> card.getOwner().equals(player))
-                .count();
+                .collect(Collectors.toList());
     }
 
     public static boolean canMoveAgain(DefaultLotroGame game) {
