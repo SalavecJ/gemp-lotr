@@ -51,7 +51,6 @@ public class GandalfShadowPhasePlanner {
         int ourSiteNumber = game.getGameState().getPlayerPosition(player);
         PhysicalCard currentSite = game.getGameState().getCurrentSite();
         boolean opponentCanMoveAgain = canMoveAgain(game);
-        BotLogging.log(DEBUG, "Shadow phase planning for site " + currentSite.getBlueprint().getSiteNumber() + ": " + currentSite.getBlueprint().getFullName());
 
         // Try playing as many archer minions as possible, then as many other minions as possible
         SimulatedGame archerySimulation = new SimulatedGame(game);

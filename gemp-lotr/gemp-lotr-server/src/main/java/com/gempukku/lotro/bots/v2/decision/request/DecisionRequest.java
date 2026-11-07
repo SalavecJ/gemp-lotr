@@ -43,6 +43,10 @@ public abstract class DecisionRequest {
         return getText().equals("Play Shadow action or Pass");
     }
 
+    public boolean isManeuverPhaseDecision() {
+        return getText().equals("Play Maneuver action or Pass");
+    }
+
     public boolean isBurdenBidDecision() {
         return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
     }

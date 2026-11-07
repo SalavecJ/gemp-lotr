@@ -9,6 +9,7 @@ import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.AragornTriggerAccep
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.MulliganDecider;
 import com.gempukku.lotro.bots.v2.fotr_starter.between_turns.SanctuaryPlanner;
 import com.gempukku.lotro.bots.v2.fotr_starter.fellowship.FellowshipPhasePlanner;
+import com.gempukku.lotro.bots.v2.fotr_starter.maneuver.ManeuverPhasePlanner;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
@@ -74,6 +75,12 @@ public class FotrStarterDecider implements Decider {
         // shadow phase
         if (decisionRequest.isShadowPhaseDecision()) {
             currentPlan = ShadowPhasePlanner.getPlan(game, player);
+            return decide(decisionRequest, game, player);
+        }
+
+        // maneuver phase
+        if (decisionRequest.isManeuverPhaseDecision()) {
+            currentPlan = ManeuverPhasePlanner.getPlan(decisionRequest, game, player);
             return decide(decisionRequest, game, player);
         }
 

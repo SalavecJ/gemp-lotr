@@ -9,7 +9,9 @@ import com.gempukku.lotro.logic.modifiers.ModifierFlag;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 import com.gempukku.lotro.logic.timing.RuleUtils;
 
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.hasCardType;
 import static com.gempukku.lotro.bots.v2.fotr_starter.utility.CardPredicates.hasFullName;
@@ -62,10 +64,14 @@ public final class GameQueries {
     }
 
     public static int getNumberOfMinionsInPlay(SimulatedGame simulatedGame, String player) {
-        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+        return getMinionsInPlay(simulatedGame, player).size();
+    }
+
+    public static List<PhysicalCard> getMinionsInPlay(SimulatedGame simulatedGame, String player) {
+        return simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(hasCardType(CardType.MINION))
                 .filter(card -> card.getOwner().equals(player))
-                .count();
+                .collect(Collectors.toList());
     }
 
     public static int getNumberOfCardsInPlay(SimulatedGame simulatedGame, String fullName, String player) {

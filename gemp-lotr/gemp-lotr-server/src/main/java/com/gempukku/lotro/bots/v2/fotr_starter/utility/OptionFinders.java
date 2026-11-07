@@ -57,6 +57,13 @@ public final class OptionFinders {
                 .orElse(null);
     }
 
+    public static Option findTargetWithId(List<Option> options, int id) {
+        return options.stream()
+                .filter(option -> option instanceof ChooseTargetForCardOption chooseTargetForCardOption && chooseTargetForCardOption.getTarget().getCardId() == id)
+                .findFirst()
+                .orElse(null);
+    }
+
     public static Option requireTargetWithFullName(List<Option> options, String fullName, String errorMessage) {
         Option option = findTargetWithFullName(options, fullName);
         if (option == null) {
