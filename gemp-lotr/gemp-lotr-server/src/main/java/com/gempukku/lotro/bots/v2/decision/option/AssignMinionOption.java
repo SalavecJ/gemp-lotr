@@ -8,11 +8,15 @@ public class AssignMinionOption extends Option {
 
     private final PhysicalCard fpCharacter;
     private final PhysicalCard minion;
+    private final int fpCharacterCardId;
+    private final int minionCardId;
 
     public AssignMinionOption(PhysicalCard fpCharacter, PhysicalCard minion) {
         super(getHumanReadableOption(fpCharacter, minion), fpCharacter != null ? fpCharacter.getCardId() + " " + minion.getCardId() : "");
         this.fpCharacter = fpCharacter;
         this.minion = minion;
+        this.fpCharacterCardId = fpCharacter == null ? -1 : fpCharacter.getCardId();
+        this.minionCardId = minion.getCardId();
     }
 
     private static String getHumanReadableOption(PhysicalCard fpCharacter, PhysicalCard minion) {
@@ -36,16 +40,16 @@ public class AssignMinionOption extends Option {
         if (o == null || getClass() != o.getClass()) return false;
         AssignMinionOption that = (AssignMinionOption) o;
         if (fpCharacter == null) {
-            return Objects.equals(null, that.fpCharacter) && Objects.equals(minion.getCardId(), that.minion.getCardId());
+            return Objects.equals(null, that.fpCharacter) && Objects.equals(minionCardId, that.minionCardId);
         }
-        return Objects.equals(fpCharacter.getCardId(), that.fpCharacter.getCardId()) && Objects.equals(minion.getCardId(), that.minion.getCardId());
+        return Objects.equals(fpCharacterCardId, that.fpCharacterCardId) && Objects.equals(minionCardId, that.minionCardId);
     }
 
     @Override
     public int hashCode() {
         if (fpCharacter == null) {
-            return Objects.hash(null, minion.getCardId());
+            return Objects.hash(null, minionCardId);
         }
-        return Objects.hash(fpCharacter.getCardId(), minion.getCardId());
+        return Objects.hash(fpCharacterCardId, minionCardId);
     }
 }

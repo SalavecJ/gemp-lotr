@@ -43,6 +43,38 @@ public final class OptionFinders {
                 .toList();
     }
 
+    public static AssignMinionOption findAssignToFpCharacter(List<Option> options, PhysicalCard character) {
+        return options.stream()
+                .filter(option -> option instanceof AssignMinionOption assignMinionOption && assignMinionOption.getFpCharacter().getCardId() == character.getCardId())
+                .map(option -> (AssignMinionOption) option)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static AssignMinionOption findDoNotAssignOption(List<Option> options) {
+        return options.stream()
+                .filter(option -> option instanceof AssignMinionOption assignMinionOption && assignMinionOption.getFpCharacter() == null)
+                .map(option -> (AssignMinionOption) option)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static AssignMinionOption findAssignToOtherFpCharacter(List<Option> options, PhysicalCard character) {
+        return options.stream()
+                .filter(option -> option instanceof AssignMinionOption assignMinionOption && assignMinionOption.getFpCharacter().getCardId() != character.getCardId())
+                .map(option -> (AssignMinionOption) option)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public static NextSkirmishOption findNextSkirmish(List<Option> options, PhysicalCard character) {
+        return options.stream()
+                .filter(option -> option instanceof NextSkirmishOption nextSkirmishOption && nextSkirmishOption.getFpCard().getCardId() == character.getCardId())
+                .map(option -> (NextSkirmishOption) option)
+                .findFirst()
+                .orElse(null);
+    }
+
     public static Option findOptionForArcheryTarget(List<Option> options, PhysicalCard target) {
         return options.stream()
                 .filter(option -> option instanceof ArcheryWoundOption archeryWoundOption && archeryWoundOption.getTarget().getCardId() == target.getCardId())

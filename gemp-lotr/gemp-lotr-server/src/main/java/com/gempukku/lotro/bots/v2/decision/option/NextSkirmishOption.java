@@ -6,10 +6,12 @@ import com.gempukku.lotro.game.state.Assignment;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
 import java.util.List;
+import java.util.Objects;
 
 public class NextSkirmishOption extends Option {
     private final PhysicalCard fpCard;
     private final List<PhysicalCard> shadowCards;
+    private final int fpCardId;
 
 
     public NextSkirmishOption(PhysicalCard physicalCard, DefaultLotroGame game) {
@@ -19,6 +21,7 @@ public class NextSkirmishOption extends Option {
                 .filter(assignment -> assignment.getFellowshipCharacter().getCardId() == physicalCard.getCardId())
                 .flatMap(assignment -> assignment.getShadowCharacters().stream())
                 .toList();
+        fpCardId = physicalCard.getCardId();
     }
 
     private static String getHumanReadableOption(PhysicalCard physicalCard, DefaultLotroGame game) {
@@ -38,5 +41,17 @@ public class NextSkirmishOption extends Option {
 
     public List<PhysicalCard> getShadowCards() {
         return shadowCards;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        NextSkirmishOption that = (NextSkirmishOption) o;
+        return fpCardId == that.fpCardId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(fpCardId);
     }
 }

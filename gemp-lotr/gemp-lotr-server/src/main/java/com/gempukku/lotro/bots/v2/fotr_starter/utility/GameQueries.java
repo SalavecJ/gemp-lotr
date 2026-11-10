@@ -37,6 +37,10 @@ public final class GameQueries {
         return getNumberOfCardsInPlay(simulatedGame, fullName, player) > 0;
     }
 
+    public static boolean isInPlay(SimulatedGame simulatedGame, PhysicalCard physicalCard) {
+        return getNumberOfCardsInPlay(simulatedGame, physicalCard) > 0;
+    }
+
     public static boolean isInHand(SimulatedGame simulatedGame, String fullName, String player) {
         return simulatedGame.getGame().getGameState().getHand(player).stream()
                 .anyMatch(hasFullName(fullName));
@@ -66,7 +70,12 @@ public final class GameQueries {
     }
 
     public static int getVitality(SimulatedGame simulatedGame, PhysicalCard physicalCard) {
-        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), physicalCard);
+        PhysicalCard character = simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(card -> card.getCardId() == physicalCard.getCardId())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(physicalCard.getBlueprint().getFullName() + " not in play with id " + physicalCard.getCardId()));
+
+        return simulatedGame.getGame().getModifiersQuerying().getVitality(simulatedGame.getGame(), character);
     }
 
     public static int getTotalCompanionVitality(SimulatedGame simulatedGame, String player) {
@@ -100,6 +109,12 @@ public final class GameQueries {
         return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
                 .filter(card -> card.getOwner().equals(player))
                 .filter(hasFullName(fullName))
+                .count();
+    }
+
+    public static int getNumberOfCardsInPlay(SimulatedGame simulatedGame, PhysicalCard physicalCard) {
+        return (int) simulatedGame.getGame().getGameState().getInPlay().stream()
+                .filter(card -> card.getCardId() == physicalCard.getCardId())
                 .count();
     }
 

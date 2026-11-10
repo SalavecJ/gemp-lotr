@@ -6,10 +6,7 @@ import com.gempukku.lotro.game.PhysicalCard;
 import com.gempukku.lotro.logic.decisions.PlayerAssignMinionsDecision;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class AssignMinionsDecisionRequest extends DecisionRequest {
@@ -45,6 +42,7 @@ public class AssignMinionsDecisionRequest extends DecisionRequest {
             PhysicalCard card = game.getGameState().getPhysicalCard(Integer.parseInt(minionCharacter));
             minions.add(card);
         }
+        minions.sort(Comparator.comparingInt(PhysicalCard::getCardId));
 
         for (PhysicalCard fpCharacter : fpCharacters) {
             assignments.put(fpCharacter, new ArrayList<>());

@@ -51,6 +51,18 @@ public abstract class DecisionRequest {
         return getText().equals("Play Archery action or Pass");
     }
 
+    public boolean isAssignmentPhaseDecision() {
+        return getText().equals("Play Assignment action or Pass");
+    }
+
+    public boolean isAssignmentDecision() {
+        return this instanceof AssignMinionsDecisionRequest;
+    }
+
+    public boolean isNextSkirmishDecision() {
+        return getOptions().stream().allMatch(option -> option instanceof NextSkirmishOption);
+    }
+
     public boolean isBurdenBidDecision() {
         return getOptions().stream().allMatch(option -> option instanceof BurdenBidOption);
     }
@@ -90,6 +102,10 @@ public abstract class DecisionRequest {
     public boolean isOptionalResponsesDecision() {
         return this instanceof CardActionSelectionDecisionRequest
                 && (getText().equals(CardActionSelectionDecisionRequest.OPTIONAL_TRIGGER_RESPONSES_TEXT) || getText().endsWith(CardActionSelectionDecisionRequest.RESPONSES_KEYWORD_SUFFIX));
+    }
+
+    public boolean isRequiredResponsesDecision() {
+        return this instanceof ActionChoiceDecisionRequest;
     }
 
     public PhysicalCard getSource() {

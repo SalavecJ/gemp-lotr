@@ -15,6 +15,7 @@ import com.gempukku.lotro.bots.v2.fotr_starter.pregame.BurdenBidder;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingCompanionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.pregame.StartingPositionChooser;
 import com.gempukku.lotro.bots.v2.fotr_starter.shadow.ShadowPhasePlanner;
+import com.gempukku.lotro.bots.v2.fotr_starter.skirmish.SkirmishPlanner;
 import com.gempukku.lotro.common.Phase;
 import com.gempukku.lotro.logic.timing.DefaultLotroGame;
 
@@ -43,9 +44,8 @@ public class FotrStarterDecider implements Decider {
 
         // check plan
         if (currentPlan != null && !currentPlan.isComplete()) {
-            List<Option> nextAction = currentPlan.nextAction(decisionRequest);
             BotLogging.log(DEBUG, "Choosing planned action");
-            return nextAction;
+            return currentPlan.nextAction(decisionRequest);
         }
 
         // pregame decisions
@@ -90,6 +90,15 @@ public class FotrStarterDecider implements Decider {
                 || decisionRequest.getOptions().stream().allMatch(option -> option instanceof ArcheryWoundOption)) {
             currentPlan = ArcheryPhasePlanner.getPlan(decisionRequest, game, player);
             return decide(decisionRequest, game, player);
+        }
+
+        // assignment and skirmish
+        if (game.getGameState().getCurrentPhase() == Phase.ASSIGNMENT || game.getGameState().getCurrentPhase() == Phase.SKIRMISH) {
+            currentPlan = SkirmishPlanner.getPlan(game, player);
+            //TODO remove
+            if (currentPlan != null) {
+                return decide(decisionRequest, game, player);
+            }
         }
 
         BotLogging.log(DEBUG, "Choosing action randomly");
